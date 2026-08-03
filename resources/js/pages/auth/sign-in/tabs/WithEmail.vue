@@ -189,25 +189,34 @@ export default defineComponent({
   pointer-events: none;
 }
 
-.auth-field__input {
+.auth-form .auth-field__input {
   width: 100%;
-  border: 1.4px solid #e4dfd3;
-  background: #ffffff;
+  border: 1.4px solid #e4dfd3 !important;
+  background: #ffffff !important;
   border-radius: 10px;
   padding: 12px 14px;
   font-size: 14.5px;
   font-family: "Manrope", sans-serif;
-  color: #152238;
+  color: #152238 !important;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: none !important;
 }
-.auth-field__input::placeholder { color: #a8a29a; }
-.auth-field__input:focus {
+.auth-form .auth-field__input::placeholder { color: #a8a29a; }
+.auth-form .auth-field__input:focus {
   outline: none;
-  border-color: #d98e3f;
-  box-shadow: 0 0 0 3px rgba(217, 142, 63, 0.16);
+  border-color: #d98e3f !important;
+  box-shadow: 0 0 0 3px rgba(217, 142, 63, 0.16) !important;
 }
-.auth-field__input--icon { padding-left: 38px; }
-.auth-field__input--icon-right { padding-right: 42px; }
+.auth-form .auth-field__input--icon { padding-left: 38px; }
+.auth-form .auth-field__input--icon-right { padding-right: 42px; }
+
+.auth-form .auth-field__input:-webkit-autofill,
+.auth-form .auth-field__input:-webkit-autofill:hover,
+.auth-form .auth-field__input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #152238;
+  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
 
 .auth-field__toggle {
   position: absolute;
