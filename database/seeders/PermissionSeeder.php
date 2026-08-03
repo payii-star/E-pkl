@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 
@@ -13,35 +12,53 @@ class PermissionSeeder extends Seeder
     {
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // Definisikan semua grup izin
+        // Definisikan semua grup izin untuk sistem HR
         $menuDashboard = ['dashboard'];
-        $menuMaster = ['master', 'master-user', 'master-role', 'master-products', 'master-category', 'master-variant', 'master-promo', 'master-members', 'master-point'];
-        $menuWebsite = ['website', 'setting'];
-        $menuApps = ['apps-pos-cashier']; 
-        $menuInventory = ['inventory-stock'];
-        $menuTransactions = ['transaction-history'];
-        $menuReports = ['view-reports']; 
-        $menuHIstory = ['stock-history'];
+        $menuAttendance = ['attendance-check', 'attendance-history'];
+        $menuJournal = ['journal-my', 'journal-history'];
+        $menuJournalApproval = ['journal-approval'];
+        $menuMaster = ['master-user', 'master-role'];
+        $menuAccount = ['dashboard-profile', 'setting'];
 
-        // Gabungkan semua izin untuk role 'admin'
         $permissionsByRole = [
-            'admin' => array_merge($menuDashboard, $menuMaster, $menuWebsite, $menuApps, $menuInventory, $menuTransactions, $menuReports, $menuHIstory),
-            'user' => $menuDashboard,
+            // HR Admin: akses penuh, termasuk manajemen user & role
+            'hr-admin' => array_merge(
+                $menuDashboard,
+                $menuAttendance,
+                $menuJournal,
+                $menuJournalApproval,
+                $menuMaster,
+                $menuAccount
+            ),
+            // Atasan/Supervisor: absen + jurnal + approval, tanpa manajemen user
+            'atasan' => array_merge(
+                $menuDashboard,
+                $menuAttendance,
+                $menuJournal,
+                $menuJournalApproval,
+                $menuAccount
+            ),
+            // Karyawan/Intern: absen + jurnal (tanpa approval, tanpa master)
+            'karyawan' => array_merge(
+                $menuDashboard,
+                $menuAttendance,
+                $menuJournal,
+                $menuAccount
+            ),
         ];
 
-        // Buat permissions
-        foreach ($permissionsByRole as $role => $permissions) {
-            foreach ($permissions as $name) {
-                Permission::firstOrCreate([
-                    'name' => $name,
-                    'guard_name' => 'api'
-                ]);
-            }
+        // Buat semua permission (union dari semua role, tanpa duplikat)
+        $allPermissions = collect($permissionsByRole)->flatten()->unique();
+        foreach ($allPermissions as $name) {
+            Permission::firstOrCreate([
+                'name' => $name,
+                'guard_name' => 'api',
+            ]);
         }
-        
-        // Berikan permissions ke roles
+
+        // Sinkronkan permission ke masing-masing role
         foreach ($permissionsByRole as $roleName => $permissionNames) {
-            $role = Role::whereName($roleName)->first();
+            $role = Role::whereName($roleName)->where('guard_name', 'api')->first();
             if ($role) {
                 $role->syncPermissions($permissionNames);
             }
