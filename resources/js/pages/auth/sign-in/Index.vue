@@ -1,48 +1,32 @@
 <template>
     <!--begin::Form-->
-    <div class="w-100">
+    <div class="w-100 sign-in-index">
         <!--begin::Heading-->
-        <div class="text-center mb-10">
-            <router-link to="/">
-                <img
-                    :src="setting?.logo"
-                    :alt="setting?.app"
-                    class="w-200px mb-8"
-                />
-            </router-link>
-            <!--begin::Title-->
-            <h1 class="mb-3">
-                Masuk ke <span class="text-primary">{{ setting?.app }}</span>
-            </h1>
-            <!--end::Title-->
+        <div class="sign-in-index__header">
+            <h2>Masuk ke akun</h2>
+            <p>
+                Isi email dan kata sandi terdaftar untuk masuk ke
+                <strong>{{ setting?.app }}</strong>.
+            </p>
         </div>
-        <!--begin::Heading-->
+        <!--end::Heading-->
 
-        <ul class="nav nav-tabs nav-line-tabs mb-5 fs-6">
+        <ul class="nav nav-tabs nav-line-tabs mb-5 fs-6" v-if="false">
+            <!-- Tab phone disembunyikan untuk sekarang, aktifkan lagi kalau login
+                 via nomor telepon sudah didukung backend -->
             <li class="nav-item">
-                <a
-                    class="nav-link active"
-                    data-bs-toggle="tab"
-                    href="#with-email"
-                    >Email</a
-                >
+                <a class="nav-link active" data-bs-toggle="tab" href="#with-email">Email</a>
             </li>
-            <!-- <li class="nav-item">
-                <a class="nav-link" data-bs-toggle="tab" href="#with-phone">{{ $t('login.telepon') }}</a>
-            </li> -->
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#with-phone">Telepon</a>
+            </li>
         </ul>
 
         <div class="tab-content" id="myTabContent">
-            <div
-                class="tab-pane fade show active"
-                id="with-email"
-                role="tabpanel"
-            >
+            <div class="tab-pane fade show active" id="with-email" role="tabpanel">
                 <WithEmail />
             </div>
         </div>
-
-        <div class="border-bottom border-gray-300 w-100 mt-5 mb-10"></div>
 
         <!--begin::Link-->
         <!-- <div class="text-gray-400 fw-semobold fs-4 text-center">
@@ -149,3 +133,27 @@ export default defineComponent({
     },
 });
 </script>
+
+<style scoped>
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Manrope:wght@400;500;600;700;800&display=swap");
+
+.sign-in-index__header {
+    margin-bottom: 28px;
+}
+.sign-in-index__header h2 {
+    font-family: "Fraunces", serif;
+    font-weight: 500;
+    font-size: 27px;
+    margin: 0 0 6px;
+    color: #152238;
+}
+.sign-in-index__header p {
+    font-family: "Manrope", sans-serif;
+    font-size: 14px;
+    color: #6b7280;
+    margin: 0;
+}
+.sign-in-index__header p strong {
+    color: #152238;
+}
+</style>

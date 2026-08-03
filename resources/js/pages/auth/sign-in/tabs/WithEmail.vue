@@ -1,83 +1,84 @@
 <template>
-    <VForm class="form w-100" @submit="submit" :validation-schema="login">
-        <!--begin::Input group-->
-        <div class="fv-row mb-10">
-            <!--begin::Label-->
-            <label class="form-label fs-6 fw-bold">Email</label>
-            <!--end::Label-->
+  <VForm class="auth-form" @submit="submit" :validation-schema="login">
+    <!--begin::Input group-->
+    <div class="auth-field">
+      <label class="auth-field__label" for="email">Email</label>
+      <div class="auth-field__wrap">
+        <span class="auth-field__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+            <path d="M4 6.5h16v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-11Z" stroke="currentColor" stroke-width="1.5"/>
+            <path d="m4.5 7 7.5 6 7.5-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <Field
+          id="email"
+          tabindex="1"
+          class="auth-field__input auth-field__input--icon"
+          type="text"
+          name="email"
+          autocomplete="off"
+          placeholder="nama@sekolah.sch.id"
+          v-model="data.email"
+        />
+      </div>
+      <div class="auth-field__error">
+        <ErrorMessage name="email" />
+      </div>
+    </div>
+    <!--end::Input group-->
 
-            <!--begin::Input-->
-            <Field tabindex="1" class="form-control form-control-lg form-control-solid" type="text" name="email"
-                autocomplete="off" v-model="data.email" />
-            <!--end::Input-->
-            <div class="fv-plugins-message-container">
-                <div class="fv-help-block">
-                    <ErrorMessage name="email" />
-                </div>
-            </div>
-        </div>
-        <!--end::Input group-->
+    <!--begin::Input group-->
+    <div class="auth-field">
+      <div class="auth-field__label-row">
+        <label class="auth-field__label" for="password">Kata sandi</label>
+        <!-- <router-link to="/password-reset" class="auth-field__link">Lupa kata sandi?</router-link> -->
+      </div>
+      <div class="auth-field__wrap">
+        <span class="auth-field__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+            <rect x="5" y="10.5" width="14" height="9.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <Field
+          id="password"
+          tabindex="2"
+          class="auth-field__input auth-field__input--icon auth-field__input--icon-right"
+          type="password"
+          name="password"
+          v-model="data.password"
+          autocomplete="off"
+          placeholder="Minimal 8 karakter"
+        />
+        <button
+          type="button"
+          class="auth-field__toggle"
+          @click="togglePassword"
+          aria-label="Tampilkan atau sembunyikan kata sandi"
+        >
+          <i class="bi bi-eye-slash fs-4"></i>
+        </button>
+      </div>
+      <div class="auth-field__error">
+        <ErrorMessage name="password" />
+      </div>
+    </div>
+    <!--end::Input group-->
 
-        <!--begin::Input group-->
-        <div class="fv-row mb-5">
-            <!--begin::Wrapper-->
-            <div class="d-flex flex-stack mb-2">
-                <!--begin::Label-->
-                <label class="form-label fw-bold fs-6 mb-0">Password</label>
-                <!--end::Label-->
+    <!-- <div class="auth-remember">
+      <Field tabindex="3" type="checkbox" id="remember_me" name="remember_me" value="1" v-model="data.remember_me" />
+      <label for="remember_me">{{ $t('login.remember') }}</label>
+    </div> -->
 
-                <!--begin::Link-->
-                <!-- <router-link to="/password-reset" class="link-primary fs-6 fw-bold">
-              Forgot Password ?
-            </router-link> -->
-                <!--end::Link-->
-            </div>
-            <!--end::Wrapper-->
-
-            <!--begin::Input-->
-            <div class="position-relative mb-3">
-                <!--begin::Input-->
-                <Field tabindex="2" class="form-control form-control-lg form-control-solid" type="password" name="password"
-                    v-model="data.password" autocomplete="off" />
-                <!--end::Input-->
-
-                <!--begin::Visibility toggle-->
-                <span class="btn btn-sm btn-icon position-absolute translate-middle top-50 end-0 me-n2">
-                    <i class="bi bi-eye-slash fs-2" @click="togglePassword"></i>
-                </span>
-                <!--end::Visibility toggle-->
-            </div>
-            <!--end::Input-->
-            <div class="fv-plugins-message-container">
-                <div class="fv-help-block">
-                    <ErrorMessage name="password" />
-                </div>
-            </div>
-        </div>
-        <!--end::Input group-->
-
-        <!-- <div class="form-check mb-10">
-            <Field tabindex="3" class="form-check-input" type="checkbox" id="remember_me" name="remember_me" value="1"
-                v-model="data.remember_me" />
-            <label class="form-check-label" for="remember_me">
-                {{ $t('login.remember') }}
-            </label>
-        </div> -->
-
-        <!--begin::Actions-->
-        <div class="text-center">
-            <!--begin::Submit button-->
-            <button tabindex="3" type="submit" ref="submitButton" class="btn btn-lg btn-primary w-100 mb-5">
-                <span class="indicator-label">Login</span>
-
-                <span class="indicator-progress">
-                    <span class="spinner-border spinner-border-sm align-middle ms-2"></span>
-                </span>
-            </button>
-            <!--end::Submit button-->
-        </div>
-        <!--end::Actions-->
-    </VForm>
+    <!--begin::Actions-->
+    <button tabindex="3" type="submit" ref="submitButton" class="auth-submit">
+      <span class="indicator-label">Masuk</span>
+      <span class="indicator-progress">
+        <span class="spinner-border spinner-border-sm align-middle ms-2"></span>
+      </span>
+    </button>
+    <!--end::Actions-->
+  </VForm>
 </template>
 
 <script lang="ts">
@@ -148,3 +149,100 @@ export default defineComponent({
     }
 })
 </script>
+
+<style scoped>
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
+
+.auth-form {
+  font-family: "Manrope", sans-serif;
+}
+
+.auth-field { margin-bottom: 20px; }
+.auth-field__label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.auth-field__label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #152238;
+  margin-bottom: 7px;
+}
+.auth-field__link {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #d98e3f;
+  text-decoration: none;
+}
+.auth-field__wrap { position: relative; }
+
+.auth-field__icon {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a8a29a;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.auth-field__input {
+  width: 100%;
+  border: 1.4px solid #e4dfd3;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14.5px;
+  font-family: "Manrope", sans-serif;
+  color: #152238;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.auth-field__input::placeholder { color: #a8a29a; }
+.auth-field__input:focus {
+  outline: none;
+  border-color: #d98e3f;
+  box-shadow: 0 0 0 3px rgba(217, 142, 63, 0.16);
+}
+.auth-field__input--icon { padding-left: 38px; }
+.auth-field__input--icon-right { padding-right: 42px; }
+
+.auth-field__toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  padding: 6px;
+  cursor: pointer;
+  line-height: 0;
+}
+.auth-field__toggle:hover { color: #152238; }
+
+.auth-field__error {
+  font-size: 12.5px;
+  color: #c0392b;
+  margin-top: 6px;
+  min-height: 1px;
+}
+
+.auth-submit {
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  background: #152238;
+  color: #f6f3ec;
+  font-size: 14.5px;
+  font-weight: 700;
+  padding: 13px 0;
+  margin-top: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.auth-submit:hover { background: #1f3454; }
+.auth-submit:active { transform: translateY(1px); }
+</style>
