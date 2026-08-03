@@ -27,7 +27,7 @@ const routes: Array<RouteRecordRaw> = [
             {
                 path: "/dashboard",
                 name: "dashboard",
-                component: () => import("@/pages/dashboard/Index.vue"),
+                component: () => import("@/pages/dashboard/Dashboard.vue"),
                 meta: {
                     pageTitle: "Dashboard",
                     breadcrumbs: ["Dashboard"],
@@ -52,125 +52,56 @@ const routes: Array<RouteRecordRaw> = [
                 },
             },
 
-            // MASTER
+            // ABSENSI (baru - struktur awal)
             {
-                path: "/dashboard/master/users/roles",
-                name: "dashboard.master.users.roles",
+                path: "/attendance/check",
+                name: "attendance-check",
                 component: () =>
-                    import("@/pages/dashboard/master/users/roles/Index.vue"),
+                    import("@/pages/attendance/CheckInOut.vue"),
                 meta: {
-                    pageTitle: "User Roles",
-                    breadcrumbs: ["Master", "Users", "Roles"],
+                    pageTitle: "Absen Sekarang",
+                    breadcrumbs: ["Absensi", "Absen"],
                 },
             },
             {
-                path: "/dashboard/master/users",
-                name: "dashboard.master.users",
+                path: "/attendance/history",
+                name: "attendance-history",
                 component: () =>
-                    import("@/pages/dashboard/master/users/Index.vue"),
+                    import("@/pages/attendance/History.vue"),
                 meta: {
-                    pageTitle: "Users",
-                    breadcrumbs: ["Master", "Users"],
+                    pageTitle: "Riwayat Absensi",
+                    breadcrumbs: ["Absensi", "Riwayat"],
+                },
+            },
+
+            // JURNAL HARIAN (baru - struktur awal)
+            {
+                path: "/journal/my",
+                name: "journal-my",
+                component: () => import("@/pages/journal/MyJournal.vue"),
+                meta: {
+                    pageTitle: "Jurnal Saya",
+                    breadcrumbs: ["Jurnal", "Jurnal Saya"],
                 },
             },
             {
-                path: "/dashboard/master/products",
-                name: "dashboard.master.products",
-                component: () =>
-                    import("@/pages/dashboard/master/products/ProductList.vue"),
+                path: "/journal/history",
+                name: "journal-history",
+                component: () => import("@/pages/journal/History.vue"),
                 meta: {
-                    pageTitle: "Products",
-                    breadcrumbs: ["Master", "Products"],
+                    pageTitle: "Riwayat Jurnal",
+                    breadcrumbs: ["Jurnal", "Riwayat"],
                 },
             },
             {
-                path: "/dashboard/master/categories",
-                name: "master-category", // Cocokkan dengan nama izin
-                component: () => import("@/pages/dashboard/master/categories/CategoryManagement.vue"),
+                path: "/journal/approval",
+                name: "journal-approval",
+                component: () => import("@/pages/journal/Approval.vue"),
                 meta: {
-                    pageTitle: "Category Management",
-                    breadcrumbs: ["Master", "Categories"],
-                },
-            },
-            {
-                path: "/dashboard/master/variants",
-                name: "master-variant", // Cocokkan dengan nama izin
-                component: () => import("@/pages/dashboard/master/variants/VariantManagement.vue"),
-                meta: {
-                    pageTitle: "Variant Management",
-                    breadcrumbs: ["Master", "Variants"],
-                },
-            },
-            {
-                path: "/dashboard/master/promos",
-                name: "master-promo",
-                component: () => import("@/pages/dashboard/master/promos/Promo.vue"),
-                meta: {
-                    pageTitle: "Manajemen Promo",
-                    breadcrumbs: ["Master", "Promo"],
-                },
-            },
-            {
-                path: "/dashboard/master/members",
-                name: "master-members",
-                component: () => import("@/pages/dashboard/master/members/MemberManagement.vue"),
-                meta: {
-                    pageTitle: "Manajemen Member",
-                    breadcrumbs: ["Master", "Members"],
-                },
-            },
-            {
-                path: "/dashboard/master/points",
-                name: "master-point",
-                component: () => import("@/pages/dashboard/master/point/PointSettings.vue"),
-                meta: {
-                    pageTitle: "Point Settings",
-                    breadcrumbs: ["Master", "Points"],
-                },
-            },
-            {
-                path: "/apps/pos",
-                name: "apps-pos-cashier",
-                component: () => import("@/pages/apps/pos/Cashier.vue"),
-                meta: {
-                    pageTitle: "Cashier (POS)",
-                    breadcrumbs: ["Apps", "POS"],
-                },
-            },
-            {
-                path: "/inventory/stock",
-                name: "inventory-stock", // Cocokkan dengan nama izin
-                component: () => import("@/pages/inventory/StockManagement.vue"),
-                meta: {
-                    pageTitle: "Stock Management",
-                    breadcrumbs: ["Inventory", "Stock"],
-                },
-            },
-            {
-                path: "/transactions/history",
-                name: "transaction-history", // Cocokkan dengan nama izin
-                component: () => import("@/pages/transactions/TransactionHistory.vue"),
-                meta: {
-                    pageTitle: "Transaction History",
-                    breadcrumbs: ["Transactions", "History"],
-                },
-            },
-            {
-                path: "/stock/history",
-                name: "stock-history",
-                component: () => import("@/pages/stock/History.vue"),
-                meta: {
-                    pageTitle: "Stock History",
-                    breadcrumbs: ["Inventory", "Stock History"],
-                },
-            },
-            {
-                path: "/reports/sales",
-                name: "view-reports", // Cocokkan dengan nama izin
-                component: () => import("@/pages/reports/Reports.vue"),
-                meta: {
-                    pageTitle: "Sales Reports",
-                    breadcrumbs: ["Reports", "Sales"],
+                    pageTitle: "Approval Jurnal",
+                    breadcrumbs: ["Jurnal", "Approval"],
+                    // TODO: aktifkan permission ini setelah role & permission HR final
+                    // permission: "journal-approval",
                 },
             },
         ],

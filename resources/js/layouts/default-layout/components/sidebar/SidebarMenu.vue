@@ -1,13 +1,14 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
-// import MainMenuConfig from "@/layouts/default-layout/config/MainMenuConfig";
 import MainMenuConfig from "@/layouts/default-layout/config/MainMenuConfig";
 import { sidebarMenuIcons } from "@/layouts/default-layout/config/helper";
 import { useI18n } from "vue-i18n";
 import { useAuthStore } from "@/stores/auth";
+import { storeToRefs } from "pinia";
 
-const { user } = useAuthStore();
+const authStore = useAuthStore();
+const { user } = storeToRefs(authStore);
 
 const { t, te } = useI18n();
 const route = useRoute();
@@ -31,12 +32,28 @@ const hasActiveChildren = (match: string) => {
     return route.path.indexOf(match) !== -1;
 };
 
-const checkPermission = (menu: string) => {
-    if (user?.permission?.includes(menu)) {
-        return true;
-    }
-    return false;
-}
+/**
+ * Cek apakah item boleh ditampilkan.
+ * - Jika item TIDAK punya field `permission` eksplisit di config,
+ *   maka item selalu ditampilkan (default: publik untuk semua user login).
+ * - Jika item PUNYA field `permission` eksplisit (misal: "journal-approval"),
+ *   maka baru dicek terhadap daftar permission milik user.
+ */
+const checkPermission = (item: any) => {
+    if (!item?.permission) return true;
+    return !!user?.value?.permission?.includes(item.permission);
+};
+
+const hasAnyAccessiblePage = (pages: any[]): boolean => {
+    return pages.some((p) => {
+        if (p.heading) return checkPermission(p);
+        if (p.sectionTitle) {
+            if (!p.sub) return checkPermission(p);
+            return checkPermission(p) && hasAnyAccessiblePage(p.sub);
+        }
+        return false;
+    });
+};
 </script>
 
 <template>
@@ -48,10 +65,10 @@ const checkPermission = (menu: string) => {
             data-kt-scroll-dependencies="#kt_app_sidebar_logo, #kt_app_sidebar_footer"
             data-kt-scroll-wrappers="#kt_app_sidebar_menu" data-kt-scroll-offset="5px" data-kt-scroll-save-state="true">
             <!--begin::Menu-->
-            <div id="#kt_app_sidebar_menu" class="menu menu-column menu-rounded menu-sub-indention px-3"
+            <div id="kt_app_sidebar_menu" class="menu menu-column menu-rounded menu-sub-indention px-3"
                 data-kt-menu="true">
                 <template v-for="(item, i) in MainMenuConfig" :key="i">
-                    <div v-if="item.heading && checkPermission(item.name)" class="menu-item pt-5">
+                    <div v-if="item.heading && hasAnyAccessiblePage(item.pages)" class="menu-item pt-5">
                         <div class="menu-content">
                             <span class="menu-heading fw-bold text-uppercase fs-7">
                                 {{ translate(item.heading) }}
@@ -59,7 +76,7 @@ const checkPermission = (menu: string) => {
                         </div>
                     </div>
                     <template v-for="(menuItem, j) in item.pages" :key="j">
-                        <template v-if="menuItem.heading && checkPermission(menuItem.name)">
+                        <template v-if="menuItem.heading && checkPermission(menuItem)">
                             <div class="menu-item">
                                 <router-link v-if="menuItem.route" class="menu-link" exact-active-class="active"
                                     :to="menuItem.route">
@@ -75,7 +92,7 @@ const checkPermission = (menu: string) => {
                                 </router-link>
                             </div>
                         </template>
-                        <div v-if="menuItem.sectionTitle && menuItem.route && checkPermission(menuItem.name)"
+                        <div v-if="menuItem.sectionTitle && menuItem.route && checkPermission(menuItem)"
                             :class="{ show: hasActiveChildren(menuItem.route) }" class="menu-item menu-accordion"
                             data-kt-menu-sub="accordion" data-kt-menu-trigger="click">
                             <span class="menu-link">
@@ -92,7 +109,7 @@ const checkPermission = (menu: string) => {
                             </span>
                             <div :class="{ show: hasActiveChildren(menuItem.route) }" class="menu-sub menu-sub-accordion">
                                 <template v-for="(item2, k) in menuItem.sub" :key="k">
-                                    <div v-if="item2.heading && checkPermission(item2.name)" class="menu-item">
+                                    <div v-if="item2.heading && checkPermission(item2)" class="menu-item">
                                         <router-link v-if="item2.route" class="menu-link" exact-active-class="active"
                                             :to="item2.route">
                                             <span class="menu-bullet">
@@ -103,7 +120,7 @@ const checkPermission = (menu: string) => {
                                             }}</span>
                                         </router-link>
                                     </div>
-                                    <div v-if="item2.sectionTitle && item2.route"
+                                    <div v-if="item2.sectionTitle && item2.route && checkPermission(item2)"
                                         :class="{ show: hasActiveChildren(item2.route) }" class="menu-item menu-accordion"
                                         data-kt-menu-sub="accordion" data-kt-menu-trigger="click">
                                         <span class="menu-link">
@@ -118,7 +135,7 @@ const checkPermission = (menu: string) => {
                                         <div :class="{ show: hasActiveChildren(item2.route) }"
                                             class="menu-sub menu-sub-accordion">
                                             <template v-for="(item3, k) in item2.sub" :key="k">
-                                                <div v-if="item3.heading && checkPermission(item3.name)" class="menu-item">
+                                                <div v-if="item3.heading && checkPermission(item3)" class="menu-item">
                                                     <router-link v-if="item3.route" class="menu-link"
                                                         exact-active-class="active" :to="item3.route">
                                                         <span class="menu-bullet">
