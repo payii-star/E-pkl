@@ -4,32 +4,29 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Attendance extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'user_id',
-        'tanggal',
-        'jam_masuk',
-        'jam_keluar',
-        'foto_masuk',
-        'foto_keluar',
-        'lokasi_masuk',
-        'lokasi_keluar',
+        'intern_id',
+        'date',
+        'check_in_time',
+        'check_in_photo',
+        'check_out_time',
+        'check_out_photo',
         'status',
-        'keterangan',
+        'location',
     ];
 
     protected $casts = [
-        'tanggal' => 'date',
-        'jam_masuk' => 'datetime',
-        'jam_keluar' => 'datetime',
+        'date' => 'date',
     ];
 
-    public function user()
+    public function intern(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Intern::class);
     }
 }
