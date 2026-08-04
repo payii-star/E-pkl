@@ -1,40 +1,28 @@
 <?php
 
-namespace App\Models;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-
-class Journal extends Model
+return new class extends Migration
 {
-    use HasFactory;
-
-    protected $fillable = [
-        'intern_id',
-        'date',
-        'kegiatan',
-        'kendala',
-        'solusi',
-        'foto',
-        'status',
-        'approved_by',
-        'approved_at',
-        'catatan_approval',
-    ];
-
-    protected $casts = [
-        'date' => 'date',
-        'approved_at' => 'datetime',
-    ];
-
-    public function intern(): BelongsTo
+    public function up(): void
     {
-        return $this->belongsTo(Intern::class);
+        Schema::create('journals', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->date('tanggal');
+            $table->text('aktivitas');
+            $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->dateTime('approved_at')->nullable();
+            $table->text('catatan_approval')->nullable();
+            $table->timestamps();
+        });
     }
 
-    public function approver(): BelongsTo
+    public function down(): void
     {
-        return $this->belongsTo(User::class, 'approved_by');
+        Schema::dropIfExists('journals');
     }
-}
+};
