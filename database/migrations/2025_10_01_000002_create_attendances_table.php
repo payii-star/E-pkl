@@ -1,32 +1,34 @@
 <?php
 
-namespace App\Models;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-
-class Attendance extends Model
+return new class extends Migration
 {
-    use HasFactory;
-
-    protected $fillable = [
-        'intern_id',
-        'date',
-        'check_in_time',
-        'check_in_photo',
-        'check_out_time',
-        'check_out_photo',
-        'status',
-        'location',
-    ];
-
-    protected $casts = [
-        'date' => 'date',
-    ];
-
-    public function intern(): BelongsTo
+    public function up(): void
     {
-        return $this->belongsTo(Intern::class);
+        Schema::create('attendances', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->date('tanggal');
+            $table->dateTime('jam_masuk')->nullable();
+            $table->dateTime('jam_keluar')->nullable();
+            $table->string('foto_masuk')->nullable();
+            $table->string('foto_keluar')->nullable();
+            $table->string('lokasi_masuk')->nullable();
+            $table->string('lokasi_keluar')->nullable();
+            $table->enum('status', ['hadir', 'terlambat', 'izin', 'sakit', 'alpha'])->default('hadir');
+            $table->text('keterangan')->nullable();
+            $table->timestamps();
+
+            // Satu user hanya boleh punya satu record absensi per tanggal
+            $table->unique(['user_id', 'tanggal']);
+        });
     }
-}
+
+    public function down(): void
+    {
+        Schema::dropIfExists('attendances');
+    }
+};
