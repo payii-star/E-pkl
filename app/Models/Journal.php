@@ -4,15 +4,19 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Journal extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'user_id',
-        'tanggal',
-        'aktivitas',
+        'intern_id',
+        'date',
+        'kegiatan',
+        'kendala',
+        'solusi',
+        'foto',
         'status',
         'approved_by',
         'approved_at',
@@ -20,16 +24,16 @@ class Journal extends Model
     ];
 
     protected $casts = [
-        'tanggal' => 'date',
+        'date' => 'date',
         'approved_at' => 'datetime',
     ];
 
-    public function user()
+    public function intern(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Intern::class);
     }
 
-    public function approver()
+    public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
     }

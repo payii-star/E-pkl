@@ -6,27 +6,30 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Attendance extends Model
+class Task extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'intern_id',
-        'date',
-        'check_in_time',
-        'check_in_photo',
-        'check_out_time',
-        'check_out_photo',
+        'created_by',
+        'title',
+        'description',
         'status',
-        'location',
+        'due_date',
     ];
 
     protected $casts = [
-        'date' => 'date',
+        'due_date' => 'date',
     ];
 
     public function intern(): BelongsTo
     {
         return $this->belongsTo(Intern::class);
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

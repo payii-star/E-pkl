@@ -105,6 +105,11 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(Journal::class);
     }
 
+    public function intern()
+    {
+        return $this->hasOne(Intern::class);
+    }
+
     // Atasan/supervisor dari user ini (untuk alur approval jurnal)
     public function atasan()
     {
