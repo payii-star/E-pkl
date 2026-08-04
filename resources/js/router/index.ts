@@ -145,15 +145,6 @@ const routes: Array<RouteRecordRaw> = [
         ],
     },
     {
-        path: "/print/receipt/:id",
-        name: "print-receipt",
-        component: () => import("@/pages/print/Receipt.vue"),
-        meta: {
-          // Kita bisa tambahkan middleware auth jika ingin halaman ini aman
-            middleware: "auth",
-        },
-    },
-    {
         path: "/:pathMatch(.*)*",
         redirect: "/404",
     },
