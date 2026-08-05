@@ -125,7 +125,9 @@ export default defineComponent({
 
             axios.post("/auth/login", { ...this.data, type: "email" }).then(res => {
                 this.store.setAuth(res.data.user, res.data.token);
-                this.router.push("/dashboard");
+              const roleName = res.data.user?.role?.name;
+              const target = roleName === "admin" || roleName === "hr-admin" ? "/admin/dashboard" : "/dashboard";
+              this.router.push(target);
             }).catch(error => {
                 toast.error(error.response.data.message);
             }).finally(() => {

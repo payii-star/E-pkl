@@ -9,6 +9,13 @@ const MainMenuConfig: Array<MenuItem> = [
                 route: "/dashboard",
                 keenthemesIcon: "element-11",
             },
+            {
+                heading: "Admin Dashboard",
+                name: "admin-dashboard",
+                route: "/admin/dashboard",
+                keenthemesIcon: "chart-simple",
+                permission: "admin-dashboard",
+            },
         ],
     },
 

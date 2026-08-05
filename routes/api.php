@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\InternController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\JournalController;
 use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Api\AdminDashboardController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -69,6 +70,8 @@ Route::middleware(['auth', 'json'])->group(function () {
         Route::post('{journal}/approve', [JournalController::class, 'approve']);
         Route::post('{journal}/reject', [JournalController::class, 'reject']);
     });
+
+    Route::get('admin/summary', [AdminDashboardController::class, 'summary'])->middleware('can:admin-dashboard');
 
     Route::prefix('attendances')->group(function () {
         Route::get('', [AttendanceController::class, 'index']);

@@ -14,6 +14,7 @@ class PermissionSeeder extends Seeder
 
         // Definisikan semua grup izin untuk sistem HR
         $menuDashboard = ['dashboard'];
+        $menuAdmin = ['admin-dashboard'];
         $menuAttendance = ['attendance-check', 'attendance-history'];
         $menuJournal = ['journal-my', 'journal-history'];
         $menuJournalApproval = ['journal-approval'];
@@ -24,6 +25,7 @@ class PermissionSeeder extends Seeder
             // HR Admin: akses penuh, termasuk manajemen user & role
             'hr-admin' => array_merge(
                 $menuDashboard,
+                $menuAdmin,
                 $menuAttendance,
                 $menuJournal,
                 $menuJournalApproval,

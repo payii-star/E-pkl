@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import MainMenuConfig from "@/layouts/default-layout/config/MainMenuConfig";
 import { sidebarMenuIcons } from "@/layouts/default-layout/config/helper";
@@ -28,6 +28,31 @@ const translate = (text: string) => {
     }
 };
 
+const isAdminUser = () => {
+    const roleName = user?.value?.role?.name;
+    return roleName === "admin" || roleName === "hr-admin";
+};
+
+const sidebarMenuConfig = computed(() => {
+    if (!isAdminUser()) {
+        return MainMenuConfig;
+    }
+
+    return [
+        {
+            pages: [
+                {
+                    heading: "Admin Dashboard",
+                    name: "admin-dashboard",
+                    route: "/admin/dashboard",
+                    keenthemesIcon: "chart-simple",
+                    permission: "admin-dashboard",
+                },
+            ],
+        },
+    ];
+});
+
 const hasActiveChildren = (match: string) => {
     return route.path.indexOf(match) !== -1;
 };
@@ -40,6 +65,7 @@ const hasActiveChildren = (match: string) => {
  *   maka baru dicek terhadap daftar permission milik user.
  */
 const checkPermission = (item: any) => {
+    if (isAdminUser()) return true;
     if (!item?.permission) return true;
     return !!user?.value?.permission?.includes(item.permission);
 };
@@ -67,7 +93,7 @@ const hasAnyAccessiblePage = (pages: any[]): boolean => {
             <!--begin::Menu-->
             <div id="kt_app_sidebar_menu" class="menu menu-column menu-rounded menu-sub-indention px-3"
                 data-kt-menu="true">
-                <template v-for="(item, i) in MainMenuConfig" :key="i">
+                <template v-for="(item, i) in sidebarMenuConfig" :key="i">
                     <div v-if="item.heading && hasAnyAccessiblePage(item.pages)" class="menu-item pt-5">
                         <div class="menu-content">
                             <span class="menu-heading fw-bold text-uppercase fs-7">

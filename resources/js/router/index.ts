@@ -34,6 +34,16 @@ const routes: Array<RouteRecordRaw> = [
                 },
             },
             {
+                path: "/admin/dashboard",
+                name: "admin-dashboard",
+                component: () => import("@/pages/admin/Dashboard.vue"),
+                meta: {
+                    pageTitle: "Admin Dashboard",
+                    breadcrumbs: ["Admin", "Dashboard"],
+                    permission: "admin-dashboard",
+                },
+            },
+            {
                 path: "/dashboard/profile",
                 name: "dashboard.profile",
                 component: () => import("@/pages/dashboard/profile/Index.vue"),
@@ -122,8 +132,7 @@ const routes: Array<RouteRecordRaw> = [
                 meta: {
                     pageTitle: "Approval Jurnal",
                     breadcrumbs: ["Jurnal", "Approval"],
-                    // TODO: aktifkan permission ini setelah role & permission HR final
-                    // permission: "journal-approval",
+                    permission: "journal-approval",
                 },
             },
         ],
@@ -213,30 +222,43 @@ router.beforeEach(async (to, from, next) => {
     // reset config to initial state
     configStore.resetLayoutConfig();
 
+    const isAdminUser = () => {
+        const roleName = authStore.user?.role?.name;
+        return roleName === "admin" || roleName === "hr-admin";
+    };
+
     // verify auth token before each page change
     if (!authStore.isAuthenticated) await authStore.verifyAuth();
 
     // before page access check if page requires authentication
     if (to.meta.middleware == "auth") {
         if (authStore.isAuthenticated) {
+            if (to.meta.permission && isAdminUser()) {
+                return next();
+            }
+
             if (
                 to.meta.permission &&
                 !authStore.user.permission.includes(to.meta.permission)
             ) {
-                next({ name: "404" });
-            } else if (to.meta.checkDetail == false) {
-                next();
+                return next({ name: "404" });
             }
 
-            next();
-        } else {
-            next({ name: "sign-in" });
+            if (to.meta.checkDetail == false) {
+                return next();
+            }
+
+            return next();
         }
-    } else if (to.meta.middleware == "guest" && authStore.isAuthenticated) {
-        next({ name: "dashboard" });
-    } else {
-        next();
+        return next({ name: "sign-in" });
     }
+
+    if (to.meta.middleware == "guest" && authStore.isAuthenticated) {
+        const target = isAdminUser() ? "admin-dashboard" : "dashboard";
+        return next({ name: target });
+    }
+
+    next();
 });
 
 router.afterEach(() => {
