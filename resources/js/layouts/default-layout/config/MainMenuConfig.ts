@@ -61,6 +61,32 @@ const MainMenuConfig: Array<MenuItem> = [
         ],
     },
 
+    // MASTER (user & role management)
+    {
+        heading: "Master",
+        route: "/master",
+        pages: [
+            {
+                sectionTitle: "User & Role",
+                route: "/users",
+                keenthemesIcon: "people",
+                name: "master-user",
+                sub: [
+                    {
+                        heading: "Role",
+                        name: "master-role",
+                        route: "/dashboard/master/users/roles",
+                    },
+                    {
+                        heading: "User / Karyawan",
+                        name: "master-user",
+                        route: "/dashboard/master/users",
+                    },
+                ],
+            },
+        ],
+    },
+
     // AKUN
     {
         heading: "Akun",

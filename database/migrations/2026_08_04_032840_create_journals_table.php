@@ -10,10 +10,13 @@ return new class extends Migration
     {
         Schema::create('journals', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->date('tanggal');
-            $table->text('aktivitas');
-            $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->foreignId('intern_id')->constrained('interns')->cascadeOnDelete();
+            $table->date('date');
+            $table->text('kegiatan');
+            $table->text('kendala')->nullable();
+            $table->text('solusi')->nullable();
+            $table->string('foto')->nullable();
+            $table->string('status')->default('pending');
             $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();
             $table->dateTime('approved_at')->nullable();
             $table->text('catatan_approval')->nullable();

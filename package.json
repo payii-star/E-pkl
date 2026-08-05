@@ -33,6 +33,7 @@
         "core-js": "^3.8.3",
         "deepmerge": "^4.2.2",
         "element-plus": "^2.2.4",
+        "face-api.js": "^0.22.2",
         "filepond": "^4.30.6",
         "filepond-plugin-file-poster": "^2.5.1",
         "filepond-plugin-file-validate-type": "^1.2.8",

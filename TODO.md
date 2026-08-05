@@ -1,5 +1,0 @@
-- Dashboard
-  - Rekap BLU
-  - Rekapitulasi Pendapatan
-  - Rekapitulasi Belanja
-  - Sisa Anggaran

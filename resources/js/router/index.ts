@@ -52,6 +52,28 @@ const routes: Array<RouteRecordRaw> = [
                 },
             },
 
+            // MASTER (User & Role management)
+            {
+                path: "/dashboard/master/users",
+                name: "dashboard.master.users",
+                component: () =>
+                    import("@/pages/dashboard/master/users/Index.vue"),
+                meta: {
+                    pageTitle: "Users",
+                    breadcrumbs: ["Master", "Users"],
+                },
+            },
+            {
+                path: "/dashboard/master/users/roles",
+                name: "dashboard.master.users.roles",
+                component: () =>
+                    import("@/pages/dashboard/master/users/roles/Index.vue"),
+                meta: {
+                    pageTitle: "User Roles",
+                    breadcrumbs: ["Master", "Users", "Roles"],
+                },
+            },
+
             // ABSENSI (baru - struktur awal)
             {
                 path: "/attendance/check",

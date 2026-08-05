@@ -25,13 +25,6 @@ class User extends Authenticatable implements JWTSubject
         'password',
         'phone',
         'photo',
-        'nim_nis',
-        'asal_instansi',
-        'posisi',
-        'tanggal_mulai',
-        'tanggal_selesai',
-        'atasan_id',
-        'status',
     ];
 
     /**
@@ -95,30 +88,8 @@ class User extends Authenticatable implements JWTSubject
         return $this->getAllPermissions()->pluck('name');
     }
 
-    public function attendances()
-    {
-        return $this->hasMany(Attendance::class);
-    }
-
-    public function journals()
-    {
-        return $this->hasMany(Journal::class);
-    }
-
     public function intern()
     {
         return $this->hasOne(Intern::class);
-    }
-
-    // Atasan/supervisor dari user ini (untuk alur approval jurnal)
-    public function atasan()
-    {
-        return $this->belongsTo(User::class, 'atasan_id');
-    }
-
-    // Daftar karyawan/intern yang berada di bawah user ini (jika dia atasan)
-    public function bawahan()
-    {
-        return $this->hasMany(User::class, 'atasan_id');
     }
 }
