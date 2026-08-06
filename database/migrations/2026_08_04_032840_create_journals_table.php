@@ -14,7 +14,7 @@ return new class extends Migration
 
         Schema::create('journals', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('intern_id')->constrained('interns')->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->date('date');
             $table->text('kegiatan');
             $table->text('kendala')->nullable();

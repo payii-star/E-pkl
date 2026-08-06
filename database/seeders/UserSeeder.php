@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\Intern;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
@@ -10,8 +9,8 @@ class UserSeeder extends Seeder
 {
     /**
      * Seed 3 akun contoh: 1 HR Admin, 1 Atasan, 1 Karyawan/Intern.
-     * Data khusus peserta magang (institusi, tanggal mulai/selesai, pembimbing)
-     * disimpan di tabel `interns`, bukan lagi di tabel `users`.
+     * Data khusus peserta magang (institusi, tanggal mulai/selesai, atasan)
+     * disimpan langsung di tabel `users`.
      * Password default untuk semua akun contoh: 12345678
      */
     public function run(): void
@@ -21,6 +20,7 @@ class UserSeeder extends Seeder
             'email' => 'admin@gmail.com',
             'password' => bcrypt('12345678'),
             'phone' => '08123456789',
+            'status' => 'aktif',
         ]);
         $admin->assignRole('hr-admin');
 
@@ -29,6 +29,7 @@ class UserSeeder extends Seeder
             'email' => 'atasan@gmail.com',
             'password' => bcrypt('12345678'),
             'phone' => '08123456780',
+            'status' => 'aktif',
         ]);
         $atasan->assignRole('atasan');
 
@@ -37,15 +38,13 @@ class UserSeeder extends Seeder
             'email' => 'dika@gmail.com',
             'password' => bcrypt('12345678'),
             'phone' => '08123456781',
+            'asal_instansi' => 'SMK Contoh 1',
+            'posisi' => 'Intern',
+            'atasan_id' => $atasan->id,
+            'tanggal_mulai' => now()->subMonth(),
+            'tanggal_selesai' => now()->addMonths(2),
+            'status' => 'aktif',
         ]);
         $karyawan->assignRole('karyawan');
-
-        Intern::create([
-            'user_id' => $karyawan->id,
-            'institusi_asal' => 'SMK Contoh 1',
-            'pembimbing_id' => $atasan->id,
-            'start_date' => now()->subMonth(),
-            'end_date' => now()->addMonths(2),
-        ]);
     }
 }

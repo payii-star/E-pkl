@@ -28,6 +28,14 @@
             </div>
         </div>
 
+        <!--begin::Face login link-->
+        <div class="text-center mt-4">
+            <router-link to="/face-login" class="link-primary fw-bold">
+                Masuk dengan Wajah
+            </router-link>
+        </div>
+        <!--end::Face login link-->
+
         <!--begin::Link-->
         <!-- <div class="text-gray-400 fw-semobold fs-4 text-center">
             {{ $t('login.daftar_label') }}

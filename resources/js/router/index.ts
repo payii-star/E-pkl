@@ -160,6 +160,15 @@ const routes: Array<RouteRecordRaw> = [
                     middleware: "guest",
                 },
             },
+            {
+                path: "/face-login",
+                name: "face-login",
+                component: () => import("@/pages/auth/face-login/Index.vue"),
+                meta: {
+                    pageTitle: "Login dengan Wajah",
+                    middleware: "guest",
+                },
+            },
         ],
     },
     {

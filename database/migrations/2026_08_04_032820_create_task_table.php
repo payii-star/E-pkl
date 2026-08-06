@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('tasks', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('intern_id')->constrained('interns')->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('created_by')->constrained('users')->cascadeOnDelete(); // admin pemberi tugas
             $table->string('title');
             $table->text('description')->nullable();
