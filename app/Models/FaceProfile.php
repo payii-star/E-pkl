@@ -11,7 +11,7 @@ class FaceProfile extends Model
     use HasFactory;
 
     protected $fillable = [
-        'intern_id',
+        'user_id',
         'descriptor',
         'photo',
     ];
@@ -20,8 +20,8 @@ class FaceProfile extends Model
         'descriptor' => 'array',
     ];
 
-    public function intern(): BelongsTo
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(Intern::class);
+        return $this->belongsTo(User::class);
     }
 }

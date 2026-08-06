@@ -9,16 +9,12 @@ use Illuminate\Support\Facades\Validator;
 
 class TaskController extends Controller
 {
-    // GET /intern/tasks -> tugas milik intern yang sedang login
+    // GET /intern/tasks -> tugas milik user yang sedang login
     public function index(Request $request)
     {
-        $intern = $request->user()->intern;
+        $user = $request->user();
 
-        if (!$intern) {
-            return response()->json(['data' => []]);
-        }
-
-        $tasks = Task::where('intern_id', $intern->id)
+        $tasks = Task::where('user_id', $user->id)
             ->orderByRaw("FIELD(status, 'belum', 'sedang', 'selesai')")
             ->orderBy('due_date')
             ->get();
@@ -26,11 +22,11 @@ class TaskController extends Controller
         return response()->json(['data' => $tasks]);
     }
 
-    // POST /tasks -> admin/pembimbing memberi tugas ke intern tertentu
+    // POST /tasks -> admin/pembimbing memberi tugas ke user tertentu
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'intern_id' => 'required|exists:interns,id',
+            'user_id' => 'required|exists:users,id',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'due_date' => 'nullable|date',
@@ -41,7 +37,7 @@ class TaskController extends Controller
         }
 
         $task = Task::create([
-            'intern_id' => $request->intern_id,
+            'user_id' => $request->user_id,
             'created_by' => $request->user()->id,
             'title' => $request->title,
             'description' => $request->description,
@@ -52,7 +48,7 @@ class TaskController extends Controller
         return response()->json(['data' => $task], 201);
     }
 
-    // PATCH /tasks/{task}/status -> intern update progress tugasnya sendiri
+    // PATCH /tasks/{task}/status -> user update progress tugasnya sendiri
     public function updateStatus(Request $request, Task $task)
     {
         $validator = Validator::make($request->all(), [
@@ -63,8 +59,8 @@ class TaskController extends Controller
             return response()->json(['message' => $validator->errors()->first()], 422);
         }
 
-        $intern = $request->user()->intern;
-        if (!$intern || $task->intern_id !== $intern->id) {
+        $user = $request->user();
+        if ($task->user_id !== $user->id) {
             return response()->json(['message' => 'Tidak diizinkan'], 403);
         }
 

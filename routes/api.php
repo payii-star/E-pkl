@@ -82,7 +82,7 @@ Route::middleware(['auth', 'json'])->group(function () {
         Route::post('{journal}/reject', [JournalController::class, 'reject']);
     });
 
-    Route::get('admin/summary', [AdminDashboardController::class, 'summary'])->middleware('can:admin-dashboard');
+    Route::get('admin/summary', [AdminDashboardController::class, 'summary'])->middleware('role:hr-admin');
 
     Route::prefix('attendances')->group(function () {
         Route::get('',        [AttendanceController::class, 'index']);
@@ -96,11 +96,11 @@ Route::middleware(['auth', 'json'])->group(function () {
     Route::post('face/register', [FaceController::class, 'register']);
 
     // Admin Face Management
-    Route::prefix('admin/face')->middleware('can:admin-dashboard')->group(function () {
-        Route::get('interns',                  [AdminFaceController::class, 'internList']);
-        Route::post('register/{internId}',     [AdminFaceController::class, 'registerForIntern']);
-        Route::delete('{internId}',            [AdminFaceController::class, 'deleteProfile']);
-        Route::post('impersonate/{internId}',  [AdminFaceController::class, 'impersonate']);
+    Route::prefix('admin/face')->middleware('role:hr-admin')->group(function () {
+        Route::get('interns', [AdminFaceController::class, 'internList']);
+        Route::post('register/{user}', [AdminFaceController::class, 'registerForIntern']);
+        Route::delete('{user}', [AdminFaceController::class, 'deleteProfile']);
+        Route::post('impersonate/{user}', [AdminFaceController::class, 'impersonate']);
     });
     // ─────────────────────────────────────────────────────────────────────────
 });

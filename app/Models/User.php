@@ -5,6 +5,9 @@ namespace App\Models;
 use App\Traits\Uuid;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
@@ -25,6 +28,13 @@ class User extends Authenticatable implements JWTSubject
         'password',
         'phone',
         'photo',
+        'nim_nis',
+        'asal_instansi',
+        'posisi',
+        'tanggal_mulai',
+        'tanggal_selesai',
+        'atasan_id',
+        'status',
     ];
 
     /**
@@ -44,6 +54,8 @@ class User extends Authenticatable implements JWTSubject
      */
     protected $casts = [
         'password' => 'hashed',
+        'tanggal_mulai' => 'date',
+        'tanggal_selesai' => 'date',
     ];
 
     protected $appends = ['permission', 'role'];
@@ -88,8 +100,33 @@ class User extends Authenticatable implements JWTSubject
         return $this->getAllPermissions()->pluck('name');
     }
 
-    public function intern()
+    public function faceProfile(): HasOne
     {
-        return $this->hasOne(Intern::class);
+        return $this->hasOne(FaceProfile::class);
+    }
+
+    public function atasan(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'atasan_id');
+    }
+
+    public function bawahan(): HasMany
+    {
+        return $this->hasMany(User::class, 'atasan_id');
+    }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class);
+    }
+
+    public function journals(): HasMany
+    {
+        return $this->hasMany(Journal::class);
+    }
+
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
     }
 }

@@ -12,10 +12,7 @@ class JournalController extends Controller
     // POST /journals
     public function store(Request $request)
     {
-        $intern = $request->user()->intern;
-        if (!$intern) {
-            return response()->json(['message' => 'Data peserta magang tidak ditemukan'], 404);
-        }
+        $user = $request->user();
 
         $validator = Validator::make($request->all(), [
             'date' => 'required|date',
@@ -35,7 +32,7 @@ class JournalController extends Controller
         }
 
         $journal = Journal::create([
-            'intern_id' => $intern->id,
+            'user_id' => $user->id,
             'date' => $request->date,
             'kegiatan' => $request->kegiatan,
             'kendala' => $request->kendala,
@@ -50,12 +47,9 @@ class JournalController extends Controller
     // GET /journals/history
     public function history(Request $request)
     {
-        $intern = $request->user()->intern;
-        if (!$intern) {
-            return response()->json(['data' => []]);
-        }
+        $user = $request->user();
 
-        $journals = Journal::where('intern_id', $intern->id)
+        $journals = Journal::where('user_id', $user->id)
             ->latest('date')
             ->get();
 
@@ -67,11 +61,11 @@ class JournalController extends Controller
     {
         $userId = $request->user()->id;
 
-        $journals = Journal::whereHas('intern', function ($q) use ($userId) {
-                $q->where('pembimbing_id', $userId);
+        $journals = Journal::whereHas('user', function ($q) use ($userId) {
+            $q->where('atasan_id', $userId);
             })
             ->where('status', 'pending')
-            ->with('intern.user')
+            ->with('user')
             ->latest('date')
             ->get();
 
@@ -117,8 +111,8 @@ class JournalController extends Controller
 
     private function authorizeApprover(Request $request, Journal $journal)
     {
-        $journal->loadMissing('intern');
-        if ($journal->intern->pembimbing_id !== $request->user()->id) {
+        $journal->loadMissing('user');
+        if ($journal->user?->atasan_id !== $request->user()->id) {
             abort(403, 'Kamu bukan pembimbing dari peserta magang ini');
         }
     }

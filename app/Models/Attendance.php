@@ -11,7 +11,7 @@ class Attendance extends Model
     use HasFactory;
 
     protected $fillable = [
-        'intern_id',
+        'user_id',
         'date',
         'check_in_time',
         'check_in_photo',
@@ -25,8 +25,8 @@ class Attendance extends Model
         'date' => 'date',
     ];
 
-    public function intern(): BelongsTo
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(Intern::class);
+        return $this->belongsTo(User::class);
     }
 }

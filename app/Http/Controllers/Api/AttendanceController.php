@@ -12,12 +12,9 @@ class AttendanceController extends Controller
     // GET /attendances
     public function index(Request $request)
     {
-        $intern = $request->user()->intern;
-        if (!$intern) {
-            return response()->json(['data' => []]);
-        }
+        $user = $request->user();
 
-        $attendances = Attendance::where('intern_id', $intern->id)
+        $attendances = Attendance::where('user_id', $user->id)
             ->latest('date')
             ->get();
 
@@ -27,10 +24,7 @@ class AttendanceController extends Controller
     // POST /attendances/check-in
     public function checkIn(Request $request)
     {
-        $intern = $request->user()->intern;
-        if (!$intern) {
-            return response()->json(['message' => 'Data peserta magang tidak ditemukan'], 404);
-        }
+        $user = $request->user();
 
         $validator = Validator::make($request->all(), [
             'photo' => 'required|image|max:1024',
@@ -43,7 +37,7 @@ class AttendanceController extends Controller
 
         $today = now()->toDateString();
 
-        $existing = Attendance::where('intern_id', $intern->id)->where('date', $today)->first();
+        $existing = Attendance::where('user_id', $user->id)->where('date', $today)->first();
         if ($existing && $existing->check_in_time) {
             return response()->json(['message' => 'Kamu sudah absen masuk hari ini'], 422);
         }
@@ -51,7 +45,7 @@ class AttendanceController extends Controller
         $photoPath = $request->file('photo')->store('attendances', 'public');
 
         $attendance = Attendance::updateOrCreate(
-            ['intern_id' => $intern->id, 'date' => $today],
+            ['user_id' => $user->id, 'date' => $today],
             [
                 'check_in_time' => now()->toTimeString(),
                 'check_in_photo' => $photoPath,
@@ -66,10 +60,7 @@ class AttendanceController extends Controller
     // POST /attendances/check-out
     public function checkOut(Request $request)
     {
-        $intern = $request->user()->intern;
-        if (!$intern) {
-            return response()->json(['message' => 'Data peserta magang tidak ditemukan'], 404);
-        }
+        $user = $request->user();
 
         $validator = Validator::make($request->all(), [
             'photo' => 'required|image|max:1024',
@@ -80,7 +71,7 @@ class AttendanceController extends Controller
         }
 
         $today = now()->toDateString();
-        $attendance = Attendance::where('intern_id', $intern->id)->where('date', $today)->first();
+        $attendance = Attendance::where('user_id', $user->id)->where('date', $today)->first();
 
         if (!$attendance || !$attendance->check_in_time) {
             return response()->json(['message' => 'Kamu belum absen masuk hari ini'], 422);

@@ -11,7 +11,7 @@ class Task extends Model
     use HasFactory;
 
     protected $fillable = [
-        'intern_id',
+        'user_id',
         'created_by',
         'title',
         'description',
@@ -23,9 +23,9 @@ class Task extends Model
         'due_date' => 'date',
     ];
 
-    public function intern(): BelongsTo
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(Intern::class);
+        return $this->belongsTo(User::class);
     }
 
     public function creator(): BelongsTo
