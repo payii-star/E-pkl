@@ -44,6 +44,16 @@ const routes: Array<RouteRecordRaw> = [
                 },
             },
             {
+                path: "/admin/face/interns",
+                name: "admin-face-management",
+                component: () => import("@/pages/admin/AdminFaceManagement.vue"),
+                meta: {
+                    pageTitle: "Face Management",
+                    breadcrumbs: ["Admin", "Face"],
+                    permission: "admin-dashboard",
+                },
+            },
+            {
                 path: "/dashboard/profile",
                 name: "dashboard.profile",
                 component: () => import("@/pages/dashboard/profile/Index.vue"),

@@ -16,6 +16,13 @@ const MainMenuConfig: Array<MenuItem> = [
                 keenthemesIcon: "chart-simple",
                 permission: "admin-dashboard",
             },
+            {
+                heading: "Face Management",
+                name: "admin-face-management",
+                route: "/admin/face/interns",
+                keenthemesIcon: "user",
+                permission: "admin-dashboard",
+            },
         ],
     },
 

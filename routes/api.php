@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\JournalController;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AdminDashboardController;
+use App\Http\Controllers\Api\FaceController;            // ← BARU
+use App\Http\Controllers\Api\AdminFaceController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -27,6 +29,15 @@ Route::middleware(['auth', 'json'])->prefix('auth')->group(function () {
 Route::prefix('setting')->group(function () {
     Route::get('', [SettingController::class, 'index']);
 });
+
+// ── Face Recognition (PUBLIC — diakses sebelum login) ────────────────────────
+// GET  /face/profiles  → ambil semua face descriptor untuk pencocokan di Vue
+// POST /face/login     → generate JWT setelah wajah cocok di client
+Route::prefix('face')->group(function () {
+    Route::get('profiles', [FaceController::class, 'profiles']);
+    Route::post('login',   [FaceController::class, 'login']);
+});
+// ─────────────────────────────────────────────────────────────────────────────
 
 Route::middleware(['auth', 'json'])->group(function () {
 
@@ -74,8 +85,22 @@ Route::middleware(['auth', 'json'])->group(function () {
     Route::get('admin/summary', [AdminDashboardController::class, 'summary'])->middleware('can:admin-dashboard');
 
     Route::prefix('attendances')->group(function () {
-        Route::get('', [AttendanceController::class, 'index']);
-        Route::post('check-in', [AttendanceController::class, 'checkIn']);
+        Route::get('',        [AttendanceController::class, 'index']);
+        Route::get('today',   [AttendanceController::class, 'today']);    // ← BARU
+        Route::post('check-in',  [AttendanceController::class, 'checkIn']);
         Route::post('check-out', [AttendanceController::class, 'checkOut']);
     });
+
+    // ── Face Profile (butuh login) ────────────────────────────────────────────
+    // POST /face/register → daftar / update face profile sendiri
+    Route::post('face/register', [FaceController::class, 'register']);
+
+    // Admin Face Management
+    Route::prefix('admin/face')->middleware('can:admin-dashboard')->group(function () {
+        Route::get('interns',                  [AdminFaceController::class, 'internList']);
+        Route::post('register/{internId}',     [AdminFaceController::class, 'registerForIntern']);
+        Route::delete('{internId}',            [AdminFaceController::class, 'deleteProfile']);
+        Route::post('impersonate/{internId}',  [AdminFaceController::class, 'impersonate']);
+    });
+    // ─────────────────────────────────────────────────────────────────────────
 });

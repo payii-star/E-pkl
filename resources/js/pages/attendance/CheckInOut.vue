@@ -529,11 +529,11 @@ async function detectFrame() {
     if (!livenessActive.value && !livenessCompleted.value && !_successLock) {
         if (!faceProfiles.length) { camStatus.value = 'no_face'; return }
         camStatus.value = 'ready'
-        const desc    = Array.from(det.descriptor)
+        const desc: number[] = Array.from(det.descriptor as number[])
         let bestDist  = Infinity
         let bestMatch: any = null
         for (const p of faceProfiles) {
-            const d = euclidean(desc, p.descriptor)
+            const d = euclidean(desc, p.descriptor as number[])
             if (d < bestDist) { bestDist = d; bestMatch = p }
         }
         if (bestDist <= THRESHOLD && bestMatch) {

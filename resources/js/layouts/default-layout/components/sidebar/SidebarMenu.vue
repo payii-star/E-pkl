@@ -48,6 +48,13 @@ const sidebarMenuConfig = computed(() => {
                     keenthemesIcon: "chart-simple",
                     permission: "admin-dashboard",
                 },
+                {
+                    heading: "Face Management",
+                    name: "admin-face-management",
+                    route: "/admin/face/interns",
+                    keenthemesIcon: "user",
+                    permission: "admin-dashboard",
+                },
             ],
         },
     ];
@@ -70,7 +77,9 @@ const checkPermission = (item: any) => {
     return !!user?.value?.permission?.includes(item.permission);
 };
 
-const hasAnyAccessiblePage = (pages: any[]): boolean => {
+const hasAnyAccessiblePage = (pages: any[] | undefined): boolean => {
+    if (!pages) return false;
+
     return pages.some((p) => {
         if (p.heading) return checkPermission(p);
         if (p.sectionTitle) {
