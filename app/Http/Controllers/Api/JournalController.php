@@ -16,14 +16,23 @@ class JournalController extends Controller
 
         $validator = Validator::make($request->all(), [
             'date' => 'required|date',
-            'kegiatan' => 'required|string',
-            'kendala' => 'nullable|string',
-            'solusi' => 'nullable|string',
+            'activities' => 'required|array|min:1',
+            'activities.*.jam_mulai' => 'required|date_format:H:i',
+            'activities.*.jam_selesai' => 'required|date_format:H:i',
+            'activities.*.kegiatan' => 'required|string',
             'foto' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:1024',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['message' => $validator->errors()->first()], 422);
+        }
+
+        foreach ($request->input('activities', []) as $index => $activity) {
+            if (($activity['jam_selesai'] ?? '') <= ($activity['jam_mulai'] ?? '')) {
+                return response()->json([
+                    'message' => 'Jam selesai pada aktivitas ke-' . ($index + 1) . ' harus lebih besar dari jam mulai.',
+                ], 422);
+            }
         }
 
         $fotoPath = null;
@@ -34,14 +43,19 @@ class JournalController extends Controller
         $journal = Journal::create([
             'user_id' => $user->id,
             'date' => $request->date,
-            'kegiatan' => $request->kegiatan,
-            'kendala' => $request->kendala,
-            'solusi' => $request->solusi,
             'foto' => $fotoPath,
             'status' => 'pending',
         ]);
 
-        return response()->json(['data' => $journal], 201);
+        foreach ($request->activities as $activity) {
+            $journal->activities()->create([
+                'jam_mulai' => $activity['jam_mulai'],
+                'jam_selesai' => $activity['jam_selesai'],
+                'kegiatan' => $activity['kegiatan'],
+            ]);
+        }
+
+        return response()->json(['data' => $journal->load('activities')], 201);
     }
 
     // GET /journals/history
@@ -50,6 +64,7 @@ class JournalController extends Controller
         $user = $request->user();
 
         $journals = Journal::where('user_id', $user->id)
+            ->with('activities')
             ->latest('date')
             ->get();
 
@@ -65,7 +80,7 @@ class JournalController extends Controller
             $q->where('atasan_id', $userId);
             })
             ->where('status', 'pending')
-            ->with('user')
+            ->with(['user', 'activities'])
             ->latest('date')
             ->get();
 

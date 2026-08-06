@@ -62,6 +62,7 @@
      * @returns Promise<AxiosResponse>
      */
     public static post(resource: string, params: any): Promise<AxiosResponse> {
+        this.setHeader();
         return ApiService.vueInstance.axios.post(`${resource}`, params);
     }
 

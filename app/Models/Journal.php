@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Journal extends Model
 {
@@ -13,9 +14,6 @@ class Journal extends Model
     protected $fillable = [
         'user_id',
         'date',
-        'kegiatan',
-        'kendala',
-        'solusi',
         'foto',
         'status',
         'approved_by',
@@ -36,5 +34,10 @@ class Journal extends Model
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function activities(): HasMany
+    {
+        return $this->hasMany(JournalActivity::class)->orderBy('jam_mulai');
     }
 }

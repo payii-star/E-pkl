@@ -96,7 +96,7 @@ Route::middleware(['auth', 'json'])->group(function () {
     Route::post('face/register', [FaceController::class, 'register']);
 
     // Admin Face Management
-    Route::prefix('admin/face')->middleware('role:hr-admin')->group(function () {
+    Route::prefix('admin/face')->middleware('role:hr-admin|atasan')->group(function () {
         Route::get('interns', [AdminFaceController::class, 'internList']);
         Route::post('register/{user}', [AdminFaceController::class, 'registerForIntern']);
         Route::delete('{user}', [AdminFaceController::class, 'deleteProfile']);
