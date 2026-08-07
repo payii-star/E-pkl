@@ -169,6 +169,15 @@ const routes: Array<RouteRecordRaw> = [
                     middleware: "guest",
                 },
             },
+            {
+                path: "/sign-up",
+                name: "sign-up",
+                component: () => import("@/pages/auth/sign-up/Index.vue"),
+                meta: {
+                    pageTitle: "Daftar Akun",
+                    middleware: "guest",
+                },
+            },
         ],
     },
     {

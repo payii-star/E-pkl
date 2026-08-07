@@ -352,9 +352,34 @@ async function doLogin(userId: number, name: string) {
     justify-content: center;
 }
 
+.auth-submit {
+    display: inline-block;
+    text-align: center;
+    text-decoration: none;
+    border: none;
+    border-radius: 10px;
+    background: #152238;
+    color: #f6f3ec;
+    font-size: 14.5px;
+    font-weight: 700;
+    padding: 13px 24px;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.auth-submit:hover {
+    background: #1f3454;
+    color: #f6f3ec;
+}
+
 .auth-submit--ghost {
     background: transparent;
     color: var(--bs-primary);
     border: 1px solid var(--bs-gray-300);
+}
+
+.auth-submit--ghost:hover {
+    background: var(--bs-gray-100);
+    color: var(--bs-primary);
 }
 </style>

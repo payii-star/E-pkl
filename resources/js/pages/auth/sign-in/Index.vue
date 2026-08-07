@@ -37,13 +37,13 @@
         <!--end::Face login link-->
 
         <!--begin::Link-->
-        <!-- <div class="text-gray-400 fw-semobold fs-4 text-center">
-            {{ $t('login.daftar_label') }}
+        <div class="text-gray-400 fw-semobold fs-4 text-center">
+            Belum punya akun?
 
-            <router-link to="/auth/sign-up" class="link-primary fw-bold">
-                {{ $t('login.daftar') }}
+            <router-link to="/sign-up" class="link-primary fw-bold">
+                Daftar
             </router-link>
-        </div> -->
+        </div>
         <!--end::Link-->
     </div>
     <!--end::Form-->
