@@ -102,7 +102,9 @@
                 <h2>Semua Siap!</h2>
                 <p>Akun kamu sudah dibuat{{ faceRegistered ? ' dan wajah sudah terdaftar' : '' }}.</p>
             </div>
-            <button class="auth-submit w-100" @click="goToDashboard">Masuk ke Dashboard</button>
+            <button class="auth-submit w-100" @click="goToNext">
+                {{ faceRegistered ? "Login dengan Wajah" : "Masuk ke Dashboard" }}
+            </button>
         </template>
     </div>
 </template>
@@ -266,8 +268,12 @@ async function registerFace() {
         camStatus.value = "success";
         faceRegistered.value = true;
         stopCamera();
+        // Wajah sudah terdaftar -> lepas sesi supaya user wajib buktikan diri lewat Face Login
+        authStore.logout();
+
+        // Langsung arahkan ke form login wajah (tidak menampilkan kartu "Semua Siap!")
         setTimeout(() => {
-            step.value = "done";
+            router.push("/face-login");
         }, 1200);
     } catch (e: any) {
         faceError.value = e?.response?.data?.message || "Gagal mendaftarkan wajah, coba lagi.";
@@ -289,6 +295,15 @@ function stopCamera() {
 function goToDashboard() {
     stopCamera();
     router.push("/dashboard");
+}
+
+function goToNext() {
+    stopCamera();
+    if (faceRegistered.value) {
+        router.push("/face-login");
+    } else {
+        router.push("/dashboard");
+    }
 }
 
 onBeforeUnmount(() => {
