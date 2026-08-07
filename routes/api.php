@@ -93,7 +93,7 @@ Route::middleware(['auth', 'json'])->group(function () {
         Route::post('check-out', [AttendanceController::class, 'checkOut']);
     });
 
-    // ── Face Profile (butuh login) ────────────────────────────────────────────
+    // ── Face Profile (butuh login) ───────────────────────────────────────────
     // POST /face/register → daftar / update face profile sendiri
     Route::post('face/register', [FaceController::class, 'register']);
 
