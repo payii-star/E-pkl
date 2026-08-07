@@ -3,17 +3,22 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Exceptions\DuplicateFaceException;
 use App\Models\FaceProfile;
 use App\Models\User;
+use App\Traits\DetectsDuplicateFace;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class FaceController extends Controller
 {
+    use DetectsDuplicateFace;
+
+    private const MIN_SAMPLES = 3;
+    private const MAX_SAMPLES = 10;
+
     // ── GET /face/profiles ───────────────────────────────────────────────────
-    // Mengembalikan semua face profile yang tersimpan
-    // Dipakai Vue untuk mencocokkan wajah saat login / absensi
     public function profiles()
     {
         $profiles = FaceProfile::with('user')
@@ -24,7 +29,7 @@ class FaceController extends Controller
                     'user_id'    => $fp->user_id,
                     'name'       => $fp->user?->name,
                     'photo'      => $fp->user?->photo,
-                    'descriptor' => $fp->descriptor,  // array 128 nilai
+                    'descriptor' => $fp->descriptor,
                 ];
             });
 
@@ -32,22 +37,33 @@ class FaceController extends Controller
     }
 
     // ── POST /face/register ──────────────────────────────────────────────────
-    // Daftar / update face profile user yang sedang login
-    // Body: { descriptor: number[] (128 nilai), photo?: base64 string }
+    // Khusus untuk RE-REGISTER wajah pada akun yang SUDAH ADA (mis. dari halaman
+    // profil, karena kamera lama rusak / wajah tidak terbaca lagi). Sign-up baru
+    // TIDAK memakai endpoint ini — pakai AuthController::registerWithFace().
     public function register(Request $request)
     {
         $user = $request->user();
 
         $validator = Validator::make($request->all(), [
-            'descriptor' => 'required|array|size:128',
-            'photo'      => 'nullable|string', // base64
+            'descriptors' => 'required|array|min:' . self::MIN_SAMPLES . '|max:' . self::MAX_SAMPLES,
+            'descriptors.*' => 'array|size:128',
+            'descriptors.*.*' => 'numeric',
+            'photo' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['message' => $validator->errors()->first()], 422);
         }
 
-        // Simpan foto jika ada
+        $avgDescriptor = $this->averageDescriptors($request->descriptors);
+
+        try {
+            // Exclude diri sendiri: user boleh update descriptor miliknya sendiri.
+            $this->assertFaceNotDuplicate($avgDescriptor, $user->id);
+        } catch (DuplicateFaceException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
         $photoPath = null;
         if ($request->filled('photo')) {
             $photoPath = $this->saveBase64Photo($request->photo, $user->id);
@@ -56,21 +72,18 @@ class FaceController extends Controller
         $faceProfile = FaceProfile::updateOrCreate(
             ['user_id' => $user->id],
             [
-                'descriptor' => $request->descriptor,
-                'photo'      => $photoPath ?? FaceProfile::where('user_id', $user->id)->value('photo'),
+                'descriptor' => $avgDescriptor,
+                'photo' => $photoPath ?? FaceProfile::where('user_id', $user->id)->value('photo'),
             ]
         );
 
         return response()->json([
             'message' => 'Face profile berhasil didaftarkan',
-            'data'    => $faceProfile,
+            'data' => $faceProfile,
         ]);
     }
 
     // ── POST /face/login ─────────────────────────────────────────────────────
-    // Dipanggil Vue setelah wajah cocok (pencocokan dilakukan di client/Vue)
-    // Body: { user_id: number }
-    // Return: JWT token
     public function login(Request $request)
     {
         $userId = $request->input('user_id', $request->input('intern_id'));
@@ -89,24 +102,21 @@ class FaceController extends Controller
             return response()->json(['message' => 'User tidak ditemukan'], 404);
         }
 
-        // Login sebagai user — generate JWT token
         $token = auth('api')->login($user);
         if (!$token) {
             return response()->json(['message' => 'Gagal generate token'], 500);
         }
 
         return response()->json([
-            'user'  => $user,
+            'user' => $user,
             'token' => $token,
         ]);
     }
 
-    // ─── Private Helper ───────────────────────────────────────────────────────
     private function saveBase64Photo(string $base64, int $userId): ?string
     {
         try {
-            // Hapus prefix data URL jika ada (data:image/jpeg;base64,...)
-            $data    = preg_replace('/^data:image\/\w+;base64,/', '', $base64);
+            $data = preg_replace('/^data:image\/\w+;base64,/', '', $base64);
             $decoded = base64_decode($data);
             if (!$decoded) return null;
 

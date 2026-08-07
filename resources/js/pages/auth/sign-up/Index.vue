@@ -1,13 +1,13 @@
 <template>
     <div class="w-100 signup">
-        <!-- STEP 1: Form akun -->
+        <!-- STEP 1: Form akun (belum disubmit, cuma dikumpulkan) -->
         <template v-if="step === 'account'">
             <div class="signup__header">
                 <h2>Buat Akun Baru</h2>
-                <p>Isi data di bawah untuk mendaftar sebagai karyawan/intern.</p>
+                <p>Isi data di bawah, lalu lanjutkan ke pendaftaran wajah.</p>
             </div>
 
-            <form class="auth-form" @submit.prevent="submitAccount">
+            <form class="auth-form" @submit.prevent="goToFaceStep">
                 <div class="auth-field">
                     <label class="auth-field__label">Nama Lengkap</label>
                     <input v-model="form.name" type="text" class="auth-field__input" required autocomplete="name" />
@@ -33,9 +33,8 @@
 
                 <div v-if="accountError" class="alert alert-danger py-2 fs-7">{{ accountError }}</div>
 
-                <button type="submit" class="auth-submit w-100" :disabled="submitting">
-                    <span v-if="submitting" class="spinner-border spinner-border-sm me-2"></span>
-                    Daftar
+                <button type="submit" class="auth-submit w-100">
+                    Lanjut ke Pendaftaran Wajah
                 </button>
             </form>
 
@@ -49,8 +48,8 @@
             <div class="signup__header">
                 <h2>Daftarkan Wajah Kamu</h2>
                 <p>
-                    Supaya bisa login &amp; absen pakai wajah nanti. Boleh dilewati dan didaftarkan belakangan
-                    lewat halaman profil.
+                    Diamkan wajah menghadap kamera, sistem akan mengambil {{ SAMPLE_TARGET }} sample
+                    otomatis. Akun kamu baru akan dibuat setelah wajah berhasil diverifikasi.
                 </p>
             </div>
 
@@ -71,27 +70,42 @@
                 <template v-if="camStatus === 'no_face'">
                     <span class="signup__dot signup__dot--warn"></span> Arahkan wajah ke kamera
                 </template>
+                <template v-else-if="camStatus === 'sampling'">
+                    <span class="signup__dot signup__dot--warn"></span>
+                    Mengambil sample wajah... ({{ collectedSamples.length }}/{{ SAMPLE_TARGET }})
+                </template>
                 <template v-else-if="camStatus === 'ready'">
-                    <span class="signup__dot signup__dot--ok"></span> Wajah terdeteksi, siap didaftarkan
+                    <span class="signup__dot signup__dot--ok"></span>
+                    {{ collectedSamples.length }}/{{ SAMPLE_TARGET }} sample terkumpul, siap didaftarkan
                 </template>
                 <template v-else-if="camStatus === 'capturing'">
-                    <span class="signup__dot signup__dot--warn"></span> Menyimpan data wajah...
+                    <span class="signup__dot signup__dot--warn"></span> Membuat akun & menyimpan data wajah...
                 </template>
                 <template v-else-if="camStatus === 'success'">
-                    <span class="signup__dot signup__dot--ok"></span> Wajah berhasil didaftarkan!
+                    <span class="signup__dot signup__dot--ok"></span> Akun & wajah berhasil didaftarkan!
                 </template>
+            </div>
+
+            <div v-if="camStatus === 'sampling' || camStatus === 'ready'" class="signup__progress">
+                <div
+                    class="signup__progress-bar"
+                    :style="{ width: (Math.min(collectedSamples.length, SAMPLE_TARGET) / SAMPLE_TARGET * 100) + '%' }"
+                ></div>
             </div>
 
             <div v-if="faceError" class="alert alert-danger py-2 fs-7">{{ faceError }}</div>
 
             <div class="d-flex flex-column gap-2">
                 <button class="auth-submit w-100" :disabled="camStatus !== 'ready' || registering"
-                    @click="registerFace">
+                    @click="finishRegistration">
                     <span v-if="registering" class="spinner-border spinner-border-sm me-2"></span>
-                    Daftarkan Wajah
+                    Buat Akun & Daftarkan Wajah
                 </button>
-                <button type="button" class="auth-submit auth-submit--ghost w-100" @click="goToDashboard">
-                    Lewati, daftarkan nanti saja
+                <button v-if="camStatus === 'ready'" type="button" class="signup__retry" @click="resetSamples">
+                    Kurang pas? Ulangi pengambilan sample
+                </button>
+                <button type="button" class="signup__retry" @click="backToAccountStep">
+                    ← Kembali ubah data akun
                 </button>
             </div>
         </template>
@@ -100,11 +114,9 @@
         <template v-else>
             <div class="signup__header text-center">
                 <h2>Semua Siap!</h2>
-                <p>Akun kamu sudah dibuat{{ faceRegistered ? ' dan wajah sudah terdaftar' : '' }}.</p>
+                <p>Akun kamu sudah dibuat dan wajah sudah terdaftar.</p>
             </div>
-            <button class="auth-submit w-100" @click="goToNext">
-                {{ faceRegistered ? "Login dengan Wajah" : "Masuk ke Dashboard" }}
-            </button>
+            <button class="auth-submit w-100" @click="goToDashboard">Masuk ke Dashboard</button>
         </template>
     </div>
 </template>
@@ -121,7 +133,7 @@ const router = useRouter();
 
 const step = ref<"account" | "face" | "done">("account");
 
-// ---- Step 1: form akun ----
+// ---- Step 1: form akun (disimpan di memory saja, BELUM dikirim ke server) ----
 const form = ref({
     name: "",
     email: "",
@@ -129,44 +141,48 @@ const form = ref({
     password: "",
     password_confirmation: "",
 });
-const submitting = ref(false);
 const accountError = ref("");
 
-async function submitAccount() {
+function goToFaceStep() {
     accountError.value = "";
     if (form.value.password !== form.value.password_confirmation) {
         accountError.value = "Konfirmasi password tidak cocok.";
         return;
     }
-    submitting.value = true;
-    try {
-        const res = await axios.post("/auth/register", form.value);
-        authStore.setAuth(res.data.user, res.data.token);
-        step.value = "face";
-        startFaceEnrollment();
-    } catch (e: any) {
-        accountError.value = e?.response?.data?.message || "Gagal membuat akun, coba lagi.";
-    } finally {
-        submitting.value = false;
+    if (form.value.password.length < 8) {
+        accountError.value = "Password minimal 8 karakter.";
+        return;
     }
+    step.value = "face";
+    startFaceEnrollment();
+}
+
+function backToAccountStep() {
+    stopCamera();
+    collectedSamples.value = [];
+    faceError.value = "";
+    step.value = "account";
 }
 
 // ---- Step 2: pendaftaran wajah ----
 const MODEL_URL = "/models";
+const SAMPLE_TARGET = 5;
+const SAMPLE_INTERVAL_MS = 700;
+
 const videoEl = ref<HTMLVideoElement | null>(null);
 const canvasEl = ref<HTMLCanvasElement | null>(null);
 const camStatus = ref<
-    "loading_models" | "no_face" | "ready" | "capturing" | "success" | "camera_error"
+    "loading_models" | "no_face" | "sampling" | "ready" | "capturing" | "success" | "camera_error"
 >("loading_models");
 const modelProgress = ref("");
 const registering = ref(false);
 const faceError = ref("");
-const faceRegistered = ref(false);
+const collectedSamples = ref<number[][]>([]);
 
 let _stream: MediaStream | null = null;
 let _loopInterval: number | null = null;
 let _isDetecting = false;
-let _lastDescriptor: number[] | null = null;
+let _lastCaptureAt = 0;
 
 const TINY_OPTS = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 });
 
@@ -216,17 +232,32 @@ async function detectLoop() {
         drawBox(det);
 
         if (det) {
-            _lastDescriptor = Array.from(det.descriptor);
-            camStatus.value = "ready";
+            if (collectedSamples.value.length < SAMPLE_TARGET) {
+                const now = Date.now();
+                if (now - _lastCaptureAt >= SAMPLE_INTERVAL_MS) {
+                    collectedSamples.value.push(Array.from(det.descriptor));
+                    _lastCaptureAt = now;
+                }
+                camStatus.value =
+                    collectedSamples.value.length >= SAMPLE_TARGET ? "ready" : "sampling";
+            } else {
+                camStatus.value = "ready";
+            }
         } else {
-            _lastDescriptor = null;
-            camStatus.value = "no_face";
+            camStatus.value = collectedSamples.value.length >= SAMPLE_TARGET ? "ready" : "no_face";
         }
     } catch {
         // frame gagal diproses, lewati saja, coba lagi di interval berikutnya
     } finally {
         _isDetecting = false;
     }
+}
+
+function resetSamples() {
+    collectedSamples.value = [];
+    _lastCaptureAt = 0;
+    faceError.value = "";
+    camStatus.value = "no_face";
 }
 
 function drawBox(det: any) {
@@ -254,30 +285,39 @@ function snapshotBase64(): string | null {
     return c.toDataURL("image/jpeg", 0.85);
 }
 
-async function registerFace() {
-    if (!_lastDescriptor) return;
+// ---- Submit gabungan: akun + wajah dalam SATU request ----
+async function finishRegistration() {
+    if (collectedSamples.value.length < SAMPLE_TARGET) return;
     registering.value = true;
     faceError.value = "";
     camStatus.value = "capturing";
 
     try {
-        await axios.post("/face/register", {
-            descriptor: _lastDescriptor,
+        const res = await axios.post("/auth/register-with-face", {
+            name: form.value.name,
+            email: form.value.email,
+            phone: form.value.phone,
+            password: form.value.password,
+            password_confirmation: form.value.password_confirmation,
+            descriptors: collectedSamples.value,
             photo: snapshotBase64(),
         });
-        camStatus.value = "success";
-        faceRegistered.value = true;
-        stopCamera();
-        // Wajah sudah terdaftar -> lepas sesi supaya user wajib buktikan diri lewat Face Login
-        authStore.logout();
 
-        // Langsung arahkan ke form login wajah (tidak menampilkan kartu "Semua Siap!")
+        // Akun & wajah sudah pasti sukses dua-duanya di sisi server (satu transaksi).
+        // Baru sekarang simpan sesi login.
+        authStore.setAuth(res.data.user, res.data.token);
+        camStatus.value = "success";
+        stopCamera();
         setTimeout(() => {
-            router.push("/face-login");
-        }, 1200);
+            step.value = "done";
+        }, 1000);
     } catch (e: any) {
-        faceError.value = e?.response?.data?.message || "Gagal mendaftarkan wajah, coba lagi.";
-        camStatus.value = "ready";
+        // Error bisa dari validasi akun (email sudah dipakai, dll) ATAU duplikat wajah.
+        // Dua-duanya berarti TIDAK ADA akun yang tercipta di server, jadi cukup
+        // tampilkan pesan dan minta user coba ambil ulang sample wajahnya.
+        faceError.value = e?.response?.data?.message || "Gagal mendaftarkan akun & wajah, coba lagi.";
+        collectedSamples.value = [];
+        camStatus.value = "no_face";
     } finally {
         registering.value = false;
     }
@@ -293,17 +333,7 @@ function stopCamera() {
 }
 
 function goToDashboard() {
-    stopCamera();
     router.push("/dashboard");
-}
-
-function goToNext() {
-    stopCamera();
-    if (faceRegistered.value) {
-        router.push("/face-login");
-    } else {
-        router.push("/dashboard");
-    }
 }
 
 onBeforeUnmount(() => {
@@ -374,16 +404,6 @@ onBeforeUnmount(() => {
     cursor: not-allowed;
 }
 
-.auth-submit--ghost {
-    background: transparent;
-    color: #152238;
-    border: 1.4px solid #e4dfd3;
-}
-
-.auth-submit--ghost:hover {
-    background: #f6f3ec;
-}
-
 .signup__header h2 {
     margin-bottom: 4px;
 }
@@ -444,7 +464,7 @@ onBeforeUnmount(() => {
     gap: 8px;
     font-size: 0.9rem;
     color: var(--bs-gray-700);
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
     min-height: 24px;
     text-align: center;
 }
@@ -459,9 +479,34 @@ onBeforeUnmount(() => {
 .signup__dot--ok { background: #17c653; }
 .signup__dot--warn { background: #ffc700; }
 
-.auth-submit--ghost {
+.signup__progress {
+    width: 100%;
+    max-width: 380px;
+    height: 6px;
+    margin: 0 auto 1rem;
+    background: #e4dfd3;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.signup__progress-bar {
+    height: 100%;
+    background: #17c653;
+    border-radius: 999px;
+    transition: width 0.25s ease;
+}
+
+.signup__retry {
     background: transparent;
-    color: var(--bs-primary);
-    border: 1px solid var(--bs-gray-300);
+    border: none;
+    color: var(--bs-gray-600);
+    font-size: 0.85rem;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 4px 0;
+}
+
+.signup__retry:hover {
+    color: #152238;
 }
 </style>
