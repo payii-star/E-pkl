@@ -169,13 +169,13 @@ export default defineComponent({
   display: block;
   font-size: 13px;
   font-weight: 600;
-  color: #152238;
+  color: #14213d;
   margin-bottom: 7px;
 }
 .auth-field__link {
   font-size: 12.5px;
   font-weight: 600;
-  color: #d98e3f;
+  color: #2563eb;
   text-decoration: none;
 }
 .auth-field__wrap { position: relative; }
@@ -185,7 +185,7 @@ export default defineComponent({
   left: 13px;
   top: 50%;
   transform: translateY(-50%);
-  color: #a8a29a;
+  color: #93a5c9;
   display: grid;
   place-items: center;
   pointer-events: none;
@@ -193,21 +193,21 @@ export default defineComponent({
 
 .auth-form .auth-field__input {
   width: 100%;
-  border: 1.4px solid #e4dfd3 !important;
+  border: 1.4px solid #d7e2f7 !important;
   background: #ffffff !important;
   border-radius: 10px;
   padding: 12px 14px;
   font-size: 14.5px;
   font-family: "Manrope", sans-serif;
-  color: #152238 !important;
+  color: #14213d !important;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   box-shadow: none !important;
 }
-.auth-form .auth-field__input::placeholder { color: #a8a29a; }
+.auth-form .auth-field__input::placeholder { color: #93a5c9; }
 .auth-form .auth-field__input:focus {
   outline: none;
-  border-color: #d98e3f !important;
-  box-shadow: 0 0 0 3px rgba(217, 142, 63, 0.16) !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18) !important;
 }
 .auth-form .auth-field__input--icon { padding-left: 38px; }
 .auth-form .auth-field__input--icon-right { padding-right: 42px; }
@@ -215,7 +215,7 @@ export default defineComponent({
 .auth-form .auth-field__input:-webkit-autofill,
 .auth-form .auth-field__input:-webkit-autofill:hover,
 .auth-form .auth-field__input:-webkit-autofill:focus {
-  -webkit-text-fill-color: #152238;
+  -webkit-text-fill-color: #14213d;
   -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
   transition: background-color 9999s ease-in-out 0s;
 }
@@ -232,7 +232,7 @@ export default defineComponent({
   cursor: pointer;
   line-height: 0;
 }
-.auth-field__toggle:hover { color: #152238; }
+.auth-field__toggle:hover { color: #14213d; }
 
 .auth-field__error {
   font-size: 12.5px;
@@ -245,8 +245,8 @@ export default defineComponent({
   width: 100%;
   border: none;
   border-radius: 10px;
-  background: #152238;
-  color: #f6f3ec;
+  background: #2563eb;
+  color: #ffffff;
   font-size: 14.5px;
   font-weight: 700;
   padding: 13px 0;
@@ -254,6 +254,6 @@ export default defineComponent({
   cursor: pointer;
   transition: background 0.15s ease, transform 0.1s ease;
 }
-.auth-submit:hover { background: #1f3454; }
+.auth-submit:hover { background: #1d4ed8; }
 .auth-submit:active { transform: translateY(1px); }
 </style>

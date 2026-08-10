@@ -10,25 +10,80 @@
             <form class="auth-form" @submit.prevent="goToFaceStep">
                 <div class="auth-field">
                     <label class="auth-field__label">Nama Lengkap</label>
-                    <input v-model="form.name" type="text" class="auth-field__input" required autocomplete="name" />
+                    <div class="auth-field__wrap">
+                        <span class="auth-field__icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+                                <circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.5"/>
+                                <path d="M5 19.2c1.2-3.4 4-5.2 7-5.2s5.8 1.8 7 5.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                        </span>
+                        <input v-model="form.name" type="text" class="auth-field__input auth-field__input--icon" required autocomplete="name" />
+                    </div>
                 </div>
                 <div class="auth-field">
                     <label class="auth-field__label">Email</label>
-                    <input v-model="form.email" type="email" class="auth-field__input" required autocomplete="email" />
+                    <div class="auth-field__wrap">
+                        <span class="auth-field__icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+                                <path d="M4 6.5h16v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-11Z" stroke="currentColor" stroke-width="1.5"/>
+                                <path d="m4.5 7 7.5 6 7.5-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
+                        <input v-model="form.email" type="email" class="auth-field__input auth-field__input--icon" required autocomplete="email" />
+                    </div>
                 </div>
                 <div class="auth-field">
                     <label class="auth-field__label">No. Telepon (opsional)</label>
-                    <input v-model="form.phone" type="tel" class="auth-field__input" autocomplete="tel" />
+                    <div class="auth-field__wrap">
+                        <span class="auth-field__icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+                                <path d="M6.5 4h2.2l1.3 4-1.9 1.4a11 11 0 0 0 5.5 5.5l1.4-1.9 4 1.3v2.2c0 1-.8 1.8-1.8 1.7A16 16 0 0 1 4.8 5.8C4.7 4.8 5.5 4 6.5 4Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
+                        <input v-model="form.phone" type="tel" class="auth-field__input auth-field__input--icon" autocomplete="tel" />
+                    </div>
                 </div>
                 <div class="auth-field">
                     <label class="auth-field__label">Password</label>
-                    <input v-model="form.password" type="password" class="auth-field__input" required minlength="8"
-                        autocomplete="new-password" />
+                    <div class="auth-field__wrap">
+                        <span class="auth-field__icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+                                <rect x="5" y="10.5" width="14" height="9.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                                <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                        </span>
+                        <input v-model="form.password" :type="showPassword ? 'text' : 'password'" class="auth-field__input auth-field__input--icon auth-field__input--icon-right" required minlength="8"
+                            autocomplete="new-password" />
+                        <button
+                            type="button"
+                            class="auth-field__toggle"
+                            @click="showPassword = !showPassword"
+                            :aria-label="showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'"
+                        >
+                            <i :class="showPassword ? 'bi bi-eye' : 'bi bi-eye-slash'" class="fs-4"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="auth-field">
                     <label class="auth-field__label">Konfirmasi Password</label>
-                    <input v-model="form.password_confirmation" type="password" class="auth-field__input" required
-                        minlength="8" autocomplete="new-password" />
+                    <div class="auth-field__wrap">
+                        <span class="auth-field__icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+                                <rect x="5" y="10.5" width="14" height="9.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                                <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                        </span>
+                        <input v-model="form.password_confirmation" :type="showPasswordConfirm ? 'text' : 'password'" class="auth-field__input auth-field__input--icon auth-field__input--icon-right" required
+                            minlength="8" autocomplete="new-password" />
+                        <button
+                            type="button"
+                            class="auth-field__toggle"
+                            @click="showPasswordConfirm = !showPasswordConfirm"
+                            :aria-label="showPasswordConfirm ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'"
+                        >
+                            <i :class="showPasswordConfirm ? 'bi bi-eye' : 'bi bi-eye-slash'" class="fs-4"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <div v-if="accountError" class="alert alert-danger py-2 fs-7">{{ accountError }}</div>
@@ -142,6 +197,8 @@ const form = ref({
     password_confirmation: "",
 });
 const accountError = ref("");
+const showPassword = ref(false);
+const showPasswordConfirm = ref(false);
 
 function goToFaceStep() {
     accountError.value = "";
@@ -269,7 +326,7 @@ function drawBox(det: any) {
     ctx.clearRect(0, 0, canvasEl.value.width, canvasEl.value.height);
     if (!det) return;
     const box = det.detection.box;
-    ctx.strokeStyle = "#17c653";
+    ctx.strokeStyle = "#3b82f6";
     ctx.lineWidth = 3;
     ctx.strokeRect(box.x, box.y, box.width, box.height);
 }
@@ -354,35 +411,75 @@ onBeforeUnmount(() => {
     display: block;
     font-size: 13px;
     font-weight: 600;
-    color: #152238;
+    color: #14213d;
     margin-bottom: 7px;
+}
+
+.auth-field__wrap {
+    position: relative;
+}
+
+.auth-field__icon {
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #93a5c9;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
 }
 
 .auth-form .auth-field__input {
     width: 100%;
-    border: 1.4px solid #e4dfd3 !important;
+    border: 1.4px solid #d7e2f7 !important;
     background: #ffffff !important;
     border-radius: 10px;
     padding: 12px 14px;
     font-size: 14.5px;
     font-family: "Manrope", sans-serif;
-    color: #152238 !important;
+    color: #14213d !important;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
     box-shadow: none !important;
 }
 
+.auth-form .auth-field__input--icon {
+    padding-left: 38px;
+}
+
+.auth-form .auth-field__input--icon-right {
+    padding-right: 42px;
+}
+
+.auth-field__toggle {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    color: #9ca3af;
+    padding: 6px;
+    cursor: pointer;
+    line-height: 0;
+}
+
+.auth-field__toggle:hover {
+    color: #14213d;
+}
+
 .auth-form .auth-field__input:focus {
     outline: none;
-    border-color: #d98e3f !important;
-    box-shadow: 0 0 0 3px rgba(217, 142, 63, 0.16) !important;
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18) !important;
 }
 
 .auth-submit {
     width: 100%;
     border: none;
     border-radius: 10px;
-    background: #152238;
-    color: #f6f3ec;
+    background: #2563eb;
+    color: #ffffff;
     font-size: 14.5px;
     font-weight: 700;
     padding: 13px 0;
@@ -392,7 +489,7 @@ onBeforeUnmount(() => {
 }
 
 .auth-submit:hover {
-    background: #1f3454;
+    background: #1d4ed8;
 }
 
 .auth-submit:active {
@@ -405,6 +502,7 @@ onBeforeUnmount(() => {
 }
 
 .signup__header h2 {
+    color: #14213d;
     margin-bottom: 4px;
 }
 
@@ -422,7 +520,7 @@ onBeforeUnmount(() => {
     margin: 0 auto 1rem;
     border-radius: 12px;
     overflow: hidden;
-    background: #10131a;
+    background: #0b1a33;
 }
 
 .signup__cam video {
@@ -449,7 +547,7 @@ onBeforeUnmount(() => {
     text-align: center;
     padding: 1rem;
     color: #fff;
-    background: rgba(16, 19, 26, 0.85);
+    background: rgba(11, 26, 51, 0.85);
     font-size: 0.875rem;
 }
 
@@ -476,22 +574,22 @@ onBeforeUnmount(() => {
     flex-shrink: 0;
 }
 
-.signup__dot--ok { background: #17c653; }
-.signup__dot--warn { background: #ffc700; }
+.signup__dot--ok { background: #3b82f6; }
+.signup__dot--warn { background: #60a5fa; }
 
 .signup__progress {
     width: 100%;
     max-width: 380px;
     height: 6px;
     margin: 0 auto 1rem;
-    background: #e4dfd3;
+    background: #d7e2f7;
     border-radius: 999px;
     overflow: hidden;
 }
 
 .signup__progress-bar {
     height: 100%;
-    background: #17c653;
+    background: #2563eb;
     border-radius: 999px;
     transition: width 0.25s ease;
 }
@@ -507,6 +605,6 @@ onBeforeUnmount(() => {
 }
 
 .signup__retry:hover {
-    color: #152238;
+    color: #14213d;
 }
 </style>

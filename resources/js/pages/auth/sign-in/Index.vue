@@ -153,7 +153,7 @@ export default defineComponent({
     font-weight: 500;
     font-size: 27px;
     margin: 0 0 6px;
-    color: #152238;
+    color: #14213d;
 }
 .sign-in-index__header p {
     font-family: "Manrope", sans-serif;
@@ -162,6 +162,6 @@ export default defineComponent({
     margin: 0;
 }
 .sign-in-index__header p strong {
-    color: #152238;
+    color: #14213d;
 }
 </style>

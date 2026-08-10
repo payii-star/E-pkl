@@ -239,7 +239,7 @@ function drawBox(det: any) {
     if (!det) return;
 
     const box = det.detection.box;
-    ctx.strokeStyle = status.value === "matched" ? "#17c653" : status.value === "unknown" ? "#f1416c" : "#009ef7";
+    ctx.strokeStyle = status.value === "matched" ? "#3b82f6" : status.value === "unknown" ? "#f1416c" : "#60a5fa";
     ctx.lineWidth = 3;
     ctx.strokeRect(box.x, box.y, box.width, box.height);
 }
@@ -271,6 +271,7 @@ async function doLogin(userId: number, name: string) {
 
 <style scoped>
 .face-login__header h2 {
+    color: #14213d;
     margin-bottom: 4px;
 }
 
@@ -288,7 +289,7 @@ async function doLogin(userId: number, name: string) {
     margin: 0 auto 1rem;
     border-radius: 12px;
     overflow: hidden;
-    background: #10131a;
+    background: #0b1a33;
 }
 
 .face-login__cam video {
@@ -315,7 +316,7 @@ async function doLogin(userId: number, name: string) {
     text-align: center;
     padding: 1rem;
     color: #fff;
-    background: rgba(16, 19, 26, 0.85);
+    background: rgba(11, 26, 51, 0.85);
     font-size: 0.875rem;
 }
 
@@ -342,9 +343,9 @@ async function doLogin(userId: number, name: string) {
     flex-shrink: 0;
 }
 
-.face-login__dot--info { background: #009ef7; }
+.face-login__dot--info { background: #60a5fa; }
 .face-login__dot--warn { background: #ffc700; }
-.face-login__dot--ok { background: #17c653; }
+.face-login__dot--ok { background: #3b82f6; }
 .face-login__dot--err { background: #f1416c; }
 
 .face-login__actions {
@@ -358,8 +359,8 @@ async function doLogin(userId: number, name: string) {
     text-decoration: none;
     border: none;
     border-radius: 10px;
-    background: #152238;
-    color: #f6f3ec;
+    background: #2563eb;
+    color: #ffffff;
     font-size: 14.5px;
     font-weight: 700;
     padding: 13px 24px;
@@ -368,18 +369,18 @@ async function doLogin(userId: number, name: string) {
 }
 
 .auth-submit:hover {
-    background: #1f3454;
-    color: #f6f3ec;
+    background: #1d4ed8;
+    color: #ffffff;
 }
 
 .auth-submit--ghost {
     background: transparent;
-    color: var(--bs-primary);
-    border: 1px solid var(--bs-gray-300);
+    color: #2563eb;
+    border: 1px solid #d7e2f7;
 }
 
 .auth-submit--ghost:hover {
-    background: var(--bs-gray-100);
-    color: var(--bs-primary);
+    background: #eef3fb;
+    color: #1d4ed8;
 }
 </style>
