@@ -11,11 +11,12 @@
                         <th>Tanggal</th>
                         <th>Breakdown Aktivitas</th>
                         <th>Status</th>
+                        <th>Catatan Pembimbing</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-if="!journals.length">
-                        <td colspan="4" class="text-center text-gray-500">Belum ada jurnal</td>
+                        <td colspan="5" class="text-center text-gray-500">Belum ada jurnal</td>
                     </tr>
                     <tr v-for="(journal, i) in journals" :key="journal.id">
                         <td>{{ i + 1 }}</td>
@@ -36,6 +37,14 @@
                                 }"
                             >
                                 {{ statusLabel(journal.status) }}
+                            </span>
+                        </td>
+                        <td>
+                            <span v-if="journal.catatan_approval" :class="journal.status === 'rejected' ? 'text-danger' : 'text-gray-700'">
+                                {{ journal.catatan_approval }}
+                            </span>
+                            <span v-else class="text-gray-400">
+                                {{ journal.status === 'pending' ? 'Menunggu diperiksa' : 'Tidak ada catatan' }}
                             </span>
                         </td>
                     </tr>

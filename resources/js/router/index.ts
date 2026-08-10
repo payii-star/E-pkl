@@ -158,7 +158,7 @@ const routes: Array<RouteRecordRaw> = [
             {
                 path: "/journal/approval",
                 name: "journal-approval",
-                component: () => import("@/pages/journal/Approval.vue"),
+                component: () => import("@/pages/admin/JournalApprovals.vue"),
                 meta: {
                     pageTitle: "Approval Jurnal",
                     breadcrumbs: ["Jurnal", "Approval"],
