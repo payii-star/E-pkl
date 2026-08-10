@@ -14,7 +14,7 @@ class PermissionSeeder extends Seeder
 
         // Definisikan semua grup izin untuk sistem HR
         $menuDashboard = ['dashboard'];
-        $menuAdmin = ['admin-dashboard'];
+        $menuAdmin = ['admin-dashboard', 'admin-attendance-recap'];
         $menuAttendance = ['attendance-check', 'attendance-history'];
         $menuJournal = ['journal-my', 'journal-history'];
         $menuJournalApproval = ['journal-approval'];

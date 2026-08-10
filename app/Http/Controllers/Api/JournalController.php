@@ -9,35 +9,105 @@ use Illuminate\Support\Facades\Validator;
 
 class JournalController extends Controller
 {
-    // POST /journals
+    /**
+     * GET /api/journals
+     */
+   public function index(Request $request)
+{
+    try {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User belum terautentikasi.',
+            ], 401);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Endpoint journals berhasil.',
+            'data' => [],
+            'user_id' => $user->id,
+        ], 200);
+
+    } catch (\Throwable $e) {
+
+        \Log::error('Journal index error', [
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ], 500);
+    }
+}
+
+    /**
+     * POST /api/journals
+     */
     public function store(Request $request)
     {
         $user = $request->user();
 
         $validator = Validator::make($request->all(), [
             'date' => 'required|date',
+
             'activities' => 'required|array|min:1',
-            'activities.*.jam_mulai' => 'required|date_format:H:i',
-            'activities.*.jam_selesai' => 'required|date_format:H:i',
-            'activities.*.kegiatan' => 'required|string',
-            'foto' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:1024',
+
+            'activities.*.jam_mulai' => [
+                'required',
+                'date_format:H:i',
+            ],
+
+            'activities.*.jam_selesai' => [
+                'required',
+                'date_format:H:i',
+            ],
+
+            'activities.*.kegiatan' => [
+                'required',
+                'string',
+            ],
+
+            'foto' => [
+                'nullable',
+                'file',
+                'mimes:jpg,jpeg,png,pdf',
+                'max:1024',
+            ],
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['message' => $validator->errors()->first()], 422);
+            return response()->json([
+                'message' => $validator->errors()->first(),
+            ], 422);
         }
 
         foreach ($request->input('activities', []) as $index => $activity) {
-            if (($activity['jam_selesai'] ?? '') <= ($activity['jam_mulai'] ?? '')) {
+
+            $jamMulai = $activity['jam_mulai'] ?? '';
+            $jamSelesai = $activity['jam_selesai'] ?? '';
+
+            if ($jamSelesai <= $jamMulai) {
                 return response()->json([
-                    'message' => 'Jam selesai pada aktivitas ke-' . ($index + 1) . ' harus lebih besar dari jam mulai.',
+                    'message' =>
+                        'Jam selesai pada aktivitas ke-' .
+                        ($index + 1) .
+                        ' harus lebih besar dari jam mulai.',
                 ], 422);
             }
         }
 
         $fotoPath = null;
+
         if ($request->hasFile('foto')) {
-            $fotoPath = $request->file('foto')->store('journals', 'public');
+            $fotoPath = $request
+                ->file('foto')
+                ->store('journals', 'public');
         }
 
         $journal = Journal::create([
@@ -48,6 +118,7 @@ class JournalController extends Controller
         ]);
 
         foreach ($request->activities as $activity) {
+
             $journal->activities()->create([
                 'jam_mulai' => $activity['jam_mulai'],
                 'jam_selesai' => $activity['jam_selesai'],
@@ -55,10 +126,15 @@ class JournalController extends Controller
             ]);
         }
 
-        return response()->json(['data' => $journal->load('activities')], 201);
+        return response()->json([
+            'message' => 'Jurnal berhasil disimpan.',
+            'data' => $journal->load('activities'),
+        ], 201);
     }
 
-    // GET /journals/history
+    /**
+     * GET /api/journals/history
+     */
     public function history(Request $request)
     {
         $user = $request->user();
@@ -68,40 +144,44 @@ class JournalController extends Controller
             ->latest('date')
             ->get();
 
-        return response()->json(['data' => $journals]);
+        return response()->json([
+            'data' => $journals,
+        ]);
     }
 
-    // GET /journals/pending-approval -> untuk pembimbing/admin
+    /**
+     * GET /api/journals/pending-approval
+     */
     public function pendingApproval(Request $request)
     {
         $user = $request->user();
 
-        // If requester is admin/hr-admin return all pending journals
-        if (method_exists($user, 'hasAnyRole') && $user->hasAnyRole(['admin', 'hr-admin'])) {
-            $journals = Journal::where('status', 'pending')
-                ->with(['user', 'activities'])
-                ->latest('date')
-                ->get();
-
-            return response()->json(['data' => $journals]);
-        }
-
-        $userId = $user->id;
-
-        $journals = Journal::whereHas('user', function ($q) use ($userId) {
-                $q->where('atasan_id', $userId);
+        $journals = Journal::query()
+            ->when(! $user->hasAnyRole(['admin', 'hr-admin']), function ($query) use ($user) {
+                $query->whereHas('user', function ($q) use ($user) {
+                    $q->where('atasan_id', $user->id);
+                });
             })
             ->where('status', 'pending')
-            ->with(['user', 'activities'])
+            ->with([
+                'user',
+                'activities',
+            ])
             ->latest('date')
             ->get();
 
-        return response()->json(['data' => $journals]);
+        return response()->json([
+            'data' => $journals,
+        ]);
     }
 
-    // POST /journals/{journal}/approve
-    public function approve(Request $request, Journal $journal)
-    {
+    /**
+     * POST /api/journals/{journal}/approve
+     */
+    public function approve(
+        Request $request,
+        Journal $journal
+    ) {
         $this->authorizeApprover($request, $journal);
 
         $journal->update([
@@ -110,12 +190,19 @@ class JournalController extends Controller
             'approved_at' => now(),
         ]);
 
-        return response()->json(['data' => $journal]);
+        return response()->json([
+            'message' => 'Jurnal berhasil disetujui.',
+            'data' => $journal->fresh(),
+        ]);
     }
 
-    // POST /journals/{journal}/reject
-    public function reject(Request $request, Journal $journal)
-    {
+    /**
+     * POST /api/journals/{journal}/reject
+     */
+    public function reject(
+        Request $request,
+        Journal $journal
+    ) {
         $this->authorizeApprover($request, $journal);
 
         $validator = Validator::make($request->all(), [
@@ -123,7 +210,9 @@ class JournalController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['message' => $validator->errors()->first()], 422);
+            return response()->json([
+                'message' => $validator->errors()->first(),
+            ], 422);
         }
 
         $journal->update([
@@ -133,20 +222,34 @@ class JournalController extends Controller
             'catatan_approval' => $request->catatan_approval,
         ]);
 
-        return response()->json(['data' => $journal]);
+        return response()->json([
+            'message' => 'Jurnal ditolak.',
+            'data' => $journal->fresh(),
+        ]);
     }
 
-    private function authorizeApprover(Request $request, Journal $journal)
-    {
+    /**
+     * Check pembimbing.
+     */
+    private function authorizeApprover(
+        Request $request,
+        Journal $journal
+    ) {
         $journal->loadMissing('user');
-        $approver = $request->user();
+        $user = $request->user();
 
-        if (method_exists($approver, 'hasAnyRole') && $approver->hasAnyRole(['admin', 'hr-admin'])) {
+        if ($user->hasAnyRole(['admin', 'hr-admin'])) {
             return;
         }
 
-        if ($journal->user?->atasan_id !== $approver->id) {
-            abort(403, 'Kamu bukan pembimbing dari peserta magang ini');
+        if (
+            $journal->user?->atasan_id !==
+            $user->id
+        ) {
+            abort(
+                403,
+                'Kamu bukan pembimbing dari peserta magang ini.'
+            );
         }
     }
 }

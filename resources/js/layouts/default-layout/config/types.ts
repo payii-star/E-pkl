@@ -8,6 +8,9 @@ export interface MenuItem {
     bootstrapIcon?: string;
     sub?: Array<MenuItem>;
     permission?: string;
+    /** Kalau true, item ini disembunyikan khusus untuk hr-admin/admin,
+     *  meskipun checkPermission() biasanya otomatis meloloskan admin. */
+    hideForAdmin?: boolean;
 }
 
 interface General {

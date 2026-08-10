@@ -92,7 +92,20 @@ class User extends Authenticatable implements JWTSubject
 
     public function getRoleAttribute()
     {
-        return $this->roles()->first();
+        // Prioritaskan role hr-admin di atas role lain (mis. atasan) jika suatu
+        // akun kebetulan memiliki lebih dari satu role. Ini mencegah sidebar/menu
+        // salah mendeteksi akun HR Admin sebagai "atasan" biasa.
+        $rolePriority = ['hr-admin', 'atasan', 'karyawan'];
+
+        $roles = $this->roles()->get();
+        foreach ($rolePriority as $roleName) {
+            $match = $roles->firstWhere('name', $roleName);
+            if ($match) {
+                return $match;
+            }
+        }
+
+        return $roles->first();
     }
 
     public function getPermissionAttribute()

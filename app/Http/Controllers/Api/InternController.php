@@ -8,40 +8,224 @@ use Illuminate\Http\Request;
 
 class InternController extends Controller
 {
-    public function estimation(Request $request)
-    {
-        $user = $request->user();
+   public function estimation(Request $request)
+{
+    $user = $request->user();
 
-        if (!$user->tanggal_mulai || !$user->tanggal_selesai) {
-            return response()->json([
-                'message' => 'Data peserta magang untuk akun ini belum diisi. Hubungi admin.',
-            ], 404);
-        }
+    if (!$user) {
+        return response()->json([
+            'message' => 'User belum terautentikasi.',
+        ], 401);
+    }
 
-        $start = Carbon::parse($user->tanggal_mulai)->startOfDay();
-        $end = Carbon::parse($user->tanggal_selesai)->startOfDay();
-        $today = Carbon::today();
+    $tanggalMulai = $user->tanggal_mulai;
+    $tanggalSelesai = $user->tanggal_selesai;
 
-        $totalDays = $start->diffInDays($end) + 1;
+    /*
+    |--------------------------------------------------------------------------
+    | Data periode magang belum lengkap
+    |--------------------------------------------------------------------------
+    |
+    | Jangan return 404.
+    | Endpoint tetap berhasil dengan HTTP 200.
+    |
+    */
 
-        if ($today->lt($start)) {
-            $daysPassed = 0;
-        } elseif ($today->gt($end)) {
-            $daysPassed = $totalDays;
-        } else {
-            $daysPassed = $start->diffInDays($today) + 1;
-        }
-
-        $daysRemaining = max($totalDays - $daysPassed, 0);
-        $percentage = $totalDays > 0 ? round(($daysPassed / $totalDays) * 100) : 0;
+    if (!$tanggalMulai || !$tanggalSelesai) {
 
         return response()->json([
-            'start_date' => $user->tanggal_mulai->format('Y-m-d'),
-            'end_date' => $user->tanggal_selesai->format('Y-m-d'),
-            'total_days' => $totalDays,
-            'days_passed' => $daysPassed,
-            'days_remaining' => $daysRemaining,
-            'percentage' => min($percentage, 100),
-        ]);
+            'data' => [
+                'tanggal_mulai' => $tanggalMulai,
+                'tanggal_selesai' => $tanggalSelesai,
+
+                'total_hari' => 0,
+                'hari_berjalan' => 0,
+                'hari_tersisa' => 0,
+
+                'progress' => 0,
+
+                'status' => 'incomplete',
+
+                'message' =>
+                    'Data periode magang belum lengkap.',
+            ],
+        ], 200);
     }
+
+    try {
+
+        $mulai = \Carbon\Carbon::parse(
+            $tanggalMulai
+        )->startOfDay();
+
+        $selesai = \Carbon\Carbon::parse(
+            $tanggalSelesai
+        )->startOfDay();
+
+        $hariIni = now()->startOfDay();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Validasi tanggal
+        |--------------------------------------------------------------------------
+        */
+
+        if ($selesai->lt($mulai)) {
+
+            return response()->json([
+                'data' => [
+                    'tanggal_mulai' => $tanggalMulai,
+                    'tanggal_selesai' => $tanggalSelesai,
+
+                    'total_hari' => 0,
+                    'hari_berjalan' => 0,
+                    'hari_tersisa' => 0,
+
+                    'progress' => 0,
+
+                    'status' => 'invalid',
+
+                    'message' =>
+                        'Tanggal selesai magang tidak boleh lebih awal dari tanggal mulai.',
+                ],
+            ], 200);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Hitung total hari
+        |--------------------------------------------------------------------------
+        */
+
+        $totalHari =
+            $mulai->diffInDays($selesai) + 1;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Hitung hari berjalan
+        |--------------------------------------------------------------------------
+        */
+
+        if ($hariIni->lt($mulai)) {
+
+            $hariBerjalan = 0;
+
+        } elseif ($hariIni->gt($selesai)) {
+
+            $hariBerjalan = $totalHari;
+
+        } else {
+
+            $hariBerjalan =
+                $mulai->diffInDays($hariIni) + 1;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Hitung hari tersisa
+        |--------------------------------------------------------------------------
+        */
+
+        $hariTersisa =
+            max(
+                0,
+                $totalHari - $hariBerjalan
+            );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Progress
+        |--------------------------------------------------------------------------
+        */
+
+        $progress =
+            $totalHari > 0
+                ? round(
+                    ($hariBerjalan / $totalHari) * 100,
+                    2
+                )
+                : 0;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Status
+        |--------------------------------------------------------------------------
+        */
+
+        if ($hariIni->lt($mulai)) {
+
+            $status = 'not_started';
+
+        } elseif ($hariIni->gt($selesai)) {
+
+            $status = 'completed';
+
+        } else {
+
+            $status = 'active';
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Response
+        |--------------------------------------------------------------------------
+        */
+
+        return response()->json([
+            'data' => [
+                'tanggal_mulai' =>
+                    $mulai->format('Y-m-d'),
+
+                'tanggal_selesai' =>
+                    $selesai->format('Y-m-d'),
+
+                'total_hari' =>
+                    $totalHari,
+
+                'hari_berjalan' =>
+                    $hariBerjalan,
+
+                'hari_tersisa' =>
+                    $hariTersisa,
+
+                'progress' =>
+                    $progress,
+
+                'status' =>
+                    $status,
+
+                'message' =>
+                    null,
+            ],
+        ], 200);
+
+    } catch (\Throwable $e) {
+
+        \Log::error(
+            'Intern estimation error',
+            [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]
+        );
+
+        return response()->json([
+            'data' => [
+                'tanggal_mulai' => $tanggalMulai,
+                'tanggal_selesai' => $tanggalSelesai,
+
+                'total_hari' => 0,
+                'hari_berjalan' => 0,
+                'hari_tersisa' => 0,
+
+                'progress' => 0,
+
+                'status' => 'error',
+
+                'message' =>
+                    'Estimasi magang tidak dapat dihitung.',
+            ],
+        ], 200);
+    }
+}
 }

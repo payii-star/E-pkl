@@ -33,39 +33,11 @@ const isAdminUser = () => {
     return roleName === "admin" || roleName === "hr-admin";
 };
 
-const sidebarMenuConfig = computed(() => {
-    if (!isAdminUser()) {
-        return MainMenuConfig;
-    }
-
-    return [
-        {
-            pages: [
-                {
-                    heading: "Admin Dashboard",
-                    name: "admin-dashboard",
-                    route: "/admin/dashboard",
-                    keenthemesIcon: "chart-simple",
-                    permission: "admin-dashboard",
-                },
-                {
-                    heading: "Face Management",
-                    name: "admin-face-management",
-                    route: "/admin/face/interns",
-                    keenthemesIcon: "user",
-                    permission: "admin-dashboard",
-                },
-                {
-                    heading: "Approval Jurnal",
-                    name: "admin-journal-approval",
-                    route: "/admin/journals/approval",
-                    keenthemesIcon: "check-circle",
-                    permission: "admin-dashboard",
-                },
-            ],
-        },
-    ];
-});
+// MainMenuConfig sudah berisi SEMUA item (termasuk item khusus admin,
+// masing-masing dengan field `permission`-nya sendiri). checkPermission()
+// di bawah sudah otomatis meloloskan semua item untuk isAdminUser(),
+// jadi tidak perlu ada config terpisah untuk admin.
+const sidebarMenuConfig = computed(() => MainMenuConfig);
 
 const hasActiveChildren = (match: string) => {
     return route.path.indexOf(match) !== -1;
@@ -79,6 +51,9 @@ const hasActiveChildren = (match: string) => {
  *   maka baru dicek terhadap daftar permission milik user.
  */
 const checkPermission = (item: any) => {
+    // Item dengan hideForAdmin selalu disembunyikan dari hr-admin,
+    // apapun kondisinya — dicek duluan sebelum bypass admin di bawah.
+    if (item?.hideForAdmin && isAdminUser()) return false;
     if (isAdminUser()) return true;
     if (!item?.permission) return true;
     return !!user?.value?.permission?.includes(item.permission);
