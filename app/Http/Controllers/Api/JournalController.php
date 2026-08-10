@@ -74,10 +74,22 @@ class JournalController extends Controller
     // GET /journals/pending-approval -> untuk pembimbing/admin
     public function pendingApproval(Request $request)
     {
-        $userId = $request->user()->id;
+        $user = $request->user();
+
+        // If requester is admin/hr-admin return all pending journals
+        if (method_exists($user, 'hasAnyRole') && $user->hasAnyRole(['admin', 'hr-admin'])) {
+            $journals = Journal::where('status', 'pending')
+                ->with(['user', 'activities'])
+                ->latest('date')
+                ->get();
+
+            return response()->json(['data' => $journals]);
+        }
+
+        $userId = $user->id;
 
         $journals = Journal::whereHas('user', function ($q) use ($userId) {
-            $q->where('atasan_id', $userId);
+                $q->where('atasan_id', $userId);
             })
             ->where('status', 'pending')
             ->with(['user', 'activities'])
@@ -127,7 +139,13 @@ class JournalController extends Controller
     private function authorizeApprover(Request $request, Journal $journal)
     {
         $journal->loadMissing('user');
-        if ($journal->user?->atasan_id !== $request->user()->id) {
+        $approver = $request->user();
+
+        if (method_exists($approver, 'hasAnyRole') && $approver->hasAnyRole(['admin', 'hr-admin'])) {
+            return;
+        }
+
+        if ($journal->user?->atasan_id !== $approver->id) {
             abort(403, 'Kamu bukan pembimbing dari peserta magang ini');
         }
     }

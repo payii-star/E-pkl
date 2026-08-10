@@ -55,6 +55,13 @@ const sidebarMenuConfig = computed(() => {
                     keenthemesIcon: "user",
                     permission: "admin-dashboard",
                 },
+                {
+                    heading: "Approval Jurnal (Admin)",
+                    name: "admin-journal-approval",
+                    route: "/admin/journals/approval",
+                    keenthemesIcon: "check-circle",
+                    permission: "admin-dashboard",
+                },
             ],
         },
     ];

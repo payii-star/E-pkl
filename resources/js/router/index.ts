@@ -145,6 +145,16 @@ const routes: Array<RouteRecordRaw> = [
                     permission: "journal-approval",
                 },
             },
+            {
+                path: "/admin/journals/approval",
+                name: "admin-journal-approval",
+                component: () => import("@/pages/admin/JournalApprovals.vue"),
+                meta: {
+                    pageTitle: "Approval Jurnal (Admin)",
+                    breadcrumbs: ["Admin", "Jurnal", "Approval"],
+                    permission: "admin-dashboard",
+                },
+            },
         ],
     },
     {
