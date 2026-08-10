@@ -24,7 +24,7 @@ const MainMenuConfig: Array<MenuItem> = [
                 permission: "admin-dashboard",
             },
             {
-                heading: "Approval Jurnal (Admin)",
+                heading: "Approval Jurnal",
                 name: "admin-journal-approval",
                 route: "/admin/journals/approval",
                 keenthemesIcon: "check-circle",

@@ -150,7 +150,7 @@ const routes: Array<RouteRecordRaw> = [
                 name: "admin-journal-approval",
                 component: () => import("@/pages/admin/JournalApprovals.vue"),
                 meta: {
-                    pageTitle: "Approval Jurnal (Admin)",
+                    pageTitle: "Approval Jurnal",
                     breadcrumbs: ["Admin", "Jurnal", "Approval"],
                     permission: "admin-dashboard",
                 },

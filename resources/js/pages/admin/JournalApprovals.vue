@@ -2,7 +2,7 @@
     <div class="card">
         <div class="card-header border-0 pt-6">
             <div class="card-title">
-                <h2>Approval Jurnal (Admin)</h2>
+                <h2>Approval Jurnal</h2>
             </div>
         </div>
         <div class="card-body">
