@@ -14,9 +14,10 @@ class AttendanceController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
+        $dateColumn = Attendance::dateColumn();
 
         $attendances = Attendance::where('user_id', $user->id)
-            ->latest('date')
+            ->latest($dateColumn)
             ->get();
 
         return response()->json(['data' => $attendances]);
@@ -37,20 +38,24 @@ class AttendanceController extends Controller
         }
 
         $today = now()->toDateString();
+        $dateColumn = Attendance::dateColumn();
+        $checkInTimeColumn = Attendance::checkInTimeColumn();
+        $checkInPhotoColumn = Attendance::checkInPhotoColumn();
+        $locationColumn = Attendance::locationColumn();
 
-        $existing = Attendance::where('user_id', $user->id)->where('date', $today)->first();
-        if ($existing && $existing->check_in_time) {
+        $existing = Attendance::where('user_id', $user->id)->where($dateColumn, $today)->first();
+        if ($existing && $existing->{$checkInTimeColumn}) {
             return response()->json(['message' => 'Kamu sudah absen masuk hari ini'], 422);
         }
 
         $photoPath = $request->file('photo')->store('attendances', 'public');
 
         $attendance = Attendance::updateOrCreate(
-            ['user_id' => $user->id, 'date' => $today],
+            ['user_id' => $user->id, $dateColumn => $today],
             [
-                'check_in_time' => now()->toTimeString(),
-                'check_in_photo' => $photoPath,
-                'location' => $request->location,
+                $checkInTimeColumn => now()->toTimeString(),
+                $checkInPhotoColumn => $photoPath,
+                $locationColumn => $request->location,
                 'status' => 'hadir',
             ]
         );
@@ -74,20 +79,25 @@ class AttendanceController extends Controller
         }
 
         $today = now()->toDateString();
-        $attendance = Attendance::where('user_id', $user->id)->where('date', $today)->first();
+        $dateColumn = Attendance::dateColumn();
+        $checkInTimeColumn = Attendance::checkInTimeColumn();
+        $checkOutTimeColumn = Attendance::checkOutTimeColumn();
+        $checkOutPhotoColumn = Attendance::checkOutPhotoColumn();
 
-        if (!$attendance || !$attendance->check_in_time) {
+        $attendance = Attendance::where('user_id', $user->id)->where($dateColumn, $today)->first();
+
+        if (!$attendance || !$attendance->{$checkInTimeColumn}) {
             return response()->json(['message' => 'Kamu belum absen masuk hari ini'], 422);
         }
-        if ($attendance->check_out_time) {
+        if ($attendance->{$checkOutTimeColumn}) {
             return response()->json(['message' => 'Kamu sudah absen keluar hari ini'], 422);
         }
 
         $photoPath = $this->saveBase64Photo($request->photo, $user->id);
 
         $attendance->update([
-            'check_out_time' => now()->toTimeString(),
-            'check_out_photo' => $photoPath,
+            $checkOutTimeColumn => now()->toTimeString(),
+            $checkOutPhotoColumn => $photoPath,
         ]);
 
         return response()->json(['data' => $attendance, 'message' => 'Absen pulang berhasil']);

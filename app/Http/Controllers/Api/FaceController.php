@@ -125,19 +125,22 @@ class FaceController extends Controller
     private function recordFaceLoginAttendance(int $userId): Attendance
     {
         $today = now()->toDateString();
+        $dateColumn = Attendance::dateColumn();
+        $checkInTimeColumn = Attendance::checkInTimeColumn();
+        $locationColumn = Attendance::locationColumn();
 
-        $existing = Attendance::where('user_id', $userId)->where('date', $today)->first();
+        $existing = Attendance::where('user_id', $userId)->where($dateColumn, $today)->first();
 
-        if ($existing && $existing->check_in_time) {
+        if ($existing && $existing->{$checkInTimeColumn}) {
             return $existing;
         }
 
         return Attendance::updateOrCreate(
-            ['user_id' => $userId, 'date' => $today],
+            ['user_id' => $userId, $dateColumn => $today],
             [
-                'check_in_time' => now()->toTimeString(),
+                $checkInTimeColumn => now()->toTimeString(),
                 'status' => 'hadir',
-                'location' => 'Face Recognition Login',
+                $locationColumn => 'Face Recognition Login',
             ]
         );
     }

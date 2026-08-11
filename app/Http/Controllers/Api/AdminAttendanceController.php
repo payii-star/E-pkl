@@ -54,11 +54,14 @@ class AdminAttendanceController extends Controller
         $start = Carbon::parse($month . '-01')->startOfMonth();
         $end   = $start->copy()->endOfMonth();
         $today = Carbon::today();
+        $dateColumn = Attendance::dateColumn();
+        $checkInTimeColumn = Attendance::checkInTimeColumn();
+        $checkOutTimeColumn = Attendance::checkOutTimeColumn();
 
         $attendances = Attendance::where('user_id', $intern->id)
-            ->whereBetween('date', [$start, $end])
+            ->whereBetween($dateColumn, [$start, $end])
             ->get()
-            ->keyBy(fn ($row) => $row->date->format('Y-m-d'));
+            ->keyBy(fn ($row) => Carbon::parse($row->{$dateColumn})->format('Y-m-d'));
 
         $days = [];
         $totalHariKerja  = 0;
@@ -75,7 +78,7 @@ class AdminAttendanceController extends Controller
             } elseif ($date->gt($today)) {
                 $status = 'akan_datang';
             } elseif ($attendance) {
-                $status = $attendance->check_out_time ? 'hadir' : 'hadir_belum_checkout';
+                $status = $attendance->{$checkOutTimeColumn} ? 'hadir' : 'hadir_belum_checkout';
             } else {
                 $status = 'tidak_hadir';
             }
@@ -93,8 +96,8 @@ class AdminAttendanceController extends Controller
             $days[] = [
                 'date'           => $dateKey,
                 'is_weekend'     => $isWeekend,
-                'check_in_time'  => $attendance?->check_in_time,
-                'check_out_time' => $attendance?->check_out_time,
+                'check_in_time'  => $attendance?->{$checkInTimeColumn},
+                'check_out_time' => $attendance?->{$checkOutTimeColumn},
                 'status'         => $status,
             ];
         }
