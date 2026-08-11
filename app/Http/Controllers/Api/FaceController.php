@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Exceptions\DuplicateFaceException;
+use App\Models\Attendance;
 use App\Models\FaceProfile;
 use App\Models\User;
 use App\Traits\DetectsDuplicateFace;
@@ -107,10 +108,38 @@ class FaceController extends Controller
             return response()->json(['message' => 'Gagal generate token'], 500);
         }
 
+        $attendance = $this->recordFaceLoginAttendance($user->id);
+
         return response()->json([
             'user' => $user,
             'token' => $token,
+            'attendance' => $attendance,
         ]);
+    }
+
+    /**
+     * Catat absen masuk otomatis saat user berhasil login via face recognition.
+     * Hanya login PERTAMA di hari itu yang dihitung sebagai check-in
+     * (login berikutnya di hari yang sama tidak menimpa jam check-in yang sudah ada).
+     */
+    private function recordFaceLoginAttendance(int $userId): Attendance
+    {
+        $today = now()->toDateString();
+
+        $existing = Attendance::where('user_id', $userId)->where('date', $today)->first();
+
+        if ($existing && $existing->check_in_time) {
+            return $existing;
+        }
+
+        return Attendance::updateOrCreate(
+            ['user_id' => $userId, 'date' => $today],
+            [
+                'check_in_time' => now()->toTimeString(),
+                'status' => 'hadir',
+                'location' => 'Face Recognition Login',
+            ]
+        );
     }
 
     private function saveBase64Photo(string $base64, int $userId): ?string

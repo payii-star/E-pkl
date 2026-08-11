@@ -40,7 +40,7 @@ const MainMenuConfig: Array<MenuItem> = [
         route: "/attendance",
         pages: [
             {
-                heading: "Absen Sekarang",
+                heading: "Absen Pulang",
                 route: "/attendance/check",
                 name: "attendance-check",
                 keenthemesIcon: "geolocation",

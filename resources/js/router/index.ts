@@ -64,16 +64,6 @@ const routes: Array<RouteRecordRaw> = [
                 },
             },
             {
-                path: "/admin/journals/approval",
-                name: "admin-journal-approval",
-                component: () => import("@/pages/admin/JournalApprovals.vue"),
-                meta: {
-                    pageTitle: "Approval Jurnal",
-                    breadcrumbs: ["Admin", "Approval Jurnal"],
-                    permission: "admin-dashboard",
-                },
-            },
-            {
                 path: "/dashboard/profile",
                 name: "dashboard.profile",
                 component: () => import("@/pages/dashboard/profile/Index.vue"),
@@ -119,7 +109,7 @@ const routes: Array<RouteRecordRaw> = [
                 path: "/attendance/check",
                 name: "attendance-check",
                 component: () =>
-                    import("@/pages/attendance/CheckInOut.vue"),
+                    import("@/pages/attendance/Checkout.vue"),
                 meta: {
                     pageTitle: "Absen Sekarang",
                     breadcrumbs: ["Absensi", "Absen"],
@@ -158,7 +148,7 @@ const routes: Array<RouteRecordRaw> = [
             {
                 path: "/journal/approval",
                 name: "journal-approval",
-                component: () => import("@/pages/admin/JournalApprovals.vue"),
+                component: () => import("@/pages/journal/Approval.vue"),
                 meta: {
                     pageTitle: "Approval Jurnal",
                     breadcrumbs: ["Jurnal", "Approval"],

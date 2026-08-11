@@ -133,6 +133,20 @@
                             <div class="text-muted fs-7">Memuat AI model... {{ modelProgress }}</div>
                         </div>
 
+                        <!-- Kamera belum dibuka: tampilkan tombol -->
+                        <div v-else-if="!cameraOpen" class="text-center py-6">
+                            <div class="symbol symbol-60px mb-3 mx-auto">
+                                <span class="symbol-label bg-light-primary">
+                                    <KTIcon icon-name="camera" icon-class="fs-1 text-primary" />
+                                </span>
+                            </div>
+                            <div class="text-muted fs-7 mb-4">Buka kamera untuk {{ selected.has_face_profile ? 'update' : 'daftarkan' }} wajah {{ selected.name }}</div>
+                            <button class="btn btn-primary" @click="openCamera">
+                                <KTIcon icon-name="camera" icon-class="fs-4 me-2" />
+                                Buka Kamera
+                            </button>
+                        </div>
+
                         <template v-else>
                             <!-- Kamera -->
                             <div class="cam-wrap position-relative mb-4" :class="'cam-wrap--' + camStatus">
@@ -150,6 +164,12 @@
                                     <span v-else-if="camStatus === 'success'">Berhasil didaftarkan!</span>
                                 </div>
                             </div>
+
+                            <!-- Tombol tutup kamera -->
+                            <button class="btn btn-sm btn-light mb-4" @click="closeCamera">
+                                <KTIcon icon-name="cross" icon-class="fs-6 me-1" />
+                                Tutup Kamera
+                            </button>
 
                             <!-- Instruksi -->
                             <div class="notice d-flex bg-light-primary rounded p-4 mb-5">
@@ -254,6 +274,7 @@ const loadingInterns = ref(false)
 const videoEl  = ref<HTMLVideoElement | null>(null)
 const canvasEl = ref<HTMLCanvasElement | null>(null)
 const camStatus = ref('idle')
+const cameraOpen = ref(false)
 
 // Model
 const modelLoading  = ref(false)
@@ -350,6 +371,7 @@ async function startCamera() {
         })
         await videoEl.value.play()
         camStatus.value = 'detecting'
+        cameraOpen.value = true
         startDetectLoop()
     } catch (e: any) {
         registerMsg.value     = 'Gagal mengakses kamera: ' + (e.message ?? e)
@@ -361,6 +383,17 @@ function stopCamera() {
     if (_detectInterval) { clearInterval(_detectInterval); _detectInterval = null }
     _stream?.getTracks().forEach(t => t.stop())
     _stream = null
+    cameraOpen.value = false
+}
+
+function closeCamera() {
+    stopCamera()
+    camStatus.value = 'idle'
+}
+
+function openCamera() {
+    // Trigger camera start; startCamera will set cameraOpen = true
+    startCamera()
 }
 
 // ─── Detect Loop ──────────────────────────────────────────────────────────────
