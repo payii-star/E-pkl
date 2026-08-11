@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { ToggleComponent } from "@/assets/ts/components";
 import { getAssetPath } from "@/core/helpers/assets";
 import {
@@ -16,6 +16,7 @@ interface IProps {
 const props = defineProps<IProps>();
 
 const { data: setting = {} } = useSetting()
+const sidebarLogo = computed(() => setting.value?.dashboard_logo || setting.value?.logo || getAssetPath('media/logos/default.svg'));
 
 const toggleRef = ref<HTMLFormElement | null>(null);
 
@@ -51,10 +52,10 @@ onMounted(() => {
         <router-link to="/">
             <img v-if="layout === 'dark-sidebar' ||
                 (themeMode === 'dark' && layout === 'light-sidebar')
-                " alt="Logo" :src="setting?.logo" class="h-50px app-sidebar-logo-default" />
-            <img v-if="themeMode === 'light' && layout === 'light-sidebar'" alt="Logo" :src="setting?.logo"
+                " alt="Logo" :src="sidebarLogo" class="h-50px app-sidebar-logo-default" />
+            <img v-if="themeMode === 'light' && layout === 'light-sidebar'" alt="Logo" :src="sidebarLogo"
                 class="h-50px app-sidebar-logo-default" />
-            <img alt="Logo" :src="setting?.logo" class="h-50px app-sidebar-logo-minimize" />
+            <img alt="Logo" :src="sidebarLogo" class="h-50px app-sidebar-logo-minimize" />
         </router-link>
         <!--end::Logo image-->
         <!--begin::Sidebar toggle-->

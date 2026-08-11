@@ -20,6 +20,7 @@ class SettingSeeder extends Seeder
             'app' => 'e-SAKIP DLH',
             'description' =>  'Aplikasi e-SAKIP Dinas Lingkungan Hidup',
             'logo' =>  '/media/logo.png',
+            'dashboard_logo' =>  '/media/logo.png',
             'bg_auth' =>  '/media/misc/bg-auth.jpg',
             'alamat' =>  '',
             'telepon' =>  '',

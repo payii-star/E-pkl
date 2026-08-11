@@ -64,12 +64,12 @@
 
                 <div class="col-md-6">
                     <div class="fv-row mb-8">
-                        <label class="form-label fw-bold">Logo</label> <file-upload v-bind:files="files.logo" :accepted-file-types="fileTypes"
+                        <label class="form-label fw-bold">Logo Login</label> <file-upload v-bind:files="files.logo" :accepted-file-types="fileTypes"
                             v-on:updatefiles="file => files.logo = file"></file-upload> </div>
 
                     <div class="fv-row mb-8">
-                        <label class="form-label fw-bold">Background Login</label> <file-upload v-bind:files="files.bgAuth" :accepted-file-types="fileTypes"
-                            v-on:updatefiles="file => files.bgAuth = file"></file-upload> </div>
+                        <label class="form-label fw-bold">Logo Dashboard</label> <file-upload v-bind:files="files.dashboardLogo" :accepted-file-types="fileTypes"
+                            v-on:updatefiles="file => files.dashboardLogo = file"></file-upload> </div>
                 </div>
             </div>
         </div>
@@ -104,7 +104,7 @@ export default defineComponent({
         const fileTypes = ref(['image/jpeg', 'image/png', 'image/jpg'])
         const files = ref({
             logo: setting.data?.value?.logo ? [setting.data.value.logo] : [],
-            bgAuth: setting.data?.value?.bg_auth ? [setting.data.value.bg_auth] : [],
+            dashboardLogo: setting.data?.value?.dashboard_logo || setting.data?.value?.logo ? [setting.data.value.dashboard_logo || setting.data.value.logo] : [],
         })
 
         // Skema validasi disederhanakan
@@ -141,9 +141,9 @@ export default defineComponent({
                 data.append('logo', this.files.logo[0].file);
             }
 
-            // Cek dan tambahkan 'bg_auth' HANYA jika ada file baru yang dipilih
-            if (this.files.bgAuth[0] && this.files.bgAuth[0].file) {
-                data.append('bg_auth', this.files.bgAuth[0].file);
+            // Cek dan tambahkan 'dashboard_logo' HANYA jika ada file baru yang dipilih
+            if (this.files.dashboardLogo[0] && this.files.dashboardLogo[0].file) {
+                data.append('dashboard_logo', this.files.dashboardLogo[0].file);
             }
 
             // Kirim data ke server
@@ -171,7 +171,7 @@ export default defineComponent({
                 this.formData = setting.data.value
 
                 this.files.logo = setting.data.value.logo ? [setting.data.value.logo] : []
-                this.files.bgAuth = setting.data.value.bg_auth ? [setting.data.value.bg_auth] : []
+                this.files.dashboardLogo = setting.data.value.dashboard_logo || setting.data.value.logo ? [setting.data.value.dashboard_logo || setting.data.value.logo] : []
             },
             deep: true
         }
