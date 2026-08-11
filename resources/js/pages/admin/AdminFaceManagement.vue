@@ -371,7 +371,6 @@ async function startCamera() {
         })
         await videoEl.value.play()
         camStatus.value = 'detecting'
-        cameraOpen.value = true
         startDetectLoop()
     } catch (e: any) {
         registerMsg.value     = 'Gagal mengakses kamera: ' + (e.message ?? e)
@@ -383,17 +382,19 @@ function stopCamera() {
     if (_detectInterval) { clearInterval(_detectInterval); _detectInterval = null }
     _stream?.getTracks().forEach(t => t.stop())
     _stream = null
-    cameraOpen.value = false
 }
 
 function closeCamera() {
     stopCamera()
     camStatus.value = 'idle'
+    cameraOpen.value = false
 }
 
-function openCamera() {
-    // Trigger camera start; startCamera will set cameraOpen = true
-    startCamera()
+async function openCamera() {
+    registerMsg.value = ''
+    cameraOpen.value = true
+    await loadModels()
+    await startCamera()
 }
 
 // ─── Detect Loop ──────────────────────────────────────────────────────────────
