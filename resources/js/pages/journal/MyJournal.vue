@@ -54,6 +54,19 @@
                 + Tambah Aktivitas
             </button>
 
+            <div class="mb-6">
+                <label class="form-label">Foto Kegiatan (opsional, max 1MB, JPG/PNG)</label>
+                <input
+                    type="file"
+                    class="form-control w-md-400px"
+                    accept="image/jpeg,image/png"
+                    @change="onFotoChange"
+                />
+                <div v-if="fotoPreview" class="mt-3">
+                    <img :src="fotoPreview" class="rounded" style="max-width: 220px; max-height: 220px" />
+                </div>
+            </div>
+
             <div>
                 <button type="button" class="btn btn-primary" :disabled="loading" @click="submit">
                     {{ loading ? 'Mengirim...' : 'Kirim Jurnal' }}
@@ -65,7 +78,7 @@
 
 <script lang="ts">
 import { defineComponent, ref } from 'vue';
-import ApiService from '@/core/services/ApiService';
+import axios from '@/libs/axios';
 
 interface Activity {
     jam_mulai: string;
@@ -78,6 +91,8 @@ export default defineComponent({
         const today = new Date().toISOString().slice(0, 10);
         const date = ref(today);
         const activities = ref<Activity[]>([{ jam_mulai: '', jam_selesai: '', kegiatan: '' }]);
+        const foto = ref<File | null>(null);
+        const fotoPreview = ref('');
         const loading = ref(false);
         const successMessage = ref('');
         const errorMessage = ref('');
@@ -90,20 +105,36 @@ export default defineComponent({
             activities.value.splice(index, 1);
         };
 
+        const onFotoChange = (e: Event) => {
+            const file = (e.target as HTMLInputElement).files?.[0] ?? null;
+            foto.value = file;
+            fotoPreview.value = file ? URL.createObjectURL(file) : '';
+        };
+
         const submit = async () => {
             errorMessage.value = '';
             successMessage.value = '';
             loading.value = true;
 
             try {
-                await ApiService.post('/journals', {
-                    date: date.value,
-                    activities: activities.value,
+                const formData = new FormData();
+                formData.append('date', date.value);
+                activities.value.forEach((act, i) => {
+                    formData.append(`activities[${i}][jam_mulai]`, act.jam_mulai);
+                    formData.append(`activities[${i}][jam_selesai]`, act.jam_selesai);
+                    formData.append(`activities[${i}][kegiatan]`, act.kegiatan);
                 });
+                if (foto.value) {
+                    formData.append('foto', foto.value);
+                }
+
+                await axios.post('/journals', formData);
 
                 successMessage.value = 'Jurnal berhasil dikirim, menunggu approval atasan.';
                 activities.value = [{ jam_mulai: '', jam_selesai: '', kegiatan: '' }];
                 date.value = today;
+                foto.value = null;
+                fotoPreview.value = '';
             } catch (e: any) {
                 errorMessage.value = e?.response?.data?.message ?? 'Gagal mengirim jurnal.';
             } finally {
@@ -111,7 +142,19 @@ export default defineComponent({
             }
         };
 
-        return { date, activities, loading, successMessage, errorMessage, addActivity, removeActivity, submit };
+        return {
+            date,
+            activities,
+            foto,
+            fotoPreview,
+            loading,
+            successMessage,
+            errorMessage,
+            addActivity,
+            removeActivity,
+            onFotoChange,
+            submit,
+        };
     },
 });
 </script>

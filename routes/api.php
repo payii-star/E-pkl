@@ -202,6 +202,12 @@ Route::middleware(['auth', 'json'])->group(function () {
             'pendingApproval'
         ]);
 
+        // GET /api/journals/approval-history
+        Route::get('approval-history', [
+            JournalController::class,
+            'approvalHistory'
+        ]);
+
         // POST /api/journals/{journal}/approve
         Route::post('{journal}/approve', [
             JournalController::class,

@@ -76,7 +76,7 @@ class JournalController extends Controller
             'foto' => [
                 'nullable',
                 'file',
-                'mimes:jpg,jpeg,png,pdf',
+                'mimes:jpg,jpeg,png',
                 'max:1024',
             ],
         ]);
@@ -142,6 +142,25 @@ class JournalController extends Controller
         $journals = Journal::where('user_id', $user->id)
             ->with('activities')
             ->latest('date')
+            ->get();
+
+        return response()->json([
+            'data' => $journals,
+        ]);
+    }
+
+    /**
+     * GET /api/journals/approval-history
+     */
+    public function approvalHistory(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        $journals = Journal::query()
+            ->where('approved_by', $userId)
+            ->whereIn('status', ['approved', 'rejected'])
+            ->with(['user', 'activities'])
+            ->latest('approved_at')
             ->get();
 
         return response()->json([
