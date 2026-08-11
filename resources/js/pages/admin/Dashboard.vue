@@ -13,7 +13,7 @@
         <div class="card-body">
           <div class="fs-2 fw-bold text-warning">{{ summary.pending_journals ?? "—" }}</div>
           <div class="text-muted">Jurnal Menunggu Approval</div>
-          <router-link to="/admin/journals/approval" class="fs-7">Lihat detail &rarr;</router-link>
+          <router-link to="/journal/approval" class="fs-7">Lihat detail &rarr;</router-link>
         </div>
       </div>
     </div>
