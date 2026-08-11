@@ -141,7 +141,8 @@ class JournalController extends Controller
 
         $journals = Journal::where('user_id', $user->id)
             ->with('activities')
-            ->latest('date')
+            ->orderByDesc('date')
+            ->orderByDesc('created_at')
             ->get();
 
         return response()->json([

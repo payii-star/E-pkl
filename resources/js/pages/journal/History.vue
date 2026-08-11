@@ -40,7 +40,14 @@
                                 {{ statusLabel(journal.status) }}
                             </span>
                         </td>
-                        <td>{{ journal.catatan_approval || 'Tidak ada catatan' }}</td>
+                        <td>
+                            <span v-if="journal.catatan_approval" :class="journal.status === 'rejected' ? 'text-danger' : 'text-gray-700'">
+                                {{ truncate(journal.catatan_approval) }}
+                            </span>
+                            <span v-else class="text-gray-500 fst-italic">
+                                {{ journal.status === 'pending' ? 'Menunggu diperiksa' : 'Tidak ada catatan' }}
+                            </span>
+                        </td>
                         <td>
                             <button class="btn btn-sm btn-light-primary" @click="openDetail(journal)">Detail</button>
                         </td>

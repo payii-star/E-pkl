@@ -6,28 +6,26 @@
             </div>
         </div>
         <div class="card-body">
-            <ul class="nav nav-tabs mb-5">
-                <li class="nav-item">
-                    <a
-                        class="nav-link"
-                        :class="{ active: activeTab === 'pending' }"
-                        href="#"
-                        @click.prevent="switchTab('pending')"
-                    >
-                        Menunggu Approval
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a
-                        class="nav-link"
-                        :class="{ active: activeTab === 'history' }"
-                        href="#"
-                        @click.prevent="switchTab('history')"
-                    >
-                        Riwayat Approval
-                    </a>
-                </li>
-            </ul>
+            <!--begin::Tabs (tombol solid, bukan nav-tabs default)-->
+            <div class="d-flex gap-2 mb-5">
+                <button
+                    type="button"
+                    class="btn btn-sm"
+                    :class="activeTab === 'pending' ? 'btn-primary' : 'btn-light text-gray-600'"
+                    @click="switchTab('pending')"
+                >
+                    Menunggu Approval
+                </button>
+                <button
+                    type="button"
+                    class="btn btn-sm"
+                    :class="activeTab === 'history' ? 'btn-primary' : 'btn-light text-gray-600'"
+                    @click="switchTab('history')"
+                >
+                    Riwayat Approval
+                </button>
+            </div>
+            <!--end::Tabs-->
 
             <div v-if="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
 
@@ -72,7 +70,14 @@
                                     {{ journal.status === 'approved' ? 'Disetujui' : 'Ditolak' }}
                                 </span>
                             </td>
-                            <td v-if="activeTab === 'history'">{{ journal.catatan_approval || '-' }}</td>
+                            <!--begin::Catatan - sekarang dipotong pakai truncate()-->
+                            <td v-if="activeTab === 'history'">
+                                <span v-if="journal.catatan_approval" :class="journal.status === 'rejected' ? 'text-danger' : 'text-gray-700'">
+                                    {{ truncate(journal.catatan_approval) }}
+                                </span>
+                                <span v-else class="text-gray-500 fst-italic">-</span>
+                            </td>
+                            <!--end::Catatan-->
                             <td>
                                 <div class="d-flex gap-2">
                                     <button class="btn btn-sm btn-light-primary" @click="openDetail(journal)">Detail</button>
@@ -134,6 +139,12 @@
                     <label class="form-label d-block">Foto Kegiatan</label>
                     <img :src="fotoUrl(selected.foto)" class="rounded" style="max-width: 100%; max-height: 400px" />
                 </div>
+                <div v-if="selected.catatan_approval" class="mt-3">
+                    <label class="form-label d-block">Catatan Pembimbing</label>
+                    <div :class="selected.status === 'rejected' ? 'text-danger' : 'text-gray-700'">
+                        {{ selected.catatan_approval }}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -155,15 +166,6 @@ const selected = ref<any>(null);
 const truncate = (text: string, len = 15) =>
     text && text.length > len ? text.slice(0, len) + '.........' : text;
 
-const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-
-const fotoUrl = (path: string) => {
-    if (!path) return '';
-    if (path.startsWith('http://') || path.startsWith('https://')) return path;
-    return path.startsWith('/storage/') ? path : `/storage/${path.replace(/^\/+/, '')}`;
-};
-
 const fetchData = async () => {
     loading.value = true;
     errorMessage.value = '';
@@ -183,8 +185,17 @@ const switchTab = (tab: 'pending' | 'history') => {
     fetchData();
 };
 
+const formatDate = (d: string) =>
+    new Date(d).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
 const openDetail = (journal: any) => {
     selected.value = journal;
+};
+
+const fotoUrl = (path: string) => {
+    if (!path) return '';
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    return path.startsWith('/storage/') ? path : `/storage/${path.replace(/^\/+/, '')}`;
 };
 
 const approve = async (journal: any) => {
@@ -230,7 +241,6 @@ onMounted(fetchData);
     justify-content: center;
     z-index: 1050;
 }
-
 .modal-box-custom {
     background: var(--bs-body-bg, #1e1e2d);
     border-radius: 8px;
