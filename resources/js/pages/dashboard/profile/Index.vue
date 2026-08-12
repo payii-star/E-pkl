@@ -330,7 +330,18 @@ const deleteAccount = () => {
                     confirmButtonText: "Ok",
                     customClass: { confirmButton: "btn btn-light-primary" },
                 });
-                await authStore.logout();
+
+                // PENTING: jangan panggil authStore.logout() di sini.
+                // Backend sudah memanggil auth()->logout() saat proses hapus
+                // akun (di dalam deleteProfile()), jadi token yang kita pegang
+                // sudah tidak valid lagi. authStore.logout() akan mengirim
+                // request lain ke server pakai token itu dan bakal gagal 401
+                // "Unauthenticated" - padahal akun sudah terhapus dengan sukses.
+                // Pakai purgeAuth() saja: itu membersihkan token DAN reset
+                // state user/isAuthenticated di store secara lokal, tanpa
+                // panggil API sama sekali.
+                authStore.purgeAuth();
+
                 router.push({ name: "sign-in" });
             })
             .catch((error) => {
@@ -466,9 +477,9 @@ const deleteAccount = () => {
         </div>
 
         <div class="card-footer d-flex justify-content-end gap-2 py-6">
-            <button type="button" class="btn btn-light" @click="discardChanges()">Discard</button>
+            <button type="button" class="btn btn-light" @click="discardChanges()">Batal</button>
             <button type="submit" id="kt_account_profile_details_submit" ref="submitButton1" class="btn btn-primary">
-                <span class="indicator-label">Save Changes</span>
+                <span class="indicator-label">Simpan</span>
                 <span class="indicator-progress">Please wait...
                     <span class="spinner-border spinner-border-sm align-middle ms-2"></span>
                 </span>
@@ -496,7 +507,7 @@ const deleteAccount = () => {
 <div class="card mb-5 mb-xl-10">
     <div class="card-header border-0 pt-6">
         <div class="card-title m-0">
-            <h3 class="fw-bold m-0">Sign-in Method</h3>
+            <h3 class="fw-bold m-0">Metode-Login</h3>
         </div>
     </div>
 
@@ -590,27 +601,21 @@ const deleteAccount = () => {
 
 <!--begin::Danger Zone-->
 <div class="card mb-5 mb-xl-10 border border-danger border-opacity-25">
-    <div class="card-header border-0 pt-6">
-        <div class="card-title m-0">
-            <h3 class="fw-bold m-0 text-danger">Hapus Akun</h3>
-        </div>
-    </div>
-    <div class="card-body pt-0">
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-            <div>
-                <div class="text-gray-500 fs-7">
-                    Setelah dihapus, akun dan semua data kamu tidak bisa dikembalikan.
-                </div>
+    <div class="card-body py-4 px-6 d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div>
+            <div class="fw-bold fs-7 text-danger">Hapus Akun</div>
+            <div class="text-gray-500 fs-8">
+                Akun dan semua data kamu tidak bisa dikembalikan setelah dihapus.
             </div>
-            <button
-                type="button"
-                class="btn btn-sm btn-danger"
-                :disabled="deletingAccount"
-                @click="deleteAccount()"
-            >
-                {{ deletingAccount ? 'Menghapus...' : 'Hapus Akun' }}
-            </button>
         </div>
+        <button
+            type="button"
+            class="btn btn-sm btn-danger py-1 px-3"
+            :disabled="deletingAccount"
+            @click="deleteAccount()"
+        >
+            {{ deletingAccount ? 'Menghapus...' : 'Hapus Akun' }}
+        </button>
     </div>
 </div>
 <!--end::Danger Zone-->
