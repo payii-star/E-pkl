@@ -98,11 +98,29 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
-        if ($user->photo) {
-            Storage::disk('public')->delete($user->photo);
+        $this->deleteUserAssets($user);
+        $user->delete();
+
+        return response()->json(['success' => true]);
+    }
+
+    public function deleteProfile(Request $request)
+    {
+           /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        $validatedData = $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        if (!Hash::check($validatedData['password'], $user->password)) {
+            return response()->json(['message' => 'Password yang Anda masukkan salah.'], 422);
         }
 
+        $this->deleteUserAssets($user);
         $user->delete();
+
+        auth()->logout();
 
         return response()->json(['success' => true]);
     }
@@ -210,5 +228,25 @@ class UserController extends Controller
         $user->save();
 
         return response()->json(['message' => 'Password berhasil diperbarui.']);
+    }
+
+    private function deleteUserAssets(User $user): void
+    {
+        if ($user->photo) {
+            $photoPath = str_replace('/storage/', '', $user->photo);
+            Storage::disk('public')->delete($photoPath);
+        }
+
+        if ($user->relationLoaded('faceProfile') ? $user->faceProfile : $user->faceProfile()->exists()) {
+            $faceProfile = $user->relationLoaded('faceProfile') ? $user->faceProfile : $user->faceProfile()->first();
+
+            if ($faceProfile && $faceProfile->photo) {
+                Storage::disk('public')->delete($faceProfile->photo);
+            }
+
+            if ($faceProfile) {
+                $faceProfile->delete();
+            }
+        }
     }
 }

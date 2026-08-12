@@ -82,6 +82,8 @@ Route::middleware(['auth', 'json'])->group(function () {
 
     Route::post('/profile', [UserController::class, 'updateProfile']);
 
+    Route::delete('/profile', [UserController::class, 'deleteProfile']);
+
     Route::post('/profile/change-email', [
         UserController::class,
         'changeEmail'
