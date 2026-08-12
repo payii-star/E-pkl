@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import { getAssetPath } from "@/core/helpers/assets";
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { ErrorMessage, Field, Form as VForm } from "vee-validate";
 import Swal from "sweetalert2/dist/sweetalert2.js";
 import * as Yup from "yup";
 import { useAuthStore } from "@/stores/auth";
+import { useRouter } from "vue-router";
 import axios from "@/libs/axios";
 
 // --- STATE MANAGEMENT ---
 const authStore = useAuthStore();
+const router = useRouter();
 const emailFormDisplay = ref(false);
 const passwordFormDisplay = ref(false);
 const newPhoto = ref<File | null>(null);
+const isEditing = ref(false);
 
 const profileDetails = ref({
 photo: authStore.user.photo || getAssetPath("media/avatars/blank.png"),
@@ -21,6 +24,20 @@ phone: authStore.user.phone || "",
 });
 
 const submitButton1 = ref<HTMLElement | null>(null);
+
+const blankAvatarPath = getAssetPath("media/avatars/blank.png");
+
+const hasRealPhoto = computed(() => {
+    return !!profileDetails.value.photo && profileDetails.value.photo !== blankAvatarPath;
+});
+
+const initials = computed(() => {
+    const name = profileDetails.value.name?.trim();
+    if (!name) return "?";
+    const parts = name.split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+});
 const updateEmailButton = ref<HTMLElement | null>(null);
 const updatePasswordButton = ref<HTMLElement | null>(null);
 
@@ -53,6 +70,19 @@ profileDetails.value = {
     phone: authStore.user.phone || "",
 };
 });
+
+// Balikin semua perubahan yang belum disimpan ke data asli dari authStore,
+// lalu keluar dari mode edit.
+const discardChanges = () => {
+    profileDetails.value = {
+        photo: authStore.user.photo || getAssetPath("media/avatars/blank.png"),
+        name: authStore.user.name || "",
+        email: authStore.user.email || "",
+        phone: authStore.user.phone || "",
+    };
+    newPhoto.value = null;
+    isEditing.value = false;
+};
 
 const onFileChange = (event: Event) => {
 const target = event.target as HTMLInputElement;
@@ -103,6 +133,8 @@ if (submitButton1.value) {
         customClass: { confirmButton: "btn btn-light-primary" },
     });
     authStore.setAuth(response.data);
+    newPhoto.value = null;
+    isEditing.value = false;
     })
     .catch(error => {
     // Jika ada error, kita akan melihatnya di sini
@@ -125,9 +157,61 @@ if (submitButton1.value) {
 }
 };
 
+const removingPhoto = ref(false);
+const showLightbox = ref(false);
+
 const removeImage = () => {
-    newPhoto.value = null;
-    profileDetails.value.photo = getAssetPath("media/avatars/blank.png");
+    if (!hasRealPhoto.value || removingPhoto.value) return;
+
+    Swal.fire({
+        text: "Hapus foto profil sekarang?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Ya, Hapus",
+        cancelButtonText: "Batal",
+        reverseButtons: true,
+        buttonsStyling: false,
+        customClass: {
+            confirmButton: "btn btn-light-danger",
+            cancelButton: "btn btn-light",
+        },
+    }).then((result) => {
+        if (!result.isConfirmed) return;
+
+        removingPhoto.value = true;
+
+        const formData = new FormData();
+        formData.append("name", profileDetails.value.name);
+        formData.append("phone", profileDetails.value.phone);
+        formData.append("remove_photo", "1");
+
+        axios.post("/profile", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+        })
+            .then((response) => {
+                newPhoto.value = null;
+                profileDetails.value.photo = "";
+                authStore.setAuth(response.data);
+                Swal.fire({
+                    text: "Foto profil berhasil dihapus.",
+                    icon: "success",
+                    buttonsStyling: false,
+                    confirmButtonText: "Ok",
+                    customClass: { confirmButton: "btn btn-light-primary" },
+                });
+            })
+            .catch((error) => {
+                Swal.fire({
+                    text: error.response?.data?.message || "Gagal menghapus foto.",
+                    icon: "error",
+                    buttonsStyling: false,
+                    customClass: { confirmButton: "btn btn-light-danger" },
+                });
+            })
+            .finally(() => {
+                removingPhoto.value = false;
+            });
+    });
 };
 
 const updateEmail = (values, { setFieldError, setValues }) => {
@@ -201,6 +285,68 @@ if (updatePasswordButton.value) {
     });
 }
 };
+
+// --- HAPUS AKUN ---
+const deletingAccount = ref(false);
+
+const deleteAccount = () => {
+    Swal.fire({
+        title: "Hapus Akun?",
+        html: "Tindakan ini <b>tidak bisa dibatalkan</b>. Semua data profil, foto, dan riwayat kamu akan hilang permanen.<br/><br/>Masukkan password untuk konfirmasi:",
+        icon: "warning",
+        input: "password",
+        inputPlaceholder: "Password kamu",
+        inputAttributes: {
+            autocapitalize: "off",
+            autocomplete: "current-password",
+        },
+        showCancelButton: true,
+        confirmButtonText: "Ya, Hapus Akun Saya",
+        cancelButtonText: "Batal",
+        reverseButtons: true,
+        buttonsStyling: false,
+        customClass: {
+            confirmButton: "btn btn-danger",
+            cancelButton: "btn btn-light",
+        },
+        preConfirm: (password) => {
+            if (!password) {
+                Swal.showValidationMessage("Password wajib diisi.");
+            }
+            return password;
+        },
+    }).then((result) => {
+        if (!result.isConfirmed || !result.value) return;
+
+        deletingAccount.value = true;
+
+        axios
+            .delete("/profile", { data: { password: result.value } })
+            .then(async () => {
+                await Swal.fire({
+                    text: "Akun kamu berhasil dihapus.",
+                    icon: "success",
+                    buttonsStyling: false,
+                    confirmButtonText: "Ok",
+                    customClass: { confirmButton: "btn btn-light-primary" },
+                });
+                await authStore.logout();
+                router.push({ name: "sign-in" });
+            })
+            .catch((error) => {
+                Swal.fire({
+                    text: error.response?.data?.message || "Gagal menghapus akun. Cek kembali password kamu.",
+                    icon: "error",
+                    buttonsStyling: false,
+                    confirmButtonText: "Ok",
+                    customClass: { confirmButton: "btn btn-light-danger" },
+                });
+            })
+            .finally(() => {
+                deletingAccount.value = false;
+            });
+    });
+};
 </script>
 
 <template>
@@ -209,14 +355,62 @@ if (updatePasswordButton.value) {
         <div class="card-title m-0">
             <h3 class="fw-bold m-0">Profile Details</h3>
         </div>
+        <div class="card-toolbar" v-if="!isEditing">
+            <button type="button" class="btn btn-sm btn-light-primary" @click="isEditing = true">
+                Edit Profil
+            </button>
+        </div>
     </div>
 
-    <VForm id="kt_account_profile_details_form" class="form" novalidate @submit="saveChanges1()" :validation-schema="profileDetailsValidator">
+    <!--begin::Mode Lihat (default, read-only)-->
+    <div v-if="!isEditing" class="card-body pt-0">
+        <div class="d-flex align-items-center gap-6 mb-9 pb-9 border-bottom">
+            <div class="profile-avatar">
+                <div
+                    v-if="hasRealPhoto"
+                    class="profile-avatar__image profile-avatar__image--clickable"
+                    :style="`background-image: url(${profileDetails.photo})`"
+                    title="Lihat foto"
+                    @click="showLightbox = true"
+                ></div>
+                <div v-else class="profile-avatar__initials">
+                    {{ initials }}
+                </div>
+            </div>
+            <div>
+                <div class="fw-bold fs-5">{{ profileDetails.name || '-' }}</div>
+                <div class="text-gray-500 fs-7">{{ profileDetails.email }}</div>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <label class="form-label fw-semibold text-gray-500 mb-1">Nama</label>
+            <div class="fs-6">{{ profileDetails.name || '-' }}</div>
+        </div>
+
+        <div class="mb-2">
+            <label class="form-label fw-semibold text-gray-500 mb-1">Nomor Telepon</label>
+            <div class="fs-6">{{ profileDetails.phone || '-' }}</div>
+        </div>
+    </div>
+    <!--end::Mode Lihat-->
+
+    <!--begin::Mode Edit-->
+    <VForm v-else id="kt_account_profile_details_form" class="form" novalidate @submit="saveChanges1()" :validation-schema="profileDetailsValidator">
         <div class="card-body pt-0">
             <!--begin::Photo-->
             <div class="d-flex align-items-center gap-6 mb-9 pb-9 border-bottom">
                 <div class="profile-avatar">
-                    <div class="profile-avatar__image" :style="`background-image: url(${profileDetails.photo})`"></div>
+                    <div
+                        v-if="hasRealPhoto"
+                        class="profile-avatar__image profile-avatar__image--clickable"
+                        :style="`background-image: url(${profileDetails.photo})`"
+                        title="Lihat foto"
+                        @click="showLightbox = true"
+                    ></div>
+                    <div v-else class="profile-avatar__initials">
+                        {{ initials }}
+                    </div>
 
                     <label class="profile-avatar__edit" title="Ganti foto">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -229,11 +423,13 @@ if (updatePasswordButton.value) {
 
                 <div>
                     <button
+                        v-if="hasRealPhoto"
                         type="button"
                         class="btn btn-sm btn-light-danger"
+                        :disabled="removingPhoto"
                         @click="removeImage()"
                     >
-                        Hapus Foto
+                        {{ removingPhoto ? 'Menghapus...' : 'Hapus Foto' }}
                     </button>
                     <div class="form-text mt-2">Format yang didukung: PNG, JPG, JPEG.</div>
                 </div>
@@ -270,7 +466,7 @@ if (updatePasswordButton.value) {
         </div>
 
         <div class="card-footer d-flex justify-content-end gap-2 py-6">
-            <button type="reset" class="btn btn-light">Discard</button>
+            <button type="button" class="btn btn-light" @click="discardChanges()">Discard</button>
             <button type="submit" id="kt_account_profile_details_submit" ref="submitButton1" class="btn btn-primary">
                 <span class="indicator-label">Save Changes</span>
                 <span class="indicator-progress">Please wait...
@@ -279,7 +475,23 @@ if (updatePasswordButton.value) {
             </button>
         </div>
     </VForm>
+    <!--end::Mode Edit-->
 </div>
+
+<!--begin::Photo Lightbox-->
+<div
+    v-if="showLightbox && hasRealPhoto"
+    class="lightbox-backdrop"
+    @click.self="showLightbox = false"
+>
+    <button class="lightbox-close" @click="showLightbox = false" title="Tutup">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+    </button>
+    <img :src="profileDetails.photo" alt="Foto profil" class="lightbox-image" />
+</div>
+<!--end::Photo Lightbox-->
 
 <div class="card mb-5 mb-xl-10">
     <div class="card-header border-0 pt-6">
@@ -375,6 +587,33 @@ if (updatePasswordButton.value) {
         <!--end::Password-->
     </div>
 </div>
+
+<!--begin::Danger Zone-->
+<div class="card mb-5 mb-xl-10 border border-danger border-opacity-25">
+    <div class="card-header border-0 pt-6">
+        <div class="card-title m-0">
+            <h3 class="fw-bold m-0 text-danger">Hapus Akun</h3>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div>
+                <div class="text-gray-500 fs-7">
+                    Setelah dihapus, akun dan semua data kamu tidak bisa dikembalikan.
+                </div>
+            </div>
+            <button
+                type="button"
+                class="btn btn-sm btn-danger"
+                :disabled="deletingAccount"
+                @click="deleteAccount()"
+            >
+                {{ deletingAccount ? 'Menghapus...' : 'Hapus Akun' }}
+            </button>
+        </div>
+    </div>
+</div>
+<!--end::Danger Zone-->
 </template>
 
 <style scoped>
@@ -392,6 +631,26 @@ if (updatePasswordButton.value) {
     background-position: center;
     border: 1px solid var(--bs-border-color, #2b2b40);
     background-color: var(--bs-gray-100, #1e1e2d);
+}
+.profile-avatar__image--clickable {
+    cursor: pointer;
+    transition: filter 0.15s ease;
+}
+.profile-avatar__image--clickable:hover {
+    filter: brightness(0.85);
+}
+.profile-avatar__initials {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 32px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--bs-primary, #009ef7);
+    border: 1px solid var(--bs-border-color, #2b2b40);
+    user-select: none;
 }
 .profile-avatar__edit {
     position: absolute;
@@ -415,5 +674,41 @@ if (updatePasswordButton.value) {
 .signin-row {
     display: flex;
     width: 100%;
+}
+
+.lightbox-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1060;
+    padding: 24px;
+}
+.lightbox-image {
+    width: min(70vw, 360px);
+    height: min(70vw, 360px);
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+.lightbox-close {
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+.lightbox-close:hover {
+    background: rgba(255, 255, 255, 0.22);
 }
 </style>

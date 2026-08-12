@@ -120,10 +120,11 @@ class UserController extends Controller
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
             'phone' => ['required', 'string', 'max:20', Rule::unique('users')->ignore($user->id)],
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048' // Foto tidak wajib
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048', // Foto tidak wajib
+            'remove_photo' => 'nullable|boolean',
         ]);
 
-        // 3. Handle upload foto jika ada
+        // 3. Handle foto: bisa upload baru, atau hapus (tidak bisa dua-duanya sekaligus)
         if ($request->hasFile('photo')) {
             // Hapus foto lama jika ada untuk menghemat penyimpanan
             if ($user->photo) {
@@ -136,6 +137,13 @@ class UserController extends Controller
             $path = $request->file('photo')->store('photos', 'public');
             // Simpan path lengkap untuk kemudahan di frontend
             $user->photo = '/storage/' . $path;
+        } elseif ($request->boolean('remove_photo')) {
+            // User memilih "Hapus Foto" dan tidak mengunggah foto baru
+            if ($user->photo) {
+                $oldPhotoPath = str_replace('/storage/', '', $user->photo);
+                Storage::disk('public')->delete($oldPhotoPath);
+            }
+            $user->photo = null;
         }
 
         // 4. Update data user

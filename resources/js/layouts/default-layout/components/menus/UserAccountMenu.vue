@@ -38,6 +38,21 @@ const countries = {
   },
 };
 
+// --- Avatar inisial (sama seperti di halaman Profil) ---
+const blankAvatarPath = getAssetPath("media/avatars/blank.png");
+
+const hasRealPhoto = computed(() => {
+  return !!store.user.photo && store.user.photo !== blankAvatarPath;
+});
+
+const initials = computed(() => {
+  const name = store.user.name?.trim();
+  if (!name) return "?";
+  const parts = name.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+});
+
 const signOut = () => {
   Swal.fire({
     icon: "warning",
@@ -77,9 +92,14 @@ const signOut = () => {
       <div class="menu-content d-flex align-items-center px-3">
         <div class="symbol symbol-50px me-5">
           <img
-            alt="Logo"
-            :src="store.user.photo || getAssetPath('media/avatars/blank.png')"
+            v-if="hasRealPhoto"
+            alt="Foto profil"
+            :src="store.user.photo"
+            class="account-menu-photo"
           />
+          <div v-else class="account-menu-initials">
+            {{ initials }}
+          </div>
         </div>
         <div class="d-flex flex-column">
           <div class="fw-bold d-flex align-items-center fs-5">
@@ -105,3 +125,25 @@ const signOut = () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.account-menu-photo {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.account-menu-initials {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--bs-primary, #009ef7);
+  user-select: none;
+}
+</style>
