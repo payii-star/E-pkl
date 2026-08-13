@@ -29,100 +29,102 @@
 
             <div v-if="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
 
-            <table class="table table-row-bordered align-middle">
-                <thead>
-                    <tr>
-                        <th>Nama Karyawan</th>
-                        <th>Tanggal</th>
-                        <th>Ringkasan</th>
-                        <th v-if="activeTab === 'history'">Status</th>
-                        <th v-if="activeTab === 'history'">Catatan</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-if="loading">
-                        <td colspan="6" class="text-center text-gray-500">Memuat data...</td>
-                    </tr>
-                    <tr v-else-if="!journals.length">
-                        <td colspan="6" class="text-center text-gray-500">
-                            {{ activeTab === 'pending' ? 'Tidak ada jurnal yang menunggu approval' : 'Belum ada riwayat approval' }}
-                        </td>
-                    </tr>
-                    <template v-for="journal in journals" :key="journal.id">
+            <div class="table-responsive">
+                <table class="table table-row-bordered align-middle">
+                    <thead>
                         <tr>
-                            <td>{{ journal.user?.name }}</td>
-                            <td>{{ formatDate(journal.date) }}</td>
-                            <td>
-                                <div v-for="act in journal.activities" :key="act.id" class="mb-1">
-                                    <span class="fw-bold">{{ act.jam_mulai }}–{{ act.jam_selesai }}</span>
-                                    <span class="text-gray-600"> — {{ truncate(act.kegiatan) }}</span>
-                                </div>
-                            </td>
-                            <td v-if="activeTab === 'history'">
-                                <span
-                                    class="badge"
-                                    :class="{
-                                        'badge-light-success': journal.status === 'approved',
-                                        'badge-light-danger': journal.status === 'rejected',
-                                    }"
-                                >
-                                    {{ journal.status === 'approved' ? 'Disetujui' : 'Ditolak' }}
-                                </span>
-                            </td>
-                            <!--begin::Catatan - sekarang dipotong pakai truncate()-->
-                            <td v-if="activeTab === 'history'">
-                                <span v-if="journal.catatan_approval" :class="journal.status === 'rejected' ? 'text-danger' : 'text-gray-700'">
-                                    {{ truncate(journal.catatan_approval) }}
-                                </span>
-                                <span v-else class="text-gray-500 fst-italic">-</span>
-                            </td>
-                            <!--end::Catatan-->
-                            <td>
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-sm btn-light-primary" @click="openDetail(journal)">Detail</button>
-                                    <template v-if="activeTab === 'pending'">
-                                        <button
-                                            class="btn btn-sm btn-light-success"
-                                            :disabled="processingId === journal.id"
-                                            @click="approve(journal)"
-                                        >
-                                            Setuju
-                                        </button>
-                                        <button
-                                            class="btn btn-sm btn-light-danger"
-                                            :disabled="processingId === journal.id"
-                                            @click="toggleReject(journal.id)"
-                                        >
-                                            Tolak
-                                        </button>
-                                    </template>
-                                </div>
+                            <th class="text-nowrap">Nama Karyawan</th>
+                            <th class="text-nowrap">Tanggal</th>
+                            <th class="text-nowrap">Ringkasan</th>
+                            <th v-if="activeTab === 'history'" class="text-nowrap">Status</th>
+                            <th v-if="activeTab === 'history'" class="text-nowrap">Catatan</th>
+                            <th class="text-nowrap">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-if="loading">
+                            <td colspan="6" class="text-center text-gray-500">Memuat data...</td>
+                        </tr>
+                        <tr v-else-if="!journals.length">
+                            <td colspan="6" class="text-center text-gray-500">
+                                {{ activeTab === 'pending' ? 'Tidak ada jurnal yang menunggu approval' : 'Belum ada riwayat approval' }}
                             </td>
                         </tr>
-                        <tr v-if="rejectingId === journal.id">
-                            <td colspan="6" class="bg-light-danger">
-                                <div class="d-flex gap-2 align-items-start py-2">
-                                    <textarea
-                                        v-model="rejectNote"
-                                        class="form-control form-control-sm"
-                                        rows="2"
-                                        placeholder="Catatan penolakan (wajib diisi)..."
-                                    ></textarea>
-                                    <button
-                                        class="btn btn-sm btn-danger"
-                                        :disabled="!rejectNote.trim() || processingId === journal.id"
-                                        @click="reject(journal)"
+                        <template v-for="journal in journals" :key="journal.id">
+                            <tr>
+                                <td class="text-nowrap">{{ journal.user?.name }}</td>
+                                <td class="text-nowrap">{{ formatDate(journal.date) }}</td>
+                                <td style="min-width: 220px">
+                                    <div v-for="act in journal.activities" :key="act.id" class="mb-1">
+                                        <span class="fw-bold text-nowrap">{{ act.jam_mulai }}–{{ act.jam_selesai }}</span>
+                                        <span class="text-gray-600"> — {{ truncate(act.kegiatan) }}</span>
+                                    </div>
+                                </td>
+                                <td v-if="activeTab === 'history'" class="text-nowrap">
+                                    <span
+                                        class="badge"
+                                        :class="{
+                                            'badge-light-success': journal.status === 'approved',
+                                            'badge-light-danger': journal.status === 'rejected',
+                                        }"
                                     >
-                                        Kirim Penolakan
-                                    </button>
-                                    <button class="btn btn-sm btn-light" @click="toggleReject(null)">Batal</button>
-                                </div>
-                            </td>
-                        </tr>
-                    </template>
-                </tbody>
-            </table>
+                                        {{ journal.status === 'approved' ? 'Disetujui' : 'Ditolak' }}
+                                    </span>
+                                </td>
+                                <!--begin::Catatan - sekarang dipotong pakai truncate()-->
+                                <td v-if="activeTab === 'history'" style="min-width: 160px">
+                                    <span v-if="journal.catatan_approval" :class="journal.status === 'rejected' ? 'text-danger' : 'text-gray-700'">
+                                        {{ truncate(journal.catatan_approval) }}
+                                    </span>
+                                    <span v-else class="text-gray-500 fst-italic">-</span>
+                                </td>
+                                <!--end::Catatan-->
+                                <td class="text-nowrap">
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-sm btn-light-primary" @click="openDetail(journal)">Detail</button>
+                                        <template v-if="activeTab === 'pending'">
+                                            <button
+                                                class="btn btn-sm btn-light-success"
+                                                :disabled="processingId === journal.id"
+                                                @click="approve(journal)"
+                                            >
+                                                Setuju
+                                            </button>
+                                            <button
+                                                class="btn btn-sm btn-light-danger"
+                                                :disabled="processingId === journal.id"
+                                                @click="toggleReject(journal.id)"
+                                            >
+                                                Tolak
+                                            </button>
+                                        </template>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr v-if="rejectingId === journal.id">
+                                <td colspan="6" class="bg-light-danger">
+                                    <div class="d-flex gap-2 align-items-start py-2">
+                                        <textarea
+                                            v-model="rejectNote"
+                                            class="form-control form-control-sm"
+                                            rows="2"
+                                            placeholder="Catatan penolakan (wajib diisi)..."
+                                        ></textarea>
+                                        <button
+                                            class="btn btn-sm btn-danger"
+                                            :disabled="!rejectNote.trim() || processingId === journal.id"
+                                            @click="reject(journal)"
+                                        >
+                                            Kirim Penolakan
+                                        </button>
+                                        <button class="btn btn-sm btn-light" @click="toggleReject(null)">Batal</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <div v-if="selected" class="modal-backdrop-custom" @click.self="selected = null">

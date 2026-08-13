@@ -4,56 +4,58 @@
             <div class="card-title"><h2>Riwayat Jurnal</h2></div>
         </div>
         <div class="card-body">
-            <table class="table table-row-bordered align-middle">
-                <thead>
-                    <tr>
-                        <th>No</th>
-                        <th>Tanggal</th>
-                        <th>Breakdown Aktivitas</th>
-                        <th>Status</th>
-                        <th>Catatan Pembimbing</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-if="!journals.length">
-                        <td colspan="6" class="text-center text-gray-500">Belum ada jurnal</td>
-                    </tr>
-                    <tr v-for="(journal, i) in journals" :key="journal.id">
-                        <td>{{ i + 1 }}</td>
-                        <td>{{ formatDate(journal.date) }}</td>
-                        <td>
-                            <div v-for="act in journal.activities" :key="act.id" class="mb-2">
-                                <span class="fw-bold">{{ act.jam_mulai }} - {{ act.jam_selesai }}</span>
-                                <div class="text-gray-700">{{ truncate(act.kegiatan) }}</div>
-                            </div>
-                        </td>
-                        <td>
-                            <span
-                                class="badge"
-                                :class="{
-                                    'badge-light-warning': journal.status === 'pending',
-                                    'badge-light-success': journal.status === 'approved',
-                                    'badge-light-danger': journal.status === 'rejected',
-                                }"
-                            >
-                                {{ statusLabel(journal.status) }}
-                            </span>
-                        </td>
-                        <td>
-                            <span v-if="journal.catatan_approval" :class="journal.status === 'rejected' ? 'text-danger' : 'text-gray-700'">
-                                {{ truncate(journal.catatan_approval) }}
-                            </span>
-                            <span v-else class="text-gray-500 fst-italic">
-                                {{ journal.status === 'pending' ? 'Menunggu diperiksa' : 'Tidak ada catatan' }}
-                            </span>
-                        </td>
-                        <td>
-                            <button class="btn btn-sm btn-light-primary" @click="openDetail(journal)">Detail</button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table class="table table-row-bordered align-middle">
+                    <thead>
+                        <tr>
+                            <th class="text-nowrap">No</th>
+                            <th class="text-nowrap">Tanggal</th>
+                            <th class="text-nowrap">Breakdown Aktivitas</th>
+                            <th class="text-nowrap">Status</th>
+                            <th class="text-nowrap">Catatan Pembimbing</th>
+                            <th class="text-nowrap">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-if="!journals.length">
+                            <td colspan="6" class="text-center text-gray-500">Belum ada jurnal</td>
+                        </tr>
+                        <tr v-for="(journal, i) in journals" :key="journal.id">
+                            <td>{{ i + 1 }}</td>
+                            <td class="text-nowrap">{{ formatDate(journal.date) }}</td>
+                            <td style="min-width: 220px">
+                                <div v-for="act in journal.activities" :key="act.id" class="mb-2">
+                                    <span class="fw-bold text-nowrap">{{ act.jam_mulai }} - {{ act.jam_selesai }}</span>
+                                    <div class="text-gray-700">{{ truncate(act.kegiatan) }}</div>
+                                </div>
+                            </td>
+                            <td class="text-nowrap">
+                                <span
+                                    class="badge"
+                                    :class="{
+                                        'badge-light-warning': journal.status === 'pending',
+                                        'badge-light-success': journal.status === 'approved',
+                                        'badge-light-danger': journal.status === 'rejected',
+                                    }"
+                                >
+                                    {{ statusLabel(journal.status) }}
+                                </span>
+                            </td>
+                            <td style="min-width: 180px">
+                                <span v-if="journal.catatan_approval" :class="journal.status === 'rejected' ? 'text-danger' : 'text-gray-700'">
+                                    {{ truncate(journal.catatan_approval) }}
+                                </span>
+                                <span v-else class="text-gray-500 fst-italic">
+                                    {{ journal.status === 'pending' ? 'Menunggu diperiksa' : 'Tidak ada catatan' }}
+                                </span>
+                            </td>
+                            <td class="text-nowrap">
+                                <button class="btn btn-sm btn-light-primary" @click="openDetail(journal)">Detail</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <div v-if="selected" class="modal-backdrop-custom" @click.self="selected = null">
