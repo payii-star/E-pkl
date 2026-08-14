@@ -63,6 +63,88 @@ const routes: Array<RouteRecordRaw> = [
                     permission: "admin-attendance-recap",
                 },
             },
+
+            // KELOLA LANDING (dipindahkan dari dashboard Landing)
+            {
+                path: "/admin/landing/projects",
+                name: "landing-projects",
+                component: () => import("@/pages/dashboard/landing-cms/projects/Index.vue"),
+                meta: {
+                    pageTitle: "Projects",
+                    breadcrumbs: ["Kelola Landing", "Projects"],
+                    permission: "landing-management",
+                },
+            },
+            {
+                path: "/admin/landing/statistics",
+                name: "landing-statistics",
+                component: () => import("@/pages/dashboard/landing-cms/statistics/Index.vue"),
+                meta: {
+                    pageTitle: "Statistics",
+                    breadcrumbs: ["Kelola Landing", "Statistics"],
+                    permission: "landing-management",
+                },
+            },
+            {
+                path: "/admin/landing/menu",
+                name: "landing-menu",
+                component: () => import("@/pages/dashboard/landing-cms/menu/Index.vue"),
+                meta: {
+                    pageTitle: "Menu",
+                    breadcrumbs: ["Kelola Landing", "Menu"],
+                    permission: "landing-management",
+                },
+            },
+            {
+                path: "/admin/landing/services",
+                name: "landing-services",
+                component: () => import("@/pages/dashboard/landing-cms/services/Index.vue"),
+                meta: {
+                    pageTitle: "Services",
+                    breadcrumbs: ["Kelola Landing", "Services"],
+                    permission: "landing-management",
+                },
+            },
+            {
+                path: "/admin/landing/testimonials",
+                name: "landing-testimonials",
+                component: () => import("@/pages/dashboard/landing-cms/testimonials/Index.vue"),
+                meta: {
+                    pageTitle: "Testimonials",
+                    breadcrumbs: ["Kelola Landing", "Testimonials"],
+                    permission: "landing-management",
+                },
+            },
+            {
+                path: "/admin/landing/teams",
+                name: "landing-teams",
+                component: () => import("@/pages/dashboard/landing-cms/teams/Index.vue"),
+                meta: {
+                    pageTitle: "Teams",
+                    breadcrumbs: ["Kelola Landing", "Teams"],
+                    permission: "landing-management",
+                },
+            },
+            {
+                path: "/admin/landing/footer",
+                name: "landing-footer",
+                component: () => import("@/pages/dashboard/landing-cms/footer/Index.vue"),
+                meta: {
+                    pageTitle: "Footer",
+                    breadcrumbs: ["Kelola Landing", "Footer"],
+                    permission: "landing-management",
+                },
+            },
+            {
+                path: "/admin/landing/content",
+                name: "landing-content",
+                component: () => import("@/pages/dashboard/landing-cms/landing-content/Index.vue"),
+                meta: {
+                    pageTitle: "Landing Content",
+                    breadcrumbs: ["Kelola Landing", "Landing Content"],
+                    permission: "landing-management",
+                },
+            },
             {
                 path: "/dashboard/profile",
                 name: "dashboard.profile",
@@ -101,118 +183,6 @@ const routes: Array<RouteRecordRaw> = [
                 meta: {
                     pageTitle: "User Roles",
                     breadcrumbs: ["Master", "Users", "Roles"],
-                },
-            },
-
-            // LANDING CMS (dashboard baru, terpisah dari Master)
-            {
-                path: "/dashboard/landing-cms",
-                name: "dashboard.landing-cms",
-                component: () => import("@/pages/dashboard/landing-cms/Index.vue"),
-                meta: {
-                    pageTitle: "Landing CMS",
-                    breadcrumbs: ["Landing CMS"],
-                    permission: "landing-cms",
-                },
-            },
-            {
-                path: "/dashboard/landing-cms/clients",
-                name: "dashboard.landing-cms.clients",
-                component: () => import("@/pages/dashboard/landing-cms/clients/Index.vue"),
-                meta: {
-                    pageTitle: "Client Logos",
-                    breadcrumbs: ["Landing CMS", "Client Logos"],
-                    permission: "landing-cms",
-                },
-            },
-            {
-                path: "/dashboard/landing-cms/menu",
-                name: "dashboard.landing-cms.menu",
-                component: () => import("@/pages/dashboard/landing-cms/menu/Index.vue"),
-                meta: {
-                    pageTitle: "Navbar Menu",
-                    breadcrumbs: ["Landing CMS", "Menu"],
-                    permission: "landing-cms",
-                },
-            },
-            {
-                path: "/dashboard/landing-cms/services",
-                name: "dashboard.landing-cms.services",
-                component: () => import("@/pages/dashboard/landing-cms/services/Index.vue"),
-                meta: {
-                    pageTitle: "Layanan",
-                    breadcrumbs: ["Landing CMS", "Layanan"],
-                    permission: "landing-cms",
-                },
-            },
-            {
-                path: "/dashboard/landing-cms/statistics",
-                name: "dashboard.landing-cms.statistics",
-                component: () => import("@/pages/dashboard/landing-cms/statistics/Index.vue"),
-                meta: {
-                    pageTitle: "Statistik",
-                    breadcrumbs: ["Landing CMS", "Statistik"],
-                    permission: "landing-cms",
-                },
-            },
-            {
-                path: "/dashboard/landing-cms/teams",
-                name: "dashboard.landing-cms.teams",
-                component: () => import("@/pages/dashboard/landing-cms/teams/Index.vue"),
-                meta: {
-                    pageTitle: "Tim",
-                    breadcrumbs: ["Landing CMS", "Tim"],
-                    permission: "landing-cms",
-                },
-            },
-            {
-                path: "/dashboard/landing-cms/testimonials",
-                name: "dashboard.landing-cms.testimonials",
-                component: () => import("@/pages/dashboard/landing-cms/testimonials/Index.vue"),
-                meta: {
-                    pageTitle: "Testimoni",
-                    breadcrumbs: ["Landing CMS", "Testimoni"],
-                    permission: "landing-cms",
-                },
-            },
-            {
-                path: "/dashboard/landing-cms/contact-messages",
-                name: "dashboard.landing-cms.contact-messages",
-                component: () => import("@/pages/dashboard/landing-cms/contact-messages/Index.vue"),
-                meta: {
-                    pageTitle: "Pesan Masuk",
-                    breadcrumbs: ["Landing CMS", "Pesan Masuk"],
-                    permission: "landing-cms",
-                },
-            },
-            {
-                path: "/dashboard/landing-cms/footer",
-                name: "dashboard.landing-cms.footer",
-                component: () => import("@/pages/dashboard/landing-cms/footer/Index.vue"),
-                meta: {
-                    pageTitle: "Footer",
-                    breadcrumbs: ["Landing CMS", "Footer"],
-                    permission: "landing-cms",
-                },
-            },
-            {
-                path: "/dashboard/landing-cms/content",
-                name: "dashboard.landing-cms.content",
-                component: () => import("@/pages/dashboard/landing-cms/landing-content/Index.vue"),
-                meta: {
-                    pageTitle: "Konten Landing",
-                    breadcrumbs: ["Landing CMS", "Konten"],
-                    permission: "landing-cms",
-                },
-            },
-            {
-                path: "/dashboard/landing-cms/projects",
-                name: "dashboard.landing-cms.projects",
-                component: () => import("@/pages/dashboard/landing-cms/projects/Index.vue"),
-                meta: {
-                    pageTitle: "Proyek",
-                    breadcrumbs: ["Landing CMS", "Proyek"],
-                    permission: "landing-cms",
                 },
             },
 

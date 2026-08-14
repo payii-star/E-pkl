@@ -46,5 +46,14 @@ class UserSeeder extends Seeder
             'status' => 'aktif',
         ]);
         $karyawan->assignRole('karyawan');
+
+        $adminLanding = User::create([
+            'name' => 'Admin Landing',
+            'email' => 'adminlanding@gmail.com',
+            'password' => bcrypt('12345678'),
+            'phone' => '08123456782',
+            'status' => 'aktif',
+        ]);
+        $adminLanding->assignRole('admin-landing');
     }
 }

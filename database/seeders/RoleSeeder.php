@@ -30,5 +30,10 @@ class RoleSeeder extends Seeder
             ['name' => 'karyawan', 'guard_name' => 'api'],
             ['full_name' => 'Karyawan / Intern']
         );
+
+        Role::updateOrCreate(
+            ['name' => 'admin-landing', 'guard_name' => 'api'],
+            ['full_name' => 'Admin Landing Page']
+        );
     }
 }
