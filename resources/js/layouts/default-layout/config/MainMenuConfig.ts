@@ -61,6 +61,13 @@ const MainMenuConfig: Array<MenuItem> = [
                 keenthemesIcon: "document",
                 permission: "landing-management",
             },
+            {
+                heading: "Client",
+                route: "/admin/landing/clients",
+                name: "landing-clients",
+                keenthemesIcon: "people",
+                permission: "landing-management",
+            },
         ],
     },
 

@@ -146,6 +146,16 @@ const routes: Array<RouteRecordRaw> = [
                 },
             },
             {
+                path: "/admin/landing/clients",
+                name: "landing-clients",
+                component: () => import("@/pages/dashboard/landing-cms/clients/Index.vue"),
+                meta: {
+                    pageTitle: "Clients",
+                    breadcrumbs: ["Kelola Landing", "Clients"],
+                    permission: "landing-management",
+                },
+            },
+            {
                 path: "/dashboard/profile",
                 name: "dashboard.profile",
                 component: () => import("@/pages/dashboard/profile/Index.vue"),
