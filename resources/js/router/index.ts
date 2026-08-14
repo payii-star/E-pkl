@@ -104,6 +104,118 @@ const routes: Array<RouteRecordRaw> = [
                 },
             },
 
+            // LANDING CMS (dashboard baru, terpisah dari Master)
+            {
+                path: "/dashboard/landing-cms",
+                name: "dashboard.landing-cms",
+                component: () => import("@/pages/dashboard/landing-cms/Index.vue"),
+                meta: {
+                    pageTitle: "Landing CMS",
+                    breadcrumbs: ["Landing CMS"],
+                    permission: "landing-cms",
+                },
+            },
+            {
+                path: "/dashboard/landing-cms/clients",
+                name: "dashboard.landing-cms.clients",
+                component: () => import("@/pages/dashboard/landing-cms/clients/Index.vue"),
+                meta: {
+                    pageTitle: "Client Logos",
+                    breadcrumbs: ["Landing CMS", "Client Logos"],
+                    permission: "landing-cms",
+                },
+            },
+            {
+                path: "/dashboard/landing-cms/menu",
+                name: "dashboard.landing-cms.menu",
+                component: () => import("@/pages/dashboard/landing-cms/menu/Index.vue"),
+                meta: {
+                    pageTitle: "Navbar Menu",
+                    breadcrumbs: ["Landing CMS", "Menu"],
+                    permission: "landing-cms",
+                },
+            },
+            {
+                path: "/dashboard/landing-cms/services",
+                name: "dashboard.landing-cms.services",
+                component: () => import("@/pages/dashboard/landing-cms/services/Index.vue"),
+                meta: {
+                    pageTitle: "Layanan",
+                    breadcrumbs: ["Landing CMS", "Layanan"],
+                    permission: "landing-cms",
+                },
+            },
+            {
+                path: "/dashboard/landing-cms/statistics",
+                name: "dashboard.landing-cms.statistics",
+                component: () => import("@/pages/dashboard/landing-cms/statistics/Index.vue"),
+                meta: {
+                    pageTitle: "Statistik",
+                    breadcrumbs: ["Landing CMS", "Statistik"],
+                    permission: "landing-cms",
+                },
+            },
+            {
+                path: "/dashboard/landing-cms/teams",
+                name: "dashboard.landing-cms.teams",
+                component: () => import("@/pages/dashboard/landing-cms/teams/Index.vue"),
+                meta: {
+                    pageTitle: "Tim",
+                    breadcrumbs: ["Landing CMS", "Tim"],
+                    permission: "landing-cms",
+                },
+            },
+            {
+                path: "/dashboard/landing-cms/testimonials",
+                name: "dashboard.landing-cms.testimonials",
+                component: () => import("@/pages/dashboard/landing-cms/testimonials/Index.vue"),
+                meta: {
+                    pageTitle: "Testimoni",
+                    breadcrumbs: ["Landing CMS", "Testimoni"],
+                    permission: "landing-cms",
+                },
+            },
+            {
+                path: "/dashboard/landing-cms/contact-messages",
+                name: "dashboard.landing-cms.contact-messages",
+                component: () => import("@/pages/dashboard/landing-cms/contact-messages/Index.vue"),
+                meta: {
+                    pageTitle: "Pesan Masuk",
+                    breadcrumbs: ["Landing CMS", "Pesan Masuk"],
+                    permission: "landing-cms",
+                },
+            },
+            {
+                path: "/dashboard/landing-cms/footer",
+                name: "dashboard.landing-cms.footer",
+                component: () => import("@/pages/dashboard/landing-cms/footer/Index.vue"),
+                meta: {
+                    pageTitle: "Footer",
+                    breadcrumbs: ["Landing CMS", "Footer"],
+                    permission: "landing-cms",
+                },
+            },
+            {
+                path: "/dashboard/landing-cms/content",
+                name: "dashboard.landing-cms.content",
+                component: () => import("@/pages/dashboard/landing-cms/landing-content/Index.vue"),
+                meta: {
+                    pageTitle: "Konten Landing",
+                    breadcrumbs: ["Landing CMS", "Konten"],
+                    permission: "landing-cms",
+                },
+            },
+            {
+                path: "/dashboard/landing-cms/projects",
+                name: "dashboard.landing-cms.projects",
+                component: () => import("@/pages/dashboard/landing-cms/projects/Index.vue"),
+                meta: {
+                    pageTitle: "Proyek",
+                    breadcrumbs: ["Landing CMS", "Proyek"],
+                    permission: "landing-cms",
+                },
+            },
+
             // ABSENSI (baru - struktur awal)
             {
                 path: "/attendance/check",

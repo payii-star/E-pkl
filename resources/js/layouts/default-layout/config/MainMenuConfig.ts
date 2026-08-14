@@ -116,6 +116,91 @@ const MainMenuConfig: Array<MenuItem> = [
         ],
     },
 
+    // LANDING CMS (dashboard baru, berdiri sendiri — bukan bagian dari Master)
+    {
+        heading: "Landing CMS",
+        route: "/dashboard/landing-cms",
+        pages: [
+            {
+                heading: "Ringkasan",
+                route: "/dashboard/landing-cms",
+                name: "dashboard.landing-cms",
+                keenthemesIcon: "element-11",
+                permission: "landing-cms",
+            },
+            {
+                heading: "Konten Landing",
+                route: "/dashboard/landing-cms/content",
+                name: "dashboard.landing-cms.content",
+                keenthemesIcon: "note-2",
+                permission: "landing-cms",
+            },
+            {
+                heading: "Navbar Menu",
+                route: "/dashboard/landing-cms/menu",
+                name: "dashboard.landing-cms.menu",
+                keenthemesIcon: "burger-menu-2",
+                permission: "landing-cms",
+            },
+            {
+                heading: "Layanan",
+                route: "/dashboard/landing-cms/services",
+                name: "dashboard.landing-cms.services",
+                keenthemesIcon: "briefcase",
+                permission: "landing-cms",
+            },
+            {
+                heading: "Statistik",
+                route: "/dashboard/landing-cms/statistics",
+                name: "dashboard.landing-cms.statistics",
+                keenthemesIcon: "chart-simple",
+                permission: "landing-cms",
+            },
+            {
+                heading: "Tim",
+                route: "/dashboard/landing-cms/teams",
+                name: "dashboard.landing-cms.teams",
+                keenthemesIcon: "people",
+                permission: "landing-cms",
+            },
+            {
+                heading: "Testimoni",
+                route: "/dashboard/landing-cms/testimonials",
+                name: "dashboard.landing-cms.testimonials",
+                keenthemesIcon: "message-text-2",
+                permission: "landing-cms",
+            },
+            {
+                heading: "Proyek",
+                route: "/dashboard/landing-cms/projects",
+                name: "dashboard.landing-cms.projects",
+                keenthemesIcon: "briefcase",
+                permission: "landing-cms",
+            },
+            {
+                heading: "Client Logos",
+                route: "/dashboard/landing-cms/clients",
+                name: "dashboard.landing-cms.clients",
+                keenthemesIcon: "picture",
+                permission: "landing-cms",
+            },
+            {
+                heading: "Pesan Masuk",
+                route: "/dashboard/landing-cms/contact-messages",
+                name: "dashboard.landing-cms.contact-messages",
+                keenthemesIcon: "sms",
+                permission: "landing-cms",
+            },
+            {
+                heading: "Footer",
+                route: "/dashboard/landing-cms/footer",
+                name: "dashboard.landing-cms.footer",
+                keenthemesIcon: "row-horizontal",
+                permission: "landing-cms",
+            },
+        ],
+    },
+
     // AKUN
     {
         heading: "Akun",

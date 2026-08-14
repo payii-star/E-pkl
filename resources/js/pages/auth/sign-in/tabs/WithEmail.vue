@@ -124,7 +124,15 @@ export default defineComponent({
             blockBtn(this.submitButton);
 
             axios.post("/auth/login", { ...this.data, type: "email" }).then(res => {
-                this.store.setAuth(res.data.user, res.data.token);
+              // Bukan akun E-pkl? Ini akun admin Landing — lempar ke dashboard
+              // Landing bawa token-nya lewat URL (jembatan auth antar 2 sistem).
+              if (res.data.source === 'landing') {
+                const bridgeUrl = `${res.data.landing_url}/auth/bridge?token=${encodeURIComponent(res.data.landing_token)}`;
+                window.location.href = bridgeUrl;
+                return;
+              }
+
+              this.store.setAuth(res.data.user, res.data.token);
               const roleName = res.data.user?.role?.name;
               const target = roleName === "admin" || roleName === "hr-admin" ? "/admin/dashboard" : "/dashboard";
               this.router.push(target);

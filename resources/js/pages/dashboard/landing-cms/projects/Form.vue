@@ -1,117 +1,104 @@
 <script setup lang="ts">
 import { block, unblock } from "@/libs/utils";
-import { onMounted, ref, watch, computed } from "vue";
+import { ref, watch } from "vue";
 import * as Yup from "yup";
 import axios from "@/libs/axios";
 import { toast } from "vue3-toastify";
-import type { User, Role } from "@/types";
-import ApiService from "@/core/services/ApiService";
-import { useRole } from "@/services/useRole";
+import type { Project } from "@/types";
 
 const props = defineProps({
     selected: {
-        type: String,
+        type: Number,
         default: null,
     },
 });
 
 const emit = defineEmits(["close", "refresh"]);
 
-const user = ref<User>({} as User);
+const project = ref<Project>({
+    title: "",
+    description: "",
+    url: "",
+    category: "web",
+    is_featured: false,
+    urutan: 1,
+} as Project);
+
 const fileTypes = ref(["image/jpeg", "image/png", "image/jpg"]);
-const photo = ref<any>([]);
+const thumbnail = ref<any>([]);
 const formRef = ref();
 
 const formSchema = Yup.object().shape({
-    name: Yup.string().required("Nama harus diisi"),
-    email: Yup.string()
-        .email("Email harus valid")
-        .required("Email harus diisi"),
-    password: Yup.string().min(8, "Minimal 8 karakter").nullable(),
-    passwordConfirmation: Yup.string()
-        .oneOf([Yup.ref("password")], "Konfirmasi password harus sama")
-        .nullable(),
-    phone: Yup.string().required("Nomor Telepon harus diisi"),
-    role_id: Yup.string().required("Pilih role"),
+    title: Yup.string().required("Title harus diisi"),
+    description: Yup.string().nullable(),
+    url: Yup.string().url("URL harus valid").nullable(),
+    category: Yup.string()
+        .oneOf(["web", "mobile"], "Kategori tidak valid")
+        .required("Kategori harus dipilih"),
+    urutan: Yup.number()
+        .typeError("Urutan harus angka")
+        .required("Urutan harus diisi"),
 });
 
 function getEdit() {
-    block(document.getElementById("form-user"));
-    ApiService.get("master/users", props.selected)
+    block(document.getElementById("form-project"));
+    axios
+        .get(`/master/projects/${props.selected}`)
         .then(({ data }) => {
-            user.value = data.user;
-            photo.value = data.user.photo
-                ? ["/storage/" + data.user.photo]
-                : [];
+            project.value = {
+                ...data.data,
+                url: data.data.link_project,
+                category: data.data.category ?? "web",
+            };
+            thumbnail.value = data.data.image ? ["/storage/" + data.data.image] : [];
         })
         .catch((err: any) => {
-            toast.error(err.response.data.message);
+            toast.error(err.response?.data?.message ?? "Gagal memuat data");
         })
         .finally(() => {
-            unblock(document.getElementById("form-user"));
+            unblock(document.getElementById("form-project"));
         });
 }
 
 function submit() {
     const formData = new FormData();
-    formData.append("name", user.value.name);
-    formData.append("email", user.value.email);
-    formData.append("phone", user.value.phone);
-    formData.append("role_id", user.value.role_id);
+    formData.append("title", project.value.title);
+    formData.append("description", project.value.description ?? "");
+    formData.append("url", project.value.url ?? "");
+    formData.append("category", project.value.category ?? "web");
+    formData.append("urutan", String(project.value.urutan));
+    formData.append("is_featured", project.value.is_featured ? "1" : "0");
 
-    if (user.value?.password) {
-        formData.append("password", user.value.password);
-        formData.append(
-            "password_confirmation",
-            user.value.passwordconfirmation
-        );
-    }
-    if (photo.value.length) {
-        formData.append("photo", photo.value[0].file);
+    if (thumbnail.value.length && thumbnail.value[0].file) {
+        formData.append("thumbnail", thumbnail.value[0].file);
     }
     if (props.selected) {
         formData.append("_method", "PUT");
     }
 
-    block(document.getElementById("form-user"));
+    block(document.getElementById("form-project"));
     axios({
         method: "post",
-        url: props.selected
-            ? `/master/users/${props.selected}`
-            : "/master/users/store",
+        url: props.selected ? `/master/projects/${props.selected}` : "/master/projects/store",
         data: formData,
-        headers: {
-            "Content-Type": "multipart/form-data",
-        },
+        headers: { "Content-Type": "multipart/form-data" },
     })
         .then(() => {
             emit("close");
             emit("refresh");
-            toast.success("Data berhasil disimpan");
+            toast.success("Project berhasil disimpan");
             formRef.value.resetForm();
         })
         .catch((err: any) => {
-            formRef.value.setErrors(err.response.data.errors);
-            toast.error(err.response.data.message);
+            if (err.response?.data?.errors) {
+                formRef.value.setErrors(err.response.data.errors);
+            }
+            toast.error(err.response?.data?.message ?? "Gagal menyimpan project");
         })
         .finally(() => {
-            unblock(document.getElementById("form-user"));
+            unblock(document.getElementById("form-project"));
         });
 }
-
-const role = useRole();
-const roles = computed(() =>
-    role.data.value?.map((item: Role) => ({
-        id: item.id,
-        text: item.full_name,
-    }))
-);
-
-onMounted(async () => {
-    if (props.selected) {
-        getEdit();
-    }
-});
 
 watch(
     () => props.selected,
@@ -119,7 +106,8 @@ watch(
         if (props.selected) {
             getEdit();
         }
-    }
+    },
+    { immediate: true }
 );
 </script>
 
@@ -128,11 +116,11 @@ watch(
         class="form card mb-10"
         @submit="submit"
         :validation-schema="formSchema"
-        id="form-user"
+        id="form-project"
         ref="formRef"
     >
         <div class="card-header align-items-center">
-            <h2 class="mb-0">{{ selected ? "Edit" : "Tambah" }} User</h2>
+            <h2 class="mb-0">{{ selected ? "Edit" : "Tambah" }} Project</h2>
             <button
                 type="button"
                 class="btn btn-sm btn-light-danger ms-auto"
@@ -148,41 +136,19 @@ watch(
                     <!--begin::Input group-->
                     <div class="fv-row mb-7">
                         <label class="form-label fw-bold fs-6 required">
-                            Nama
+                            Title
                         </label>
                         <Field
                             class="form-control form-control-lg form-control-solid"
                             type="text"
-                            name="name"
+                            name="title"
                             autocomplete="off"
-                            v-model="user.name"
-                            placeholder="Masukkan Nama"
+                            v-model="project.title"
+                            placeholder="Masukkan judul project"
                         />
                         <div class="fv-plugins-message-container">
                             <div class="fv-help-block">
-                                <ErrorMessage name="name" />
-                            </div>
-                        </div>
-                    </div>
-                    <!--end::Input group-->
-                </div>
-                <div class="col-md-6">
-                    <!--begin::Input group-->
-                    <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6 required">
-                            Email
-                        </label>
-                        <Field
-                            class="form-control form-control-lg form-control-solid"
-                            type="text"
-                            name="email"
-                            autocomplete="off"
-                            v-model="user.email"
-                            placeholder="Masukkan Email"
-                        />
-                        <div class="fv-plugins-message-container">
-                            <div class="fv-help-block">
-                                <ErrorMessage name="email" />
+                                <ErrorMessage name="title" />
                             </div>
                         </div>
                     </div>
@@ -192,91 +158,41 @@ watch(
                     <!--begin::Input group-->
                     <div class="fv-row mb-7">
                         <label class="form-label fw-bold fs-6">
-                            Password
-                        </label>
-                        <Field
-                            class="form-control form-control-lg form-control-solid"
-                            type="password"
-                            name="password"
-                            autocomplete="off"
-                            v-model="user.password"
-                            placeholder="Masukkan password"
-                        />
-                        <div class="fv-plugins-message-container">
-                            <div class="fv-help-block">
-                                <ErrorMessage name="password" />
-                            </div>
-                        </div>
-                    </div>
-                    <!--end::Input group-->
-                </div>
-                <div class="col-md-6">
-                    <!--begin::Input group-->
-                    <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6">
-                            Konfirmasi Password
-                        </label>
-                        <Field
-                            class="form-control form-control-lg form-control-solid"
-                            type="password"
-                            name="passwordConfirmation"
-                            autocomplete="off"
-                            v-model="user.passwordConfirmation"
-                            placeholder="Konfirmasi password"
-                        />
-                        <div class="fv-plugins-message-container">
-                            <div class="fv-help-block">
-                                <ErrorMessage name="passwordConfirmation" />
-                            </div>
-                        </div>
-                    </div>
-                    <!--end::Input group-->
-                </div>
-                <div class="col-md-6">
-                    <!--begin::Input group-->
-                    <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6 required">
-                            Role
-                        </label>
-                        <Field
-                            name="role_id"
-                            type="hidden"
-                            v-model="user.role_id"
-                        >
-                            <select2
-                                placeholder="Pilih role"
-                                class="form-select-solid"
-                                :options="roles"
-                                name="role_id"
-                                v-model="user.role_id"
-                            >
-                            </select2>
-                        </Field>
-                        <div class="fv-plugins-message-container">
-                            <div class="fv-help-block">
-                                <ErrorMessage name="role_id" />
-                            </div>
-                        </div>
-                    </div>
-                    <!--end::Input group-->
-                </div>
-                <div class="col-md-6">
-                    <!--begin::Input group-->
-                    <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6 required">
-                            Nomor Telepon
+                            URL Project
                         </label>
                         <Field
                             class="form-control form-control-lg form-control-solid"
                             type="text"
-                            name="phone"
+                            name="url"
                             autocomplete="off"
-                            v-model="user.phone"
-                            placeholder="089"
+                            v-model="project.url"
+                            placeholder="https://..."
                         />
                         <div class="fv-plugins-message-container">
                             <div class="fv-help-block">
-                                <ErrorMessage name="phone" />
+                                <ErrorMessage name="url" />
+                            </div>
+                        </div>
+                    </div>
+                    <!--end::Input group-->
+                </div>
+                <div class="col-md-12">
+                    <!--begin::Input group-->
+                    <div class="fv-row mb-7">
+                        <label class="form-label fw-bold fs-6">
+                            Deskripsi
+                        </label>
+                        <Field
+                            as="textarea"
+                            class="form-control form-control-lg form-control-solid"
+                            name="description"
+                            rows="3"
+                            v-model="project.description"
+                            placeholder="Deskripsi singkat project"
+                        />
+                        <div class="fv-plugins-message-container">
+                            <div class="fv-help-block">
+                                <ErrorMessage name="description" />
                             </div>
                         </div>
                     </div>
@@ -286,20 +202,86 @@ watch(
                     <!--begin::Input group-->
                     <div class="fv-row mb-7">
                         <label class="form-label fw-bold fs-6">
-                            User Photo
+                            Thumbnail
                         </label>
                         <!--begin::Input-->
                         <file-upload
-                            :files="photo"
+                            :files="thumbnail"
                             :accepted-file-types="fileTypes"
-                            required
-                            v-on:updatefiles="(file) => (photo = file)"
+                            v-on:updatefiles="(file) => (thumbnail = file)"
                         ></file-upload>
                         <!--end::Input-->
                         <div class="fv-plugins-message-container">
                             <div class="fv-help-block">
-                                <ErrorMessage name="photo" />
+                                <ErrorMessage name="thumbnail" />
                             </div>
+                        </div>
+                    </div>
+                    <!--end::Input group-->
+                </div>
+                <div class="col-md-3">
+                    <!--begin::Input group-->
+                    <div class="fv-row mb-7">
+                        <label class="form-label fw-bold fs-6 required">
+                            Kategori
+                        </label>
+                        <Field
+                            as="select"
+                            class="form-select form-select-lg form-select-solid"
+                            name="category"
+                            v-model="project.category"
+                        >
+                            <option value="web">Web</option>
+                            <option value="mobile">Mobile</option>
+                        </Field>
+                        <div class="fv-plugins-message-container">
+                            <div class="fv-help-block">
+                                <ErrorMessage name="category" />
+                            </div>
+                        </div>
+                    </div>
+                    <!--end::Input group-->
+                </div>
+                <div class="col-md-3">
+                    <!--begin::Input group-->
+                    <div class="fv-row mb-7">
+                        <label class="form-label fw-bold fs-6 required">
+                            Urutan
+                        </label>
+                        <Field
+                            class="form-control form-control-lg form-control-solid"
+                            type="number"
+                            name="urutan"
+                            autocomplete="off"
+                            v-model="project.urutan"
+                            placeholder="1"
+                        />
+                        <div class="fv-plugins-message-container">
+                            <div class="fv-help-block">
+                                <ErrorMessage name="urutan" />
+                            </div>
+                        </div>
+                    </div>
+                    <!--end::Input group-->
+                </div>
+                <div class="col-md-3">
+                    <!--begin::Input group-->
+                    <div class="fv-row mb-7">
+                        <label class="form-label fw-bold fs-6">
+                            Featured
+                        </label>
+                        <div class="form-check form-switch form-check-custom form-check-solid mt-3">
+                            <Field
+                                class="form-check-input"
+                                type="checkbox"
+                                name="is_featured"
+                                v-model="project.is_featured"
+                                :value="true"
+                                :unchecked-value="false"
+                            />
+                            <label class="form-check-label">
+                                {{ project.is_featured ? "Ya" : "Tidak" }}
+                            </label>
                         </div>
                     </div>
                     <!--end::Input group-->

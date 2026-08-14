@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { block, unblock } from "@/libs/utils";
-import { onMounted, ref, watch, computed } from "vue";
+import { onMounted, ref, watch } from "vue";
 import * as Yup from "yup";
 import axios from "@/libs/axios";
 import { toast } from "vue3-toastify";
-import type { User, Role } from "@/types";
+import type { Testimonial } from "@/types";
 import ApiService from "@/core/services/ApiService";
-import { useRole } from "@/services/useRole";
 
 const props = defineProps({
     selected: {
@@ -17,55 +16,43 @@ const props = defineProps({
 
 const emit = defineEmits(["close", "refresh"]);
 
-const user = ref<User>({} as User);
+const testimonial = ref<Testimonial>({} as Testimonial);
 const fileTypes = ref(["image/jpeg", "image/png", "image/jpg"]);
 const photo = ref<any>([]);
 const formRef = ref();
 
 const formSchema = Yup.object().shape({
     name: Yup.string().required("Nama harus diisi"),
-    email: Yup.string()
-        .email("Email harus valid")
-        .required("Email harus diisi"),
-    password: Yup.string().min(8, "Minimal 8 karakter").nullable(),
-    passwordConfirmation: Yup.string()
-        .oneOf([Yup.ref("password")], "Konfirmasi password harus sama")
-        .nullable(),
-    phone: Yup.string().required("Nomor Telepon harus diisi"),
-    role_id: Yup.string().required("Pilih role"),
+    position: Yup.string().required("Jabatan / instansi harus diisi"),
+    message: Yup.string().required("Isi testimoni harus diisi"),
+    placement: Yup.string().required("Pilih tempat tampil"),
 });
 
 function getEdit() {
-    block(document.getElementById("form-user"));
-    ApiService.get("master/users", props.selected)
+    block(document.getElementById("form-testimonial"));
+    // TODO: cocokkan endpoint ini dengan API Destria
+    ApiService.get("master/testimonials", props.selected)
         .then(({ data }) => {
-            user.value = data.user;
-            photo.value = data.user.photo
-                ? ["/storage/" + data.user.photo]
+            testimonial.value = data.testimonial;
+            photo.value = data.testimonial.photo
+                ? ["/storage/" + data.testimonial.photo]
                 : [];
         })
         .catch((err: any) => {
             toast.error(err.response.data.message);
         })
         .finally(() => {
-            unblock(document.getElementById("form-user"));
+            unblock(document.getElementById("form-testimonial"));
         });
 }
 
 function submit() {
     const formData = new FormData();
-    formData.append("name", user.value.name);
-    formData.append("email", user.value.email);
-    formData.append("phone", user.value.phone);
-    formData.append("role_id", user.value.role_id);
+    formData.append("name", testimonial.value.name);
+    formData.append("position", testimonial.value.position);
+    formData.append("message", testimonial.value.message);
+    formData.append("placement", testimonial.value.placement);
 
-    if (user.value?.password) {
-        formData.append("password", user.value.password);
-        formData.append(
-            "password_confirmation",
-            user.value.passwordconfirmation
-        );
-    }
     if (photo.value.length) {
         formData.append("photo", photo.value[0].file);
     }
@@ -73,12 +60,13 @@ function submit() {
         formData.append("_method", "PUT");
     }
 
-    block(document.getElementById("form-user"));
+    block(document.getElementById("form-testimonial"));
     axios({
         method: "post",
+        // TODO: cocokkan endpoint ini dengan API Destria
         url: props.selected
-            ? `/master/users/${props.selected}`
-            : "/master/users/store",
+            ? `/master/testimonials/${props.selected}`
+            : "/master/testimonials/store",
         data: formData,
         headers: {
             "Content-Type": "multipart/form-data",
@@ -95,17 +83,9 @@ function submit() {
             toast.error(err.response.data.message);
         })
         .finally(() => {
-            unblock(document.getElementById("form-user"));
+            unblock(document.getElementById("form-testimonial"));
         });
 }
-
-const role = useRole();
-const roles = computed(() =>
-    role.data.value?.map((item: Role) => ({
-        id: item.id,
-        text: item.full_name,
-    }))
-);
 
 onMounted(async () => {
     if (props.selected) {
@@ -128,11 +108,13 @@ watch(
         class="form card mb-10"
         @submit="submit"
         :validation-schema="formSchema"
-        id="form-user"
+        id="form-testimonial"
         ref="formRef"
     >
         <div class="card-header align-items-center">
-            <h2 class="mb-0">{{ selected ? "Edit" : "Tambah" }} User</h2>
+            <h2 class="mb-0">
+                {{ selected ? "Edit" : "Tambah" }} Testimonial
+            </h2>
             <button
                 type="button"
                 class="btn btn-sm btn-light-danger ms-auto"
@@ -155,7 +137,7 @@ watch(
                             type="text"
                             name="name"
                             autocomplete="off"
-                            v-model="user.name"
+                            v-model="testimonial.name"
                             placeholder="Masukkan Nama"
                         />
                         <div class="fv-plugins-message-container">
@@ -170,113 +152,66 @@ watch(
                     <!--begin::Input group-->
                     <div class="fv-row mb-7">
                         <label class="form-label fw-bold fs-6 required">
-                            Email
+                            Jabatan / Instansi
                         </label>
                         <Field
                             class="form-control form-control-lg form-control-solid"
                             type="text"
-                            name="email"
+                            name="position"
                             autocomplete="off"
-                            v-model="user.email"
-                            placeholder="Masukkan Email"
+                            v-model="testimonial.position"
+                            placeholder="Contoh: Kepala Dinas ABC"
                         />
                         <div class="fv-plugins-message-container">
                             <div class="fv-help-block">
-                                <ErrorMessage name="email" />
+                                <ErrorMessage name="position" />
                             </div>
                         </div>
                     </div>
                     <!--end::Input group-->
                 </div>
-                <div class="col-md-6">
-                    <!--begin::Input group-->
-                    <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6">
-                            Password
-                        </label>
-                        <Field
-                            class="form-control form-control-lg form-control-solid"
-                            type="password"
-                            name="password"
-                            autocomplete="off"
-                            v-model="user.password"
-                            placeholder="Masukkan password"
-                        />
-                        <div class="fv-plugins-message-container">
-                            <div class="fv-help-block">
-                                <ErrorMessage name="password" />
-                            </div>
-                        </div>
-                    </div>
-                    <!--end::Input group-->
-                </div>
-                <div class="col-md-6">
-                    <!--begin::Input group-->
-                    <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6">
-                            Konfirmasi Password
-                        </label>
-                        <Field
-                            class="form-control form-control-lg form-control-solid"
-                            type="password"
-                            name="passwordConfirmation"
-                            autocomplete="off"
-                            v-model="user.passwordConfirmation"
-                            placeholder="Konfirmasi password"
-                        />
-                        <div class="fv-plugins-message-container">
-                            <div class="fv-help-block">
-                                <ErrorMessage name="passwordConfirmation" />
-                            </div>
-                        </div>
-                    </div>
-                    <!--end::Input group-->
-                </div>
-                <div class="col-md-6">
+                <div class="col-md-12">
                     <!--begin::Input group-->
                     <div class="fv-row mb-7">
                         <label class="form-label fw-bold fs-6 required">
-                            Role
+                            Isi Testimoni
                         </label>
                         <Field
-                            name="role_id"
-                            type="hidden"
-                            v-model="user.role_id"
+                            as="textarea"
+                            class="form-control form-control-lg form-control-solid"
+                            rows="4"
+                            name="message"
+                            autocomplete="off"
+                            v-model="testimonial.message"
+                            placeholder="Masukkan isi testimoni"
+                        />
+                        <div class="fv-plugins-message-container">
+                            <div class="fv-help-block">
+                                <ErrorMessage name="message" />
+                            </div>
+                        </div>
+                    </div>
+                    <!--end::Input group-->
+                </div>
+                <div class="col-md-12">
+                    <!--begin::Input group-->
+                    <div class="fv-row mb-7">
+                        <label class="form-label fw-bold fs-6 required">
+                            Tampilkan di
+                        </label>
+                        <Field
+                            as="select"
+                            class="form-select form-select-lg form-select-solid"
+                            name="placement"
+                            v-model="testimonial.placement"
                         >
-                            <select2
-                                placeholder="Pilih role"
-                                class="form-select-solid"
-                                :options="roles"
-                                name="role_id"
-                                v-model="user.role_id"
-                            >
-                            </select2>
+                            <option value="" disabled>Pilih lokasi tampil</option>
+                            <option value="services">Halaman Layanan (Klien)</option>
+                            <option value="beranda">Beranda (Testimoni CEO)</option>
                         </Field>
                         <div class="fv-plugins-message-container">
                             <div class="fv-help-block">
-                                <ErrorMessage name="role_id" />
-                            </div>
-                        </div>
-                    </div>
-                    <!--end::Input group-->
-                </div>
-                <div class="col-md-6">
-                    <!--begin::Input group-->
-                    <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6 required">
-                            Nomor Telepon
-                        </label>
-                        <Field
-                            class="form-control form-control-lg form-control-solid"
-                            type="text"
-                            name="phone"
-                            autocomplete="off"
-                            v-model="user.phone"
-                            placeholder="089"
-                        />
-                        <div class="fv-plugins-message-container">
-                            <div class="fv-help-block">
-                                <ErrorMessage name="phone" />
+                                <ErrorMessage name="placement" />
                             </div>
                         </div>
                     </div>
@@ -286,13 +221,12 @@ watch(
                     <!--begin::Input group-->
                     <div class="fv-row mb-7">
                         <label class="form-label fw-bold fs-6">
-                            User Photo
+                            Foto
                         </label>
                         <!--begin::Input-->
                         <file-upload
                             :files="photo"
                             :accepted-file-types="fileTypes"
-                            required
                             v-on:updatefiles="(file) => (photo = file)"
                         ></file-upload>
                         <!--end::Input-->

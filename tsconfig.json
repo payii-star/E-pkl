@@ -2,7 +2,7 @@
     "extends": "@vue/tsconfig/tsconfig.web.json",
     "include": [
         "env.d.ts",
-        "resources/js/*",
+        "resources/js/*",                                          
         "resources/js/**/{*.js,*.ts,*.vue}"
     ],
     "compilerOptions": {

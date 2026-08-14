@@ -20,9 +20,11 @@ class PermissionSeeder extends Seeder
         $menuJournalApproval = ['journal-approval'];
         $menuMaster = ['master-user', 'master-role'];
         $menuAccount = ['dashboard-profile', 'setting'];
+        // Landing CMS: dashboard baru berdiri sendiri, bukan bagian dari Master
+        $menuLandingCms = ['landing-cms'];
 
         $permissionsByRole = [
-            // HR Admin: akses penuh, termasuk manajemen user & role
+            // HR Admin: akses penuh, termasuk manajemen user & role, + Landing CMS
             'hr-admin' => array_merge(
                 $menuDashboard,
                 $menuAdmin,
@@ -30,7 +32,8 @@ class PermissionSeeder extends Seeder
                 $menuJournal,
                 $menuJournalApproval,
                 $menuMaster,
-                $menuAccount
+                $menuAccount,
+                $menuLandingCms
             ),
             // Atasan/Supervisor: absen + jurnal + approval, tanpa manajemen user
             'atasan' => array_merge(

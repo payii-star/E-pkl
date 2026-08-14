@@ -174,18 +174,66 @@ class AuthController extends Controller
             ]);
         }
 
-        if (!$token = auth()->attempt($validator->validated())) {
+        // 1. Coba login sebagai akun E-pkl dulu (jalur normal, paling sering kejadian).
+        if ($token = auth()->attempt($validator->validated())) {
             return response()->json([
-                'status' => false,
-                'message' => 'Email / Password salah!'
-            ], 401);
+                'status' => true,
+                'source' => 'epkl',
+                'user' => auth()->user(),
+                'token' => $token,
+            ]);
+        }
+
+        // 2. Bukan akun E-pkl → coba cek apakah ini akun admin di project Landing.
+        //    Email & password diteruskan langsung server-ke-server, TIDAK disimpan
+        //    di E-pkl sama sekali.
+        $landing = $this->tryLandingLogin($request->email, $request->password);
+        if ($landing) {
+            return response()->json([
+                'status'        => true,
+                'source'        => 'landing',
+                'user'          => $landing['user'],
+                'landing_token' => $landing['token'],
+                'landing_url'   => $this->landingBaseUrl(),
+            ]);
         }
 
         return response()->json([
-            'status' => true,
-            'user' => auth()->user(),
-            'token' => $token
-        ]);
+            'status' => false,
+            'message' => 'Email / Password salah!'
+        ], 401);
+    }
+
+    /**
+     * Coba login ke project Landing lewat API login publik mereka
+     * (bukan lewat internal API key — ini beneran verifikasi akun user Landing).
+     */
+    private function tryLandingLogin(string $email, string $password): ?array
+    {
+        try {
+            $res = \Illuminate\Support\Facades\Http::timeout(5)->post(
+                rtrim(config('services.landing_api.url'), '/') . '/auth/login',
+                ['email' => $email, 'password' => $password]
+            );
+        } catch (\Throwable) {
+            return null;
+        }
+
+        if ($res->failed() || !$res->json('status') || !$res->json('token')) {
+            return null;
+        }
+
+        return [
+            'user'  => $res->json('user'),
+            'token' => $res->json('token'),
+        ];
+    }
+
+    private function landingBaseUrl(): string
+    {
+        // services.landing_api.url biasanya "http://127.0.0.1:8001/api",
+        // kita butuh base URL frontend-nya aja: "http://127.0.0.1:8001"
+        return preg_replace('#/api/?$#', '', config('services.landing_api.url'));
     }
 
     public function logout()

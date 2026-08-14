@@ -11,7 +11,14 @@ export default defineConfig(({ mode }) => {
 
     return {
         server: {
-            host: process.env.VITE_HOST,
+            host: "0.0.0.0", // biar Vite listen di semua interface, bukan cuma IP statis
+            port: 5173,
+            strictPort: true,
+            cors: true,               // izinkan cross-origin request ke dev server
+            origin: `http://${process.env.VITE_HOST}:5173`, // dipakai Laravel utk generate URL asset
+            hmr: {
+                host: process.env.VITE_HOST, // biar websocket HMR juga tetap connect ke IP yang benar
+            },
         },
         plugins: [
             laravel({
