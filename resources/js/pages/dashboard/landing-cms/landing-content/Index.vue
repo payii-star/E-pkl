@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ClientLogosManager from "./ClientLogosManager.vue";
 import { onMounted, ref } from "vue";
 import * as Yup from "yup";
 import axios from "@/libs/axios";
@@ -514,4 +515,5 @@ onMounted(fetchContent);
             </div>
         </div>
     </VForm>
+    <ClientLogosManager />
 </template>

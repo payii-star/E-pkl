@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\AdminAttendanceController;
 use App\Http\Controllers\Api\AdminDashboardController;
 use App\Http\Controllers\Api\FaceController;
 use App\Http\Controllers\Api\AdminFaceController;
+use App\Http\Controllers\Api\LandingProxyController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -135,6 +136,18 @@ Route::middleware(['auth', 'json'])->group(function () {
             Route::apiResource('roles', RoleController::class)
                 ->except(['index', 'store']);
         });
+
+        // ------------------------------------------------------------------
+        // KELOLA LANDING (Projects, Statistics, Menu, Services, Testimonials,
+        // Teams, Footer, Landing Content) — datanya beneran disimpan di
+        // database project Landing, ini cuma penyambung server-ke-server.
+        // WAJIB paling terakhir di grup ini, supaya {path} nggak nyerobot
+        // route users/roles di atas.
+        // ------------------------------------------------------------------
+
+        Route::middleware('permission:landing-management')
+            ->any('{path}', [LandingProxyController::class, 'proxy'])
+            ->where('path', '(projects|statistics|menu|services|testimonials|teams|footer|landing-content)(/.*)?');
     });
 
 

@@ -27,10 +27,13 @@ const translate = (text: string) => {
         return text;
     }
 };
-
-const isAdminUser = () => {
+// Role-role "khusus" yang TIDAK butuh item personal (Dashboard pribadi,
+// Absen Pulang, Jurnal Saya, dst) — karena mereka punya dashboard/menu
+// sendiri yang lebih spesifik ke tugasnya masing-masing.
+const rolesWithoutPersonalItems = ["admin", "hr-admin", "admin-landing"];
+const hasNoPersonalItems = () => {
     const roleName = user?.value?.role?.name;
-    return roleName === "admin" || roleName === "hr-admin";
+    return rolesWithoutPersonalItems.includes(roleName);
 };
 
 // MainMenuConfig sudah berisi SEMUA item (termasuk item khusus admin,
@@ -51,10 +54,7 @@ const hasActiveChildren = (match: string) => {
  *   maka baru dicek terhadap daftar permission milik user.
  */
 const checkPermission = (item: any) => {
-    // Item dengan hideForAdmin selalu disembunyikan dari hr-admin,
-    // apapun kondisinya — dicek duluan sebelum bypass admin di bawah.
-    if (item?.hideForAdmin && isAdminUser()) return false;
-    if (isAdminUser()) return true;
+    if (item?.hideForAdmin && hasNoPersonalItems()) return false;
     if (!item?.permission) return true;
     return !!user?.value?.permission?.includes(item.permission);
 };

@@ -14,7 +14,11 @@ class PermissionSeeder extends Seeder
 
         // Definisikan semua grup izin untuk sistem HR
         $menuDashboard = ['dashboard'];
-        $menuAdmin = ['admin-dashboard', 'admin-attendance-recap'];
+        // Ditambahkan 'admin-face-management' — sebelumnya permission ini
+        // dipakai di MainMenuConfig.ts tapi TIDAK PERNAH dibuat/di-assign
+        // ke role manapun, jadi menu "Face Management" sebelumnya tidak
+        // pernah muncul untuk siapapun.
+        $menuAdmin = ['admin-dashboard', 'admin-attendance-recap', 'admin-face-management'];
         $menuAttendance = ['attendance-check', 'attendance-history'];
         $menuJournal = ['journal-my', 'journal-history'];
         $menuJournalApproval = ['journal-approval'];
@@ -23,16 +27,13 @@ class PermissionSeeder extends Seeder
         $menuLanding = ['landing-management'];
 
         $permissionsByRole = [
-            // HR Admin: akses penuh, termasuk manajemen user & role & landing
+            // HR Admin ("admin biasa"): HANYA 4 menu admin-level + Akun.
+            // TIDAK lagi dapat: Dashboard pribadi, Absensi pribadi,
+            // Jurnal pribadi, Master (User & Role), Kelola Landing.
             'hr-admin' => array_merge(
-                $menuDashboard,
                 $menuAdmin,
-                $menuAttendance,
-                $menuJournal,
                 $menuJournalApproval,
-                $menuMaster,
-                $menuAccount,
-                $menuLanding
+                $menuAccount
             ),
             // Atasan/Supervisor: absen + jurnal + approval, tanpa manajemen user
             'atasan' => array_merge(
@@ -49,13 +50,21 @@ class PermissionSeeder extends Seeder
                 $menuJournal,
                 $menuAccount
             ),
-            // Admin Landing: CUMA bisa kelola konten landing page + akun sendiri,
-            // nggak bisa lihat data absensi/jurnal/intern sama sekali
+            // Admin Landing: CUMA bisa kelola konten landing page + akun sendiri
             'admin-landing' => array_merge(
                 $menuLanding,
                 $menuAccount
             ),
         ];
+
+        // CATATAN PENTING: karena 'hr-admin' tidak lagi memuat $menuMaster,
+        // dan tidak ada role lain yang memuatnya, permission 'master-user'
+        // dan 'master-role' TIDAK AKAN dibuat sama sekali (karena
+        // $allPermissions di bawah hanya union dari array di atas).
+        // Efeknya: section "Master" (User & Role) di MainMenuConfig.ts
+        // otomatis tidak akan tampil untuk SIAPAPUN, termasuk hr-admin.
+        // Kalau ini TIDAK diinginkan, beri tahu saya — tinggal balikin
+        // $menuMaster ke salah satu role (biasanya hr-admin).
 
         // Buat semua permission (union dari semua role, tanpa duplikat)
         $allPermissions = collect($permissionsByRole)->flatten()->unique();
