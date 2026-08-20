@@ -5,7 +5,6 @@ import * as Yup from "yup";
 import axios from "@/libs/axios";
 import { toast } from "vue3-toastify";
 import type { Testimonial } from "@/types";
-import ApiService from "@/core/services/ApiService";
 
 const props = defineProps({
     selected: {
@@ -16,80 +15,223 @@ const props = defineProps({
 
 const emit = defineEmits(["close", "refresh"]);
 
-const testimonial = ref<Testimonial>({} as Testimonial);
-const fileTypes = ref(["image/jpeg", "image/png", "image/jpg"]);
-const photo = ref<any>([]);
+const testimonial = ref<Testimonial>({
+    name: "",
+    position: "",
+    message: "",
+    placement: "",
+} as Testimonial);
+
+const fileTypes = ref([
+    "image/jpeg",
+    "image/png",
+    "image/jpg",
+]);
+
+const photo = ref<any[]>([]);
+
 const formRef = ref();
 
 const formSchema = Yup.object().shape({
-    name: Yup.string().required("Nama harus diisi"),
-    position: Yup.string().required("Jabatan / instansi harus diisi"),
-    message: Yup.string().required("Isi testimoni harus diisi"),
-    placement: Yup.string().required("Pilih tempat tampil"),
+    name: Yup.string().required(
+        "Nama harus diisi"
+    ),
+
+    position: Yup.string().required(
+        "Jabatan / instansi harus diisi"
+    ),
+
+    message: Yup.string().required(
+        "Isi testimoni harus diisi"
+    ),
+
+    placement: Yup.string().required(
+        "Pilih tempat tampil"
+    ),
 });
 
+function resetForm() {
+    testimonial.value = {
+        name: "",
+        position: "",
+        message: "",
+        placement: "",
+    } as Testimonial;
+
+    photo.value = [];
+}
+
 function getEdit() {
-    block(document.getElementById("form-testimonial"));
-    // TODO: cocokkan endpoint ini dengan API Destria
-    ApiService.get("master/testimonials", props.selected)
+    if (!props.selected) {
+        return;
+    }
+
+    block(
+        document.getElementById(
+            "form-testimonial"
+        )
+    );
+
+    axios
+        .get(
+            `/master/testimonials/${props.selected}`
+        )
         .then(({ data }) => {
-            testimonial.value = data.testimonial;
-            photo.value = data.testimonial.photo
-                ? ["/storage/" + data.testimonial.photo]
-                : [];
+            /*
+             * Support response:
+             *
+             * {
+             *     data: {...}
+             * }
+             *
+             * atau:
+             *
+             * {
+             *     testimonial: {...}
+             * }
+             */
+            const testimonialData =
+                data.data ??
+                data.testimonial ??
+                data;
+
+            testimonial.value =
+                testimonialData;
+
+            photo.value =
+                testimonialData.photo
+                    ? [
+                          "/storage/" +
+                              testimonialData.photo,
+                      ]
+                    : [];
         })
         .catch((err: any) => {
-            toast.error(err.response.data.message);
+            toast.error(
+                err.response?.data?.message ??
+                    "Gagal memuat data testimonial"
+            );
         })
         .finally(() => {
-            unblock(document.getElementById("form-testimonial"));
+            unblock(
+                document.getElementById(
+                    "form-testimonial"
+                )
+            );
         });
 }
 
 function submit() {
     const formData = new FormData();
-    formData.append("name", testimonial.value.name);
-    formData.append("position", testimonial.value.position);
-    formData.append("message", testimonial.value.message);
-    formData.append("placement", testimonial.value.placement);
 
-    if (photo.value.length) {
-        formData.append("photo", photo.value[0].file);
+    formData.append(
+        "name",
+        testimonial.value.name ?? ""
+    );
+
+    formData.append(
+        "position",
+        testimonial.value.position ?? ""
+    );
+
+    formData.append(
+        "message",
+        testimonial.value.message ?? ""
+    );
+
+    formData.append(
+        "placement",
+        testimonial.value.placement ?? ""
+    );
+
+    /*
+     * Hanya upload foto jika user memilih
+     * file baru.
+     */
+    if (
+        photo.value.length &&
+        photo.value[0]?.file
+    ) {
+        formData.append(
+            "photo",
+            photo.value[0].file
+        );
     }
+
+    /*
+     * CREATE
+     * POST /api/master/testimonials
+     *
+     * EDIT
+     * PUT /api/master/testimonials/{id}
+     *
+     * Karena menggunakan FormData untuk upload,
+     * edit dikirim sebagai POST + _method=PUT.
+     */
     if (props.selected) {
         formData.append("_method", "PUT");
     }
 
-    block(document.getElementById("form-testimonial"));
+    block(
+        document.getElementById(
+            "form-testimonial"
+        )
+    );
+
     axios({
         method: "post",
-        // TODO: cocokkan endpoint ini dengan API Destria
+
         url: props.selected
             ? `/master/testimonials/${props.selected}`
-            : "/master/testimonials/store",
+            : "/master/testimonials",
+
         data: formData,
+
         headers: {
-            "Content-Type": "multipart/form-data",
+            "Content-Type":
+                "multipart/form-data",
         },
     })
         .then(() => {
+            toast.success(
+                props.selected
+                    ? "Testimonial berhasil diperbarui"
+                    : "Testimonial berhasil ditambahkan"
+            );
+
             emit("close");
             emit("refresh");
-            toast.success("Data berhasil disimpan");
-            formRef.value.resetForm();
+
+            formRef.value?.resetForm();
         })
         .catch((err: any) => {
-            formRef.value.setErrors(err.response.data.errors);
-            toast.error(err.response.data.message);
+            if (
+                err.response?.data?.errors
+            ) {
+                formRef.value?.setErrors(
+                    err.response.data.errors
+                );
+            }
+
+            toast.error(
+                err.response?.data?.message ??
+                    "Gagal menyimpan testimonial"
+            );
         })
         .finally(() => {
-            unblock(document.getElementById("form-testimonial"));
+            unblock(
+                document.getElementById(
+                    "form-testimonial"
+                )
+            );
         });
 }
 
-onMounted(async () => {
+onMounted(() => {
     if (props.selected) {
         getEdit();
+    } else {
+        resetForm();
     }
 });
 
@@ -98,6 +240,8 @@ watch(
     () => {
         if (props.selected) {
             getEdit();
+        } else {
+            resetForm();
         }
     }
 );
@@ -111,137 +255,227 @@ watch(
         id="form-testimonial"
         ref="formRef"
     >
-        <div class="card-header align-items-center">
+        <div
+            class="card-header align-items-center"
+        >
             <h2 class="mb-0">
-                {{ selected ? "Edit" : "Tambah" }} Testimonial
+                {{
+                    selected
+                        ? "Edit"
+                        : "Tambah"
+                }}
+                Testimonial
             </h2>
+
             <button
                 type="button"
                 class="btn btn-sm btn-light-danger ms-auto"
                 @click="emit('close')"
             >
                 Batal
-                <i class="la la-times-circle p-0"></i>
+
+                <i
+                    class="la la-times-circle p-0"
+                ></i>
             </button>
         </div>
+
         <div class="card-body">
             <div class="row">
+                <!-- NAMA -->
                 <div class="col-md-6">
-                    <!--begin::Input group-->
                     <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6 required">
+                        <label
+                            class="form-label fw-bold fs-6 required"
+                        >
                             Nama
                         </label>
+
                         <Field
                             class="form-control form-control-lg form-control-solid"
                             type="text"
                             name="name"
                             autocomplete="off"
-                            v-model="testimonial.name"
+                            v-model="
+                                testimonial.name
+                            "
                             placeholder="Masukkan Nama"
                         />
-                        <div class="fv-plugins-message-container">
-                            <div class="fv-help-block">
-                                <ErrorMessage name="name" />
+
+                        <div
+                            class="fv-plugins-message-container"
+                        >
+                            <div
+                                class="fv-help-block"
+                            >
+                                <ErrorMessage
+                                    name="name"
+                                />
                             </div>
                         </div>
                     </div>
-                    <!--end::Input group-->
                 </div>
+
+                <!-- JABATAN / INSTANSI -->
                 <div class="col-md-6">
-                    <!--begin::Input group-->
                     <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6 required">
+                        <label
+                            class="form-label fw-bold fs-6 required"
+                        >
                             Jabatan / Instansi
                         </label>
+
                         <Field
                             class="form-control form-control-lg form-control-solid"
                             type="text"
                             name="position"
                             autocomplete="off"
-                            v-model="testimonial.position"
+                            v-model="
+                                testimonial.position
+                            "
                             placeholder="Contoh: Kepala Dinas ABC"
                         />
-                        <div class="fv-plugins-message-container">
-                            <div class="fv-help-block">
-                                <ErrorMessage name="position" />
+
+                        <div
+                            class="fv-plugins-message-container"
+                        >
+                            <div
+                                class="fv-help-block"
+                            >
+                                <ErrorMessage
+                                    name="position"
+                                />
                             </div>
                         </div>
                     </div>
-                    <!--end::Input group-->
                 </div>
+
+                <!-- TESTIMONI -->
                 <div class="col-md-12">
-                    <!--begin::Input group-->
                     <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6 required">
+                        <label
+                            class="form-label fw-bold fs-6 required"
+                        >
                             Isi Testimoni
                         </label>
+
                         <Field
                             as="textarea"
                             class="form-control form-control-lg form-control-solid"
                             rows="4"
                             name="message"
                             autocomplete="off"
-                            v-model="testimonial.message"
+                            v-model="
+                                testimonial.message
+                            "
                             placeholder="Masukkan isi testimoni"
                         />
-                        <div class="fv-plugins-message-container">
-                            <div class="fv-help-block">
-                                <ErrorMessage name="message" />
+
+                        <div
+                            class="fv-plugins-message-container"
+                        >
+                            <div
+                                class="fv-help-block"
+                            >
+                                <ErrorMessage
+                                    name="message"
+                                />
                             </div>
                         </div>
                     </div>
-                    <!--end::Input group-->
                 </div>
+
+                <!-- PLACEMENT -->
                 <div class="col-md-12">
-                    <!--begin::Input group-->
                     <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6 required">
+                        <label
+                            class="form-label fw-bold fs-6 required"
+                        >
                             Tampilkan di
                         </label>
+
                         <Field
                             as="select"
                             class="form-select form-select-lg form-select-solid"
                             name="placement"
-                            v-model="testimonial.placement"
+                            v-model="
+                                testimonial.placement
+                            "
                         >
-                            <option value="" disabled>Pilih lokasi tampil</option>
-                            <option value="services">Halaman Layanan (Klien)</option>
-                            <option value="beranda">Beranda (Testimoni CEO)</option>
+                            <option
+                                value=""
+                                disabled
+                            >
+                                Pilih lokasi tampil
+                            </option>
+
+                            <option value="services">
+                                Halaman Layanan
+                                (Klien)
+                            </option>
+
+                            <option value="beranda">
+                                Beranda
+                                (Testimoni CEO)
+                            </option>
                         </Field>
-                        <div class="fv-plugins-message-container">
-                            <div class="fv-help-block">
-                                <ErrorMessage name="placement" />
+
+                        <div
+                            class="fv-plugins-message-container"
+                        >
+                            <div
+                                class="fv-help-block"
+                            >
+                                <ErrorMessage
+                                    name="placement"
+                                />
                             </div>
                         </div>
                     </div>
-                    <!--end::Input group-->
                 </div>
+
+                <!-- FOTO -->
                 <div class="col-md-6">
-                    <!--begin::Input group-->
                     <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6">
+                        <label
+                            class="form-label fw-bold fs-6"
+                        >
                             Foto
                         </label>
-                        <!--begin::Input-->
+
                         <file-upload
                             :files="photo"
-                            :accepted-file-types="fileTypes"
-                            v-on:updatefiles="(file) => (photo = file)"
-                        ></file-upload>
-                        <!--end::Input-->
-                        <div class="fv-plugins-message-container">
-                            <div class="fv-help-block">
-                                <ErrorMessage name="photo" />
+                            :accepted-file-types="
+                                fileTypes
+                            "
+                            v-on:updatefiles="
+                                (file) =>
+                                    (photo = file)
+                            "
+                        >
+                        </file-upload>
+
+                        <div
+                            class="fv-plugins-message-container"
+                        >
+                            <div
+                                class="fv-help-block"
+                            >
+                                <ErrorMessage
+                                    name="photo"
+                                />
                             </div>
                         </div>
                     </div>
-                    <!--end::Input group-->
                 </div>
             </div>
         </div>
+
         <div class="card-footer d-flex">
-            <button type="submit" class="btn btn-primary btn-sm ms-auto">
+            <button
+                type="submit"
+                class="btn btn-primary btn-sm ms-auto"
+            >
                 Simpan
             </button>
         </div>

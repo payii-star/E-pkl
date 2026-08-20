@@ -27,8 +27,15 @@ const formRef = ref();
 
 const formSchema = Yup.object().shape({
     icon: Yup.string().nullable(),
-    statistic: Yup.string().required("Nilai statistik harus diisi"),
-    label: Yup.string().required("Label harus diisi"),
+
+    statistic: Yup.string().required(
+        "Nilai statistik harus diisi"
+    ),
+
+    label: Yup.string().required(
+        "Label harus diisi"
+    ),
+
     urutan: Yup.number()
         .typeError("Urutan harus berupa angka")
         .required("Urutan harus diisi"),
@@ -36,7 +43,10 @@ const formSchema = Yup.object().shape({
 
 function fillFromSelected() {
     if (!props.selected) return;
-    statistic.value = { ...props.selected };
+
+    statistic.value = {
+        ...props.selected,
+    };
 }
 
 function resetForm() {
@@ -51,39 +61,65 @@ function resetForm() {
 
 function submit() {
     const payload = {
-        icon: statistic.value.icon,
-        statistic: statistic.value.statistic,
-        label: statistic.value.label,
+        icon: statistic.value.icon ?? "",
+        statistic: statistic.value.statistic ?? "",
+        label: statistic.value.label ?? "",
         urutan: Number(statistic.value.urutan),
         is_active: !!statistic.value.is_active,
     };
 
     block(document.getElementById("form-statistic"));
+
     axios({
         method: props.selected ? "put" : "post",
-        url: props.selected ? `/master/statistics/${props.selected.id}` : "/master/statistics/store",
+
+        // CREATE:
+        // POST /api/master/statistics
+        //
+        // EDIT:
+        // PUT /api/master/statistics/{id}
+        url: props.selected
+            ? `/master/statistics/${props.selected.id}`
+            : "/master/statistics",
+
         data: payload,
     })
         .then(() => {
-            toast.success("Statistik berhasil disimpan");
+            toast.success(
+                props.selected
+                    ? "Statistik berhasil diperbarui"
+                    : "Statistik berhasil ditambahkan"
+            );
+
             formRef.value?.resetForm();
+
             emit("close");
             emit("refresh");
         })
         .catch((err: any) => {
             if (err.response?.data?.errors) {
-                formRef.value.setErrors(err.response.data.errors);
+                formRef.value?.setErrors(
+                    err.response.data.errors
+                );
             }
-            toast.error(err.response?.data?.message ?? "Gagal menyimpan statistik");
+
+            toast.error(
+                err.response?.data?.message ??
+                    "Gagal menyimpan statistik"
+            );
         })
         .finally(() => {
-            unblock(document.getElementById("form-statistic"));
+            unblock(
+                document.getElementById("form-statistic")
+            );
         });
 }
 
 onMounted(() => {
     if (props.selected) {
         fillFromSelected();
+    } else {
+        resetForm();
     }
 });
 
@@ -108,24 +144,30 @@ watch(
         ref="formRef"
     >
         <div class="card-header align-items-center">
-            <h2 class="mb-0">{{ selected ? "Edit" : "Tambah" }} Statistik</h2>
+            <h2 class="mb-0">
+                {{ selected ? "Edit" : "Tambah" }} Statistik
+            </h2>
+
             <button
                 type="button"
                 class="btn btn-sm btn-light-danger ms-auto"
                 @click="emit('close')"
             >
                 Batal
+
                 <i class="la la-times-circle p-0"></i>
             </button>
         </div>
+
         <div class="card-body">
             <div class="row">
+                <!-- ICON -->
                 <div class="col-md-4">
-                    <!--begin::Input group-->
                     <div class="fv-row mb-7">
                         <label class="form-label fw-bold fs-6">
                             Icon (Font Awesome)
                         </label>
+
                         <Field
                             class="form-control form-control-lg form-control-solid"
                             type="text"
@@ -134,24 +176,31 @@ watch(
                             v-model="statistic.icon"
                             placeholder="cth: briefcase, users, calendar"
                         />
+
                         <div class="form-text">
-                            Nama ikon Font Awesome tanpa prefix "fa-", cth:
-                            "briefcase"
+                            Nama ikon Font Awesome tanpa prefix
+                            "fa-", cth: "briefcase"
                         </div>
-                        <div class="fv-plugins-message-container">
+
+                        <div
+                            class="fv-plugins-message-container"
+                        >
                             <div class="fv-help-block">
                                 <ErrorMessage name="icon" />
                             </div>
                         </div>
                     </div>
-                    <!--end::Input group-->
                 </div>
+
+                <!-- NILAI STATISTIK -->
                 <div class="col-md-4">
-                    <!--begin::Input group-->
                     <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6 required">
+                        <label
+                            class="form-label fw-bold fs-6 required"
+                        >
                             Nilai Statistik
                         </label>
+
                         <Field
                             class="form-control form-control-lg form-control-solid"
                             type="text"
@@ -160,20 +209,26 @@ watch(
                             v-model="statistic.statistic"
                             placeholder="cth: 10+"
                         />
-                        <div class="fv-plugins-message-container">
+
+                        <div
+                            class="fv-plugins-message-container"
+                        >
                             <div class="fv-help-block">
                                 <ErrorMessage name="statistic" />
                             </div>
                         </div>
                     </div>
-                    <!--end::Input group-->
                 </div>
+
+                <!-- LABEL -->
                 <div class="col-md-4">
-                    <!--begin::Input group-->
                     <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6 required">
+                        <label
+                            class="form-label fw-bold fs-6 required"
+                        >
                             Label
                         </label>
+
                         <Field
                             class="form-control form-control-lg form-control-solid"
                             type="text"
@@ -182,20 +237,26 @@ watch(
                             v-model="statistic.label"
                             placeholder="cth: Proyek Selesai"
                         />
-                        <div class="fv-plugins-message-container">
+
+                        <div
+                            class="fv-plugins-message-container"
+                        >
                             <div class="fv-help-block">
                                 <ErrorMessage name="label" />
                             </div>
                         </div>
                     </div>
-                    <!--end::Input group-->
                 </div>
+
+                <!-- URUTAN -->
                 <div class="col-md-3">
-                    <!--begin::Input group-->
                     <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6 required">
+                        <label
+                            class="form-label fw-bold fs-6 required"
+                        >
                             Urutan
                         </label>
+
                         <Field
                             class="form-control form-control-lg form-control-solid"
                             type="number"
@@ -204,21 +265,29 @@ watch(
                             v-model="statistic.urutan"
                             placeholder="0"
                         />
-                        <div class="fv-plugins-message-container">
+
+                        <div
+                            class="fv-plugins-message-container"
+                        >
                             <div class="fv-help-block">
                                 <ErrorMessage name="urutan" />
                             </div>
                         </div>
                     </div>
-                    <!--end::Input group-->
                 </div>
+
+                <!-- STATUS -->
                 <div class="col-md-3">
-                    <!--begin::Input group-->
                     <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6 d-block">
+                        <label
+                            class="form-label fw-bold fs-6 d-block"
+                        >
                             Aktif?
                         </label>
-                        <div class="form-check form-check-solid form-switch">
+
+                        <div
+                            class="form-check form-check-solid form-switch"
+                        >
                             <Field
                                 class="form-check-input w-45px h-30px"
                                 type="checkbox"
@@ -228,12 +297,15 @@ watch(
                             />
                         </div>
                     </div>
-                    <!--end::Input group-->
                 </div>
             </div>
         </div>
+
         <div class="card-footer d-flex">
-            <button type="submit" class="btn btn-primary btn-sm ms-auto">
+            <button
+                type="submit"
+                class="btn btn-primary btn-sm ms-auto"
+            >
                 Simpan
             </button>
         </div>

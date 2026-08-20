@@ -6,96 +6,151 @@ import { createColumnHelper } from "@tanstack/vue-table";
 import type { Service } from "@/types";
 
 const column = createColumnHelper<Service>();
+
 const paginateRef = ref<any>(null);
+
 const selected = ref<string>("");
-const openForm = ref<boolean>(false);
+
+const openForm = ref(false);
 
 const { delete: deleteService } = useDelete({
-    onSuccess: () => paginateRef.value.refetch(),
+    onSuccess: () => {
+        paginateRef.value?.refetch();
+    },
 });
 
 const columns = [
     column.accessor("no", {
         header: "#",
     }),
+
     column.accessor("title", {
         header: "Judul Layanan",
     }),
+
     column.accessor("description", {
         header: "Deskripsi",
     }),
+
     column.accessor("order", {
         header: "Urutan",
     }),
+
     column.accessor("uuid", {
         header: "Aksi",
+
         cell: (cell) =>
-            h("div", { class: "d-flex gap-2" }, [
-                h(
-                    "button",
-                    {
-                        class: "btn btn-sm btn-icon btn-info",
-                        onClick: () => {
-                            selected.value = cell.getValue();
-                            openForm.value = true;
+            h(
+                "div",
+                {
+                    class: "d-flex gap-2",
+                },
+                [
+                    // EDIT
+                    h(
+                        "button",
+                        {
+                            type: "button",
+
+                            class: "btn btn-sm btn-icon btn-info",
+
+                            onClick: () => {
+                                selected.value =
+                                    cell.getValue();
+
+                                openForm.value = true;
+                            },
                         },
-                    },
-                    h("i", { class: "la la-pencil fs-2" })
-                ),
-                h(
-                    "button",
-                    {
-                        class: "btn btn-sm btn-icon btn-danger",
-                        onClick: () =>
-                            // TODO: cocokkan endpoint ini dengan API Destria
-                            deleteService(
-                                `/master/services/${cell.getValue()}`
-                            ),
-                    },
-                    h("i", { class: "la la-trash fs-2" })
-                ),
-            ]),
+                        [
+                            h("i", {
+                                class: "la la-pencil fs-2",
+                            }),
+                        ]
+                    ),
+
+                    // DELETE
+                    h(
+                        "button",
+                        {
+                            type: "button",
+
+                            class: "btn btn-sm btn-icon btn-danger",
+
+                            onClick: () => {
+                                deleteService(
+                                    `/master/services/${cell.getValue()}`
+                                );
+                            },
+                        },
+                        [
+                            h("i", {
+                                class: "la la-trash fs-2",
+                            }),
+                        ]
+                    ),
+                ]
+            ),
     }),
 ];
 
-const refresh = () => paginateRef.value.refetch();
+function onAdd() {
+    selected.value = "";
+    openForm.value = true;
+}
 
-watch(openForm, (val) => {
-    if (!val) {
+function onClose() {
+    openForm.value = false;
+}
+
+function refresh() {
+    paginateRef.value?.refetch();
+}
+
+watch(openForm, (value) => {
+    if (!value) {
         selected.value = "";
     }
+
     window.scrollTo(0, 0);
 });
 </script>
 
 <template>
+    <!-- FORM TAMBAH / EDIT -->
     <Form
-        :selected="selected"
-        @close="openForm = false"
         v-if="openForm"
+        :selected="selected"
+        @close="onClose"
         @refresh="refresh"
     />
 
+    <!-- LIST SERVICES -->
     <div class="card">
         <div class="card-header align-items-center">
-            <h2 class="mb-0">List Services</h2>
+            <h2 class="mb-0">
+                List Services
+            </h2>
+
             <button
+                v-if="!openForm"
                 type="button"
                 class="btn btn-sm btn-primary ms-auto"
-                v-if="!openForm"
-                @click="openForm = true"
+                @click="onAdd"
             >
                 Tambah
+
                 <i class="la la-plus"></i>
             </button>
         </div>
+
         <div class="card-body">
             <paginate
                 ref="paginateRef"
                 id="table-services"
                 url="/master/services"
                 :columns="columns"
-            ></paginate>
+            >
+            </paginate>
         </div>
     </div>
 </template>

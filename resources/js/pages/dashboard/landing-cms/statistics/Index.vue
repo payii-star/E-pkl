@@ -8,22 +8,32 @@ import type { Statistic } from "@/types";
 
 const statistics = ref<Statistic[]>([]);
 const loading = ref(false);
+
 const selected = ref<Statistic | null>(null);
-const openForm = ref<boolean>(false);
+const openForm = ref(false);
 
 function fetchStatistics() {
     loading.value = true;
+
     axios
         .get("/master/statistics")
         .then(({ data }) => {
-            statistics.value = data.data;
+            statistics.value = data.data ?? [];
         })
         .catch((err: any) => {
-            toast.error(err.response?.data?.message ?? "Gagal memuat data statistik");
+            toast.error(
+                err.response?.data?.message ??
+                    "Gagal memuat data statistik"
+            );
         })
         .finally(() => {
             loading.value = false;
         });
+}
+
+function onAdd() {
+    selected.value = null;
+    openForm.value = true;
 }
 
 function onEdit(statistic: Statistic) {
@@ -46,15 +56,24 @@ function onDelete(statistic: Statistic) {
         },
         buttonsStyling: false,
     }).then((result) => {
-        if (!result.isConfirmed) return;
+        if (!result.isConfirmed) {
+            return;
+        }
+
         axios
             .delete(`/master/statistics/${statistic.id}`)
             .then(() => {
-                toast.success("Statistik berhasil dihapus");
+                toast.success(
+                    "Statistik berhasil dihapus"
+                );
+
                 fetchStatistics();
             })
             .catch((err: any) => {
-                toast.error(err.response?.data?.message ?? "Gagal menghapus statistik");
+                toast.error(
+                    err.response?.data?.message ??
+                        "Gagal menghapus statistik"
+                );
             });
     });
 }
@@ -63,35 +82,51 @@ function refresh() {
     fetchStatistics();
 }
 
-watch(openForm, (val) => {
-    if (!val) selected.value = null;
+function closeForm() {
+    openForm.value = false;
+}
+
+watch(openForm, (value) => {
+    if (!value) {
+        selected.value = null;
+    }
+
     window.scrollTo(0, 0);
 });
 
-onMounted(fetchStatistics);
+onMounted(() => {
+    fetchStatistics();
+});
 </script>
 
 <template>
+    <!-- FORM TAMBAH / EDIT -->
     <Form
-        :selected="selected"
-        @close="openForm = false"
         v-if="openForm"
+        :selected="selected"
+        @close="closeForm"
         @refresh="refresh"
     />
 
+    <!-- LIST STATISTICS -->
     <div class="card">
         <div class="card-header align-items-center">
-            <h2 class="mb-0">List Statistics</h2>
+            <h2 class="mb-0">
+                List Statistics
+            </h2>
+
             <button
                 type="button"
                 class="btn btn-sm btn-primary ms-auto"
                 v-if="!openForm"
-                @click="openForm = true"
+                @click="onAdd"
             >
                 Tambah
+
                 <i class="la la-plus"></i>
             </button>
         </div>
+
         <div class="card-body">
             <div class="table-responsive">
                 <table
@@ -99,64 +134,162 @@ onMounted(fetchStatistics);
                     id="table-statistics"
                 >
                     <thead class="bg-gray-200">
-                        <tr class="fw-bolder fs-6 text-gray-800 border-bottom border-gray-200">
-                            <th class="py-4">#</th>
-                            <th class="py-4">Icon</th>
-                            <th class="py-4">Nilai</th>
-                            <th class="py-4">Label</th>
-                            <th class="py-4">Urutan</th>
-                            <th class="py-4">Status</th>
-                            <th class="py-4">Aksi</th>
+                        <tr
+                            class="fw-bolder fs-6 text-gray-800 border-bottom border-gray-200"
+                        >
+                            <th class="py-4">
+                                #
+                            </th>
+
+                            <th class="py-4">
+                                Icon
+                            </th>
+
+                            <th class="py-4">
+                                Nilai
+                            </th>
+
+                            <th class="py-4">
+                                Label
+                            </th>
+
+                            <th class="py-4">
+                                Urutan
+                            </th>
+
+                            <th class="py-4">
+                                Status
+                            </th>
+
+                            <th class="py-4">
+                                Aksi
+                            </th>
                         </tr>
                     </thead>
+
                     <tbody>
+                        <!-- LOADING -->
                         <tr v-if="loading">
-                            <td colspan="7" class="text-center py-4">Memuat data...</td>
+                            <td
+                                colspan="7"
+                                class="text-center py-4"
+                            >
+                                Memuat data...
+                            </td>
                         </tr>
-                        <template v-else-if="statistics.length">
-                            <tr v-for="(statistic, index) in statistics" :key="statistic.id">
-                                <td class="py-4">{{ index + 1 }}</td>
+
+                        <!-- DATA -->
+                        <template
+                            v-else-if="statistics.length"
+                        >
+                            <tr
+                                v-for="(
+                                    statistic, index
+                                ) in statistics"
+                                :key="statistic.id"
+                            >
+                                <!-- NO -->
+                                <td class="py-4">
+                                    {{ index + 1 }}
+                                </td>
+
+                                <!-- ICON -->
                                 <td class="py-4">
                                     <i
                                         v-if="statistic.icon"
-                                        :class="['fa-solid', `fa-${statistic.icon}`]"
+                                        :class="[
+                                            'fa-solid',
+                                            `fa-${statistic.icon}`,
+                                        ]"
                                         class="fs-2"
                                     ></i>
-                                    <span v-else class="text-muted">-</span>
+
+                                    <span
+                                        v-else
+                                        class="text-muted"
+                                    >
+                                        -
+                                    </span>
                                 </td>
-                                <td class="py-4">{{ statistic.statistic }}</td>
-                                <td class="py-4">{{ statistic.label }}</td>
-                                <td class="py-4">{{ statistic.urutan }}</td>
+
+                                <!-- NILAI -->
+                                <td class="py-4">
+                                    {{ statistic.statistic }}
+                                </td>
+
+                                <!-- LABEL -->
+                                <td class="py-4">
+                                    {{ statistic.label }}
+                                </td>
+
+                                <!-- URUTAN -->
+                                <td class="py-4">
+                                    {{ statistic.urutan }}
+                                </td>
+
+                                <!-- STATUS -->
                                 <td class="py-4">
                                     <span
                                         class="badge"
-                                        :class="statistic.is_active ? 'badge-light-success' : 'badge-light-danger'"
+                                        :class="
+                                            statistic.is_active
+                                                ? 'badge-light-success'
+                                                : 'badge-light-danger'
+                                        "
                                     >
-                                        {{ statistic.is_active ? "Aktif" : "Nonaktif" }}
+                                        {{
+                                            statistic.is_active
+                                                ? "Aktif"
+                                                : "Nonaktif"
+                                        }}
                                     </span>
                                 </td>
+
+                                <!-- AKSI -->
                                 <td class="py-4">
-                                    <div class="d-flex gap-2">
+                                    <div
+                                        class="d-flex gap-2"
+                                    >
+                                        <!-- EDIT -->
                                         <button
                                             type="button"
                                             class="btn btn-sm btn-icon btn-info"
-                                            @click="onEdit(statistic)"
+                                            @click="
+                                                onEdit(
+                                                    statistic
+                                                )
+                                            "
                                         >
-                                            <i class="la la-pencil fs-2"></i>
+                                            <i
+                                                class="la la-pencil fs-2"
+                                            ></i>
                                         </button>
+
+                                        <!-- DELETE -->
                                         <button
                                             type="button"
                                             class="btn btn-sm btn-icon btn-danger"
-                                            @click="onDelete(statistic)"
+                                            @click="
+                                                onDelete(
+                                                    statistic
+                                                )
+                                            "
                                         >
-                                            <i class="la la-trash fs-2"></i>
+                                            <i
+                                                class="la la-trash fs-2"
+                                            ></i>
                                         </button>
                                     </div>
                                 </td>
                             </tr>
                         </template>
+
+                        <!-- EMPTY -->
                         <tr v-else>
-                            <td colspan="7" class="text-center py-4">
+                            <td
+                                colspan="7"
+                                class="text-center py-4"
+                            >
                                 Data tidak ditemukan
                             </td>
                         </tr>

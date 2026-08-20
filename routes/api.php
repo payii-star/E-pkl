@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SettingController;
+
 use App\Http\Controllers\Api\InternController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\JournalController;
@@ -21,7 +22,8 @@ use App\Http\Controllers\Api\LandingTeamController;
 use App\Http\Controllers\Api\LandingTestimonialController;
 use App\Http\Controllers\Api\LandingMenuController;
 use App\Http\Controllers\Api\LandingFooterController;
-use App\Http\Controllers\Api\LandingContentController;
+use App\Http\Controllers\Api\LandingContentPageController;
+
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -77,15 +79,51 @@ Route::prefix('face')->group(function () {
 // ============================================================================
 
 Route::get('front/client-logos', [ClientController::class, 'publicIndex']);
-Route::get('front/projects', [LandingProjectController::class, 'publicIndex']);
-Route::get('front/best-projects', [LandingProjectController::class, 'publicFeatured']);
-Route::get('front/services', [LandingServiceController::class, 'publicIndex']);
-Route::get('front/statistics', [LandingStatisticController::class, 'publicIndex']);
-Route::get('front/teams', [LandingTeamController::class, 'publicIndex']);
-Route::get('front/testimonials', [LandingTestimonialController::class, 'publicIndex']);
-Route::get('front/navbar', [LandingMenuController::class, 'publicIndex']);
-Route::get('footer/landing', [LandingFooterController::class, 'publicIndex']);
-Route::get('front/content', [LandingContentController::class, 'publicIndex']);
+
+Route::get('front/projects', [
+    LandingProjectController::class,
+    'publicIndex'
+]);
+
+Route::get('front/best-projects', [
+    LandingProjectController::class,
+    'publicFeatured'
+]);
+
+Route::get('front/services', [
+    LandingServiceController::class,
+    'publicIndex'
+]);
+
+Route::get('front/statistics', [
+    LandingStatisticController::class,
+    'publicIndex'
+]);
+
+Route::get('front/teams', [
+    LandingTeamController::class,
+    'publicIndex'
+]);
+
+Route::get('front/testimonials', [
+    LandingTestimonialController::class,
+    'publicIndex'
+]);
+
+Route::get('front/navbar', [
+    LandingMenuController::class,
+    'publicIndex'
+]);
+
+Route::get('footer/landing', [
+    LandingFooterController::class,
+    'publicIndex'
+]);
+
+Route::get('front/content', [
+    LandingContentPageController::class,
+    'publicIndex'
+]);
 
 
 // ============================================================================
@@ -98,9 +136,15 @@ Route::middleware(['auth', 'json'])->group(function () {
     // PROFILE
     // ------------------------------------------------------------------------
 
-    Route::post('/profile', [UserController::class, 'updateProfile']);
+    Route::post('/profile', [
+        UserController::class,
+        'updateProfile'
+    ]);
 
-    Route::delete('/profile', [UserController::class, 'deleteProfile']);
+    Route::delete('/profile', [
+        UserController::class,
+        'deleteProfile'
+    ]);
 
     Route::post('/profile/change-email', [
         UserController::class,
@@ -121,7 +165,10 @@ Route::middleware(['auth', 'json'])->group(function () {
         ->middleware('can:setting')
         ->group(function () {
 
-            Route::post('', [SettingController::class, 'update']);
+            Route::post('', [
+                SettingController::class,
+                'update'
+            ]);
         });
 
 
@@ -154,104 +201,325 @@ Route::middleware(['auth', 'json'])->group(function () {
                 ->except(['index', 'store']);
         });
 
+
+        // --------------------------------------------------------------------
         // Client / Mitra ("Our Clients" section)
+        // --------------------------------------------------------------------
+
         Route::middleware('permission:landing-management')
             ->prefix('client-logos')
             ->group(function () {
-                Route::get('', [ClientController::class, 'index']);
-                Route::post('store', [ClientController::class, 'store']);
-                Route::post('reorder', [ClientController::class, 'reorder']);
-                Route::get('{clientLogo}', [ClientController::class, 'show']);
-                Route::put('{clientLogo}', [ClientController::class, 'update']);
-                Route::delete('{clientLogo}', [ClientController::class, 'destroy']);
+
+                Route::get('', [
+                    ClientController::class,
+                    'index'
+                ]);
+
+                Route::post('store', [
+                    ClientController::class,
+                    'store'
+                ]);
+
+                Route::post('reorder', [
+                    ClientController::class,
+                    'reorder'
+                ]);
+
+                Route::get('{clientLogo}', [
+                    ClientController::class,
+                    'show'
+                ]);
+
+                Route::put('{clientLogo}', [
+                    ClientController::class,
+                    'update'
+                ]);
+
+                Route::delete('{clientLogo}', [
+                    ClientController::class,
+                    'destroy'
+                ]);
             });
 
+
+        // --------------------------------------------------------------------
         // Projects
+        // --------------------------------------------------------------------
+
         Route::middleware('permission:landing-management')
             ->prefix('projects')
             ->group(function () {
-                Route::get('', [LandingProjectController::class, 'adminIndex']);
-                Route::post('', [LandingProjectController::class, 'store']);
-                Route::get('{project}', [LandingProjectController::class, 'show']);
-                Route::post('{project}', [LandingProjectController::class, 'update']); // Menggunakan POST agar mendukung file upload & update
-                Route::delete('{project}', [LandingProjectController::class, 'destroy']);
+
+                Route::get('', [
+                    LandingProjectController::class,
+                    'adminIndex'
+                ]);
+
+                Route::post('', [
+                    LandingProjectController::class,
+                    'store'
+                ]);
+
+                Route::get('{project}', [
+                    LandingProjectController::class,
+                    'show'
+                ]);
+
+                // POST digunakan agar mendukung upload file saat update
+                Route::post('{project}', [
+                    LandingProjectController::class,
+                    'update'
+                ]);
+
+                Route::delete('{project}', [
+                    LandingProjectController::class,
+                    'destroy'
+                ]);
             });
 
+
+        // --------------------------------------------------------------------
         // Statistics
+        // --------------------------------------------------------------------
+
         Route::middleware('permission:landing-management')
             ->prefix('statistics')
             ->group(function () {
-                Route::get('', [LandingStatisticController::class, 'adminIndex']);
-                Route::post('', [LandingStatisticController::class, 'store']);
-                Route::get('{statistic}', [LandingStatisticController::class, 'show']);
-                Route::put('{statistic}', [LandingStatisticController::class, 'update']);
-                Route::delete('{statistic}', [LandingStatisticController::class, 'destroy']);
+
+                Route::get('', [
+                    LandingStatisticController::class,
+                    'adminIndex'
+                ]);
+
+                Route::post('', [
+                    LandingStatisticController::class,
+                    'store'
+                ]);
+
+                Route::get('{statistic}', [
+                    LandingStatisticController::class,
+                    'show'
+                ]);
+
+                Route::put('{statistic}', [
+                    LandingStatisticController::class,
+                    'update'
+                ]);
+
+                Route::delete('{statistic}', [
+                    LandingStatisticController::class,
+                    'destroy'
+                ]);
             });
 
+
+        // --------------------------------------------------------------------
         // Menu
+        // --------------------------------------------------------------------
+
         Route::middleware('permission:landing-management')
             ->prefix('menu')
             ->group(function () {
-                Route::get('', [LandingMenuController::class, 'adminIndex']);
-                Route::post('', [LandingMenuController::class, 'store']);
-                Route::get('{menu}', [LandingMenuController::class, 'show']);
-                Route::put('{menu}', [LandingMenuController::class, 'update']);
-                Route::delete('{menu}', [LandingMenuController::class, 'destroy']);
+
+                Route::get('', [
+                    LandingMenuController::class,
+                    'adminIndex'
+                ]);
+
+                Route::post('', [
+                    LandingMenuController::class,
+                    'store'
+                ]);
+
+                Route::get('{menu}', [
+                    LandingMenuController::class,
+                    'show'
+                ]);
+
+                Route::put('{menu}', [
+                    LandingMenuController::class,
+                    'update'
+                ]);
+
+                Route::delete('{menu}', [
+                    LandingMenuController::class,
+                    'destroy'
+                ]);
             });
 
+
+        // --------------------------------------------------------------------
         // Services
+        // --------------------------------------------------------------------
+
         Route::middleware('permission:landing-management')
             ->prefix('services')
             ->group(function () {
-                Route::get('', [LandingServiceController::class, 'adminIndex']);
-                Route::post('', [LandingServiceController::class, 'store']);
-                Route::get('{service}', [LandingServiceController::class, 'show']);
-                Route::put('{service}', [LandingServiceController::class, 'update']);
-                Route::delete('{service}', [LandingServiceController::class, 'destroy']);
+
+                Route::get('', [
+                    LandingServiceController::class,
+                    'adminIndex'
+                ]);
+
+                Route::post('', [
+                    LandingServiceController::class,
+                    'store'
+                ]);
+
+                Route::get('{service}', [
+                    LandingServiceController::class,
+                    'show'
+                ]);
+
+                Route::put('{service}', [
+                    LandingServiceController::class,
+                    'update'
+                ]);
+
+                Route::delete('{service}', [
+                    LandingServiceController::class,
+                    'destroy'
+                ]);
             });
 
+
+        // --------------------------------------------------------------------
         // Testimonials
+        // --------------------------------------------------------------------
+
         Route::middleware('permission:landing-management')
             ->prefix('testimonials')
             ->group(function () {
-                Route::get('', [LandingTestimonialController::class, 'adminIndex']);
-                Route::post('', [LandingTestimonialController::class, 'store']);
-                Route::get('{testimonial}', [LandingTestimonialController::class, 'show']);
-                Route::put('{testimonial}', [LandingTestimonialController::class, 'update']);
-                Route::delete('{testimonial}', [LandingTestimonialController::class, 'destroy']);
+
+                Route::get('', [
+                    LandingTestimonialController::class,
+                    'adminIndex'
+                ]);
+
+                Route::post('', [
+                    LandingTestimonialController::class,
+                    'store'
+                ]);
+
+                Route::get('{testimonial}', [
+                    LandingTestimonialController::class,
+                    'show'
+                ]);
+
+                Route::put('{testimonial}', [
+                    LandingTestimonialController::class,
+                    'update'
+                ]);
+
+                Route::delete('{testimonial}', [
+                    LandingTestimonialController::class,
+                    'destroy'
+                ]);
             });
 
+
+        // --------------------------------------------------------------------
         // Teams
+        // --------------------------------------------------------------------
+
         Route::middleware('permission:landing-management')
             ->prefix('teams')
             ->group(function () {
-                Route::get('', [LandingTeamController::class, 'adminIndex']);
-                Route::post('', [LandingTeamController::class, 'store']);
-                Route::get('{team}', [LandingTeamController::class, 'show']);
-                Route::put('{team}', [LandingTeamController::class, 'update']);
-                Route::delete('{team}', [LandingTeamController::class, 'destroy']);
+
+                Route::get('', [
+                    LandingTeamController::class,
+                    'adminIndex'
+                ]);
+
+                Route::post('', [
+                    LandingTeamController::class,
+                    'store'
+                ]);
+
+                Route::get('{team}', [
+                    LandingTeamController::class,
+                    'show'
+                ]);
+
+                Route::put('{team}', [
+                    LandingTeamController::class,
+                    'update'
+                ]);
+
+                Route::delete('{team}', [
+                    LandingTeamController::class,
+                    'destroy'
+                ]);
             });
 
+
+        // --------------------------------------------------------------------
         // Footer
+        // --------------------------------------------------------------------
+
         Route::middleware('permission:landing-management')
             ->prefix('footer')
             ->group(function () {
-                Route::get('', [LandingFooterController::class, 'adminIndex']);
-                Route::post('', [LandingFooterController::class, 'store']);
-                Route::get('{footer}', [LandingFooterController::class, 'show']);
-                Route::put('{footer}', [LandingFooterController::class, 'update']);
-                Route::delete('{footer}', [LandingFooterController::class, 'destroy']);
+
+                Route::get('', [
+                    LandingFooterController::class,
+                    'adminIndex'
+                ]);
+
+                Route::post('', [
+                    LandingFooterController::class,
+                    'store'
+                ]);
+
+                Route::get('{footer}', [
+                    LandingFooterController::class,
+                    'show'
+                ]);
+
+                Route::put('{footer}', [
+                    LandingFooterController::class,
+                    'update'
+                ]);
+
+                Route::delete('{footer}', [
+                    LandingFooterController::class,
+                    'destroy'
+                ]);
             });
 
+
+        // --------------------------------------------------------------------
         // Landing Content
+        // --------------------------------------------------------------------
+
         Route::middleware('permission:landing-management')
             ->prefix('landing-content')
             ->group(function () {
-                Route::get('', [LandingContentController::class, 'adminIndex']);
-                Route::post('', [LandingContentController::class, 'store']);
-                Route::get('{contentPage}', [LandingContentController::class, 'show']);
-                Route::put('{contentPage}', [LandingContentController::class, 'update']);
-                Route::delete('{contentPage}', [LandingContentController::class, 'destroy']);
+
+                Route::get('', [
+                    LandingContentPageController::class,
+                    'adminIndex'
+                ]);
+
+                Route::post('', [
+                    LandingContentPageController::class,
+                    'store'
+                ]);
+
+                Route::get('{contentPage}', [
+                    LandingContentPageController::class,
+                    'show'
+                ]);
+
+                Route::put('{contentPage}', [
+                    LandingContentPageController::class,
+                    'update'
+                ]);
+
+                Route::delete('{contentPage}', [
+                    LandingContentPageController::class,
+                    'destroy'
+                ]);
             });
     });
 
@@ -352,6 +620,7 @@ Route::middleware(['auth', 'json'])->group(function () {
     Route::prefix('admin/attendance')
         ->middleware('role:hr-admin')
         ->group(function () {
+
             Route::get('interns', [
                 AdminAttendanceController::class,
                 'interns'
