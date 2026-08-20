@@ -1,67 +1,131 @@
 <?php
-
-namespace App\Http\Controllers\Landing;
+namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\LandingContent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 class LandingContentController extends Controller
 {
-    // GET /front/content (publik, dipanggil Landing)
-    public function index()
+    // Key yang statusnya "read-only" lewat form ini (butuh UI khusus, bukan text field biasa)
+    private const EXCLUDED_KEYS = ['client_logos'];
+
+    private const EDITABLE_KEYS = [
+        'app_name', 'logo', 'description', 'email', 'whatsapp', 'phone', 'address',
+        'hero_title', 'hero_desc', 'cta_primary_label', 'cta_primary_url',
+        'cta_secondary_label', 'cta_secondary_url', 'proof_text',
+        'contact_hero_title', 'contact_hero_subtitle', 'contact_maps_url',
+        'projects_page_label', 'projects_page_title', 'projects_page_subtitle',
+        'ceo_name', 'ceo_position', 'ceo_comment', 'ceo_photo',
+    ];
+
+    // Route: GET /master/landing-content
+    public function adminIndex()
     {
-        return response()->json(['data' => LandingContent::first()]);
+        $data = LandingContent::whereIn('key', self::EDITABLE_KEYS)
+            ->get()
+            ->pluck('value', 'key');
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+        ]);
     }
 
-    // POST /master/landing-content
+    // Route: POST /master/landing-content
     public function update(Request $request)
     {
-        $validated = $request->validate([
-            'app_name' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,svg,webp|max:2048',
-            'email' => 'nullable|email',
-            'whatsapp' => 'nullable|string|max:30',
-            'phone' => 'nullable|string|max:30',
-            'address' => 'nullable|string',
-            'hero_title' => 'nullable|string',
-            'hero_desc' => 'nullable|string',
-            'cta_primary_label' => 'nullable|string|max:100',
-            'cta_primary_url' => 'nullable|string|max:255',
-            'cta_secondary_label' => 'nullable|string|max:100',
-            'cta_secondary_url' => 'nullable|string|max:255',
-            'proof_text' => 'nullable|string',
-            'contact_hero_title' => 'nullable|string',
-            'contact_hero_subtitle' => 'nullable|string',
-            'contact_maps_url' => 'nullable|string',
-            'projects_page_label' => 'nullable|string|max:100',
-            'projects_page_title' => 'nullable|string',
-            'projects_page_subtitle' => 'nullable|string',
-            'ceo_name' => 'nullable|string|max:255',
-            'ceo_position' => 'nullable|string|max:255',
-            'ceo_comment' => 'nullable|string',
-            'ceo_photo' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+        $rules = [];
+foreach (self::EDITABLE_KEYS as $key) {
+    $rules[$key] = in_array($key, ['logo', 'ceo_photo'])
+        ? 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048'
+        : 'nullable|string';
+}
+
+        $validator = Validator::make($request->all(), $rules);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        foreach (self::EDITABLE_KEYS as $key) {
+    if (in_array($key, ['logo', 'ceo_photo'])) {
+        if ($request->hasFile($key)) {
+            $old = LandingContent::where('key', $key)->first();
+            if ($old && $old->value && Storage::disk('public')->exists($old->value)) {
+                Storage::disk('public')->delete($old->value);
+            }
+            $folder = $key === 'logo' ? 'logo' : 'ceo';
+            $path = $request->file($key)->store($folder, 'public');
+            LandingContent::updateOrCreate(['key' => $key], ['value' => $path, 'type' => 'image']);
+        }
+        continue;
+    }
+
+    if ($request->has($key)) {
+        LandingContent::updateOrCreate(
+            ['key' => $key],
+            ['value' => $request->input($key), 'type' => 'text']
+        );
+    }
+}
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Landing content berhasil diperbarui',
+        ]);
+    }
+
+    // Route: GET /master/landing-content/client-logos
+    public function clientLogos()
+    {
+        $row = LandingContent::where('key', 'client_logos')->first();
+        $logos = $row && $row->value ? json_decode($row->value, true) : [];
+
+        return response()->json([
+            'success' => true,
+            'data' => $logos ?: [],
+        ]);
+    }
+
+    // Route: POST /master/landing-content/client-logos
+    public function updateClientLogos(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'logos'             => 'required|array',
+            'logos.*.name'      => 'required|string|max:255',
+            'logos.*.short'     => 'nullable|string|max:100',
+            'logos.*.url'       => 'nullable|string|max:1000',
         ]);
 
-        $content = LandingContent::first();
-
-        foreach (['logo', 'ceo_photo'] as $fileField) {
-            if ($request->hasFile($fileField)) {
-                if ($content && $content->{$fileField}) {
-                    Storage::disk('public')->delete(str_replace('/storage/', '', $content->{$fileField}));
-                }
-                $validated[$fileField] = '/storage/' . $request->file($fileField)->store('landing/content', 'public');
-            }
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors(),
+            ], 422);
         }
 
-        if ($content) {
-            $content->update($validated);
-        } else {
-            $content = LandingContent::create($validated);
-        }
+        // Rapikan supaya cuma field yang relevan yang tersimpan
+        $logos = collect($request->input('logos'))->map(fn ($l) => [
+            'name'  => $l['name'] ?? '',
+            'short' => $l['short'] ?? '',
+            'url'   => $l['url'] ?? '',
+        ])->values()->all();
 
-        return response()->json(['message' => 'Konten landing berhasil disimpan', 'data' => $content]);
+        LandingContent::updateOrCreate(
+            ['key' => 'client_logos'],
+            ['value' => json_encode($logos), 'type' => 'json']
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Client logos berhasil diperbarui',
+            'data' => $logos,
+        ]);
     }
 }

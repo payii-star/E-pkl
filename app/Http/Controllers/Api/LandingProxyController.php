@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Http;
 
 /**
  * Controller ini TIDAK punya tabel/model sendiri. Semua data (Projects,
- * Statistics, Menu, Services, Testimonials, Teams, Footer, Landing Content)
- * beneran disimpan di database project Landing.
+ * Statistics, Menu, Services, Testimonials, Teams, Footer, Landing Content,
+ * Client Logos) beneran disimpan di database project Landing.
  *
  * Controller ini cuma "penyambung generic": nerima request apapun dari
  * dashboard E-pkl yang udah lolos auth JWT + permission E-pkl (lihat
@@ -29,7 +29,7 @@ class LandingProxyController extends Controller
      */
     private const ALLOWED = [
         'projects', 'statistics', 'menu', 'services',
-        'testimonials', 'teams', 'footer', 'landing-content',
+        'testimonials', 'teams', 'footer', 'landing-content', 'client-logos',
     ];
 
     public function proxy(Request $request, string $path)
