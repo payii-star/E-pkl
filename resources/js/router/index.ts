@@ -63,6 +63,16 @@ const routes: Array<RouteRecordRaw> = [
                     permission: "admin-attendance-recap",
                 },
             },
+                {
+                    path: "/admin/intern-periods",
+                    name: "admin-intern-periods",
+                    component: () => import("@/pages/admin/Admininternperiods.vue"),
+                    meta: {
+                        pageTitle: "Periode Magang",
+                        breadcrumbs: ["Admin", "Periode Magang"],
+                        permission: "admin-dashboard",
+                    },
+                },
 
             // KELOLA LANDING (dipindahkan dari dashboard Landing)
             {

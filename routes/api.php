@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\JournalController;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AdminAttendanceController;
+use App\Http\Controllers\Api\AdminInternPeriodController;
 use App\Http\Controllers\Api\AdminDashboardController;
 use App\Http\Controllers\Api\FaceController;
 use App\Http\Controllers\Api\AdminFaceController;
@@ -611,6 +612,18 @@ Route::middleware(['auth', 'json'])->group(function () {
         AdminDashboardController::class,
         'summary'
     ])->middleware('role:hr-admin');
+
+
+    // ========================================================================
+    // ADMIN - PERIODE MAGANG (buat countdown & estimasi di dashboard intern)
+    // ========================================================================
+
+    Route::prefix('admin/intern-periods')
+        ->middleware('role:hr-admin')
+        ->group(function () {
+            Route::get('', [AdminInternPeriodController::class, 'index']);
+            Route::put('{user}', [AdminInternPeriodController::class, 'update']);
+        });
 
 
     // ========================================================================

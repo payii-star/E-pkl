@@ -31,6 +31,13 @@ const MainMenuConfig: Array<MenuItem> = [
                 keenthemesIcon: "calendar-tick",
                 permission: "admin-attendance-recap",
             },
+                {
+                    heading: "Periode Magang",
+                    route: "/admin/intern-periods",
+                    name: "admin-intern-periods",
+                    keenthemesIcon: "calendar",
+                    permission: "admin-dashboard",
+                },
         ],
     },
 
