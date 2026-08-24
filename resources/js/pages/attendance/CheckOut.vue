@@ -1,9 +1,7 @@
 <template>
     <div class="row g-5">
-
-        <!-- ══ KAMERA + STATUS ══ -->
-        <div class="col-12 col-lg-5">
-            <div class="card h-100">
+        <div class="col-12 col-lg-6 mx-auto">
+            <div class="card">
                 <div class="card-header border-0 pt-6">
                     <div class="card-title">
                         <h2 class="fw-bold">Absen Pulang</h2>
@@ -23,6 +21,10 @@
                         </div>
                         <div class="fw-bold fs-5 text-gray-800">Absensi hari ini sudah lengkap</div>
                         <div class="text-muted fs-7 mt-1">Sampai jumpa besok!</div>
+                        <div class="text-muted fs-7 mt-3">
+                            Absen masuk jam <span class="fw-semibold text-gray-700">{{ todayAttendance?.check_in_time ?? '-' }}</span>,
+                            absen pulang jam <span class="fw-semibold text-gray-700">{{ todayAttendance?.check_out_time ?? '-' }}</span>
+                        </div>
                     </div>
 
                     <!-- Kamera belum dibuka: tampilkan tombol -->
@@ -33,7 +35,11 @@
                             </span>
                         </div>
                         <div class="fw-bold fs-5 text-gray-800 mb-1">Siap absen pulang?</div>
-                        <div class="text-muted fs-7 mb-5">Kamera akan menyala setelah kamu menekan tombol di bawah</div>
+                        <div class="text-muted fs-7 mb-2">Kamera akan menyala setelah kamu menekan tombol di bawah</div>
+                        <div v-if="todayAttendance?.check_in_time" class="text-muted fs-7 mb-5">
+                            Absen masuk tercatat jam <span class="fw-semibold text-gray-700">{{ todayAttendance.check_in_time }}</span>
+                        </div>
+                        <div v-else class="mb-5"></div>
                         <button class="btn btn-primary" :disabled="modelLoading" @click="openCamera">
                             <span v-if="modelLoading" class="spinner-border spinner-border-sm me-2"></span>
                             <KTIcon v-else icon-name="camera" icon-class="fs-4 me-2" />
@@ -104,74 +110,6 @@
                             Posisikan wajah di tengah kamera — sistem otomatis mengenali & mencatat absen pulang
                         </div>
                     </template>
-                </div>
-            </div>
-        </div>
-
-        <!-- ══ INFO ══ -->
-        <div class="col-12 col-lg-7">
-            <div class="card">
-                <div class="card-header border-0 pt-6">
-                    <div class="card-title">
-                        <h3 class="fw-bold">Panduan Absen Pulang</h3>
-                    </div>
-                </div>
-                <div class="card-body pt-2">
-                    <div class="d-flex flex-column gap-4">
-                        <div class="d-flex align-items-start gap-3">
-                            <div class="symbol symbol-35px flex-shrink-0">
-                                <span class="symbol-label bg-light-primary">
-                                    <KTIcon icon-name="camera" icon-class="fs-4 text-primary" />
-                                </span>
-                            </div>
-                            <div>
-                                <div class="fw-semibold text-gray-800">Izinkan akses kamera</div>
-                                <div class="text-muted fs-7">Pastikan browser mendapat izin menggunakan kamera perangkat Anda</div>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-start gap-3">
-                            <div class="symbol symbol-35px flex-shrink-0">
-                                <span class="symbol-label bg-light-warning">
-                                    <KTIcon icon-name="eye" icon-class="fs-4 text-warning" />
-                                </span>
-                            </div>
-                            <div>
-                                <div class="fw-semibold text-gray-800">Posisikan wajah dengan benar</div>
-                                <div class="text-muted fs-7">Pastikan wajah terlihat jelas dan pencahayaan cukup — sistem otomatis mendeteksi, tidak perlu gerakan tambahan</div>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-start gap-3">
-                            <div class="symbol symbol-35px flex-shrink-0">
-                                <span class="symbol-label bg-light-info">
-                                    <KTIcon icon-name="information" icon-class="fs-4 text-info" />
-                                </span>
-                            </div>
-                            <div>
-                                <div class="fw-semibold text-gray-800">Absen masuk</div>
-                                <div class="text-muted fs-7">Absen masuk otomatis tercatat saat kamu login pakai wajah di halaman login. Halaman ini khusus untuk absen pulang.</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Status hari ini -->
-                    <div class="separator my-5"></div>
-                    <div class="fw-bold text-gray-700 mb-3">Status Hari Ini</div>
-                    <div v-if="!todayAttendance" class="text-muted fs-7">
-                        <KTIcon icon-name="information" icon-class="fs-5 me-1 text-warning" />
-                        Belum ada catatan absensi hari ini
-                    </div>
-                    <div v-else class="d-flex flex-column gap-2 fs-7">
-                        <div class="d-flex justify-content-between">
-                            <span class="text-muted">Jam Masuk</span>
-                            <span class="fw-semibold">{{ todayAttendance.check_in_time ?? '-' }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <span class="text-muted">Status Pulang</span>
-                            <span class="badge" :class="todayAttendance.check_out_time ? 'badge-light-primary' : 'badge-light-warning'">
-                                {{ todayAttendance.check_out_time ? 'Sudah Check-out' : 'Belum Check-out' }}
-                            </span>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

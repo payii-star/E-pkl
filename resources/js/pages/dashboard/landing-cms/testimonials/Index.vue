@@ -47,7 +47,7 @@ const columns = [
                 },
                 [
                     // EDIT
-                    h(
+                    h(  
                         "button",
                         {
                             type: "button",

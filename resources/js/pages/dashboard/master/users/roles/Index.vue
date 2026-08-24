@@ -84,12 +84,13 @@ watch(openForm, (val) => {
             </button>
         </div>
         <div class="card-body">
-            <paginate
-                ref="paginateRef"
-                id="table-role"
-                url="/master/roles"
-                :columns="columns"
-            ></paginate>
+<paginate
+    ref="paginateRef"
+    id="table-role"
+    url="/master/roles"
+    method="post"
+    :columns="columns"
+></paginate>
         </div>
     </div>
 </template>

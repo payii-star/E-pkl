@@ -201,7 +201,7 @@ const routes: Array<RouteRecordRaw> = [
                 path: "/attendance/check",
                 name: "attendance-check",
                 component: () =>
-                    import("@/pages/attendance/Checkout.vue"),
+                    import("@/pages/attendance/CheckOut.vue"),
                 meta: {
                     pageTitle: "Absen Sekarang",
                     breadcrumbs: ["Absensi", "Absen"],

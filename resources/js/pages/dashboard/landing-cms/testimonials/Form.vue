@@ -121,28 +121,18 @@ function getEdit() {
         });
 }
 
-function submit() {
+function submit(values: any) {
+    // ── DEBUG SEMENTARA — hapus 2 baris ini setelah masalah ketemu ──
+    console.log("DEBUG values (dari vee-validate):", values);
+    console.log("DEBUG testimonial.value (dari ref manual):", testimonial.value);
+    // ──────────────────────────────────────────────────────────────
+
     const formData = new FormData();
 
-    formData.append(
-        "name",
-        testimonial.value.name ?? ""
-    );
-
-    formData.append(
-        "position",
-        testimonial.value.position ?? ""
-    );
-
-    formData.append(
-        "message",
-        testimonial.value.message ?? ""
-    );
-
-    formData.append(
-        "placement",
-        testimonial.value.placement ?? ""
-    );
+    formData.append("name", values.name ?? "");
+    formData.append("position", values.position ?? "");
+    formData.append("message", values.message ?? "");
+    formData.append("placement", values.placement ?? "");
 
     /*
      * Hanya upload foto jika user memilih
