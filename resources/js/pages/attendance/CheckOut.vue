@@ -184,11 +184,8 @@ const statusBadgeClass = computed(() => {
 // ─── Data loading ─────────────────────────────────────────────────────────────
 async function fetchToday() {
     try {
-        const res = await axios.get('/attendances')
-        const today = new Date().toISOString().slice(0, 10)
-        todayAttendance.value = (res.data.data ?? []).find(
-            (a: any) => String(a.date).slice(0, 10) === today
-        ) ?? null
+        const res = await axios.get('/attendances/today')
+        todayAttendance.value = res.data.data ?? null
     } catch (e) {
         console.error('Gagal ambil data absensi hari ini:', e)
     }

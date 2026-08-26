@@ -23,6 +23,24 @@ class AttendanceController extends Controller
         return response()->json(['data' => $attendances]);
     }
 
+    // GET /attendances/today
+    // Dibikin terpisah dari index() supaya "hari ini" ditentukan oleh backend
+    // (pakai timezone Asia/Jakarta dari config), bukan dicocokkan manual di
+    // frontend — karena cast 'date' di model dikonversi ke UTC saat jadi JSON,
+    // dan itu bisa geser mundur 1 hari kalau dicocokkan pakai tanggal browser.
+    public function today(Request $request)
+    {
+        $user = $request->user();
+        $dateColumn = Attendance::dateColumn();
+        $today = now()->toDateString();
+
+        $attendance = Attendance::where('user_id', $user->id)
+            ->where($dateColumn, $today)
+            ->first();
+
+        return response()->json(['data' => $attendance]);
+    }
+
     // POST /attendances/check-in
     public function checkIn(Request $request)
     {
