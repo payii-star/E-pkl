@@ -73,6 +73,16 @@ const routes: Array<RouteRecordRaw> = [
                     permission: "task-management",
                 },
             },
+            {
+                path: "/admin/leave-requests",
+                name: "admin-leave-requests",
+                component: () => import("@/pages/admin/AdminLeaveRequests.vue"),
+                meta: {
+                    pageTitle: "Kelola Izin",
+                    breadcrumbs: ["Admin", "Kelola Izin"],
+                    permission: "leave-management",
+                },
+            },
 
                 {
                     path: "/admin/intern-periods",
@@ -258,6 +268,17 @@ const routes: Array<RouteRecordRaw> = [
                 meta: {
                     pageTitle: "Tugas Saya",
                     breadcrumbs: ["Tugas", "Tugas Saya"],
+                },
+            },
+
+            // IZIN TIDAK MASUK
+            {
+                path: "/leave/my",
+                name: "leave-my",
+                component: () => import("@/pages/leave/MyLeaveRequests.vue"),
+                meta: {
+                    pageTitle: "Izin Tidak Masuk",
+                    breadcrumbs: ["Izin", "Izin Tidak Masuk"],
                 },
             },
             {

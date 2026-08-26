@@ -7,6 +7,7 @@ use App\Http\Controllers\SettingController;
 
 use App\Http\Controllers\Api\InternController;
 use App\Http\Controllers\Api\TaskController;
+use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\Api\JournalController;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AdminAttendanceController;
@@ -566,6 +567,25 @@ Route::middleware(['auth', 'json'])->group(function () {
             'updateStatus'
         ]);
     });
+
+
+    // ========================================================================
+    // IZIN TIDAK MASUK (leave requests)
+    // ========================================================================
+
+    // User (intern/atasan) ajukan izin & lihat riwayat izinnya sendiri
+    Route::prefix('leave-requests')->group(function () {
+        Route::get('', [LeaveRequestController::class, 'index']);
+        Route::post('', [LeaveRequestController::class, 'store']);
+    });
+
+    // hr-admin lihat semua pengajuan izin & approve/reject
+    Route::prefix('admin/leave-requests')
+        ->middleware('permission:leave-management')
+        ->group(function () {
+            Route::get('', [LeaveRequestController::class, 'adminIndex']);
+            Route::patch('{leaveRequest}/status', [LeaveRequestController::class, 'updateStatus']);
+        });
 
 
     // ========================================================================

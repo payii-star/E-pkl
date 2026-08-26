@@ -38,6 +38,13 @@ const MainMenuConfig: Array<MenuItem> = [
                 keenthemesIcon: "clipboard",
                 permission: "task-management",
             },
+            {
+                heading: "Kelola Izin",
+                name: "admin-leave-requests",
+                route: "/admin/leave-requests",
+                keenthemesIcon: "calendar-remove",
+                permission: "leave-management",
+            },
                 {
                     heading: "Periode Magang",
                     route: "/admin/intern-periods",
@@ -111,6 +118,21 @@ const MainMenuConfig: Array<MenuItem> = [
                 route: "/tasks/my",
                 name: "tasks-my",
                 keenthemesIcon: "clipboard",
+                hideForAdmin: true,
+            },
+        ],
+    },
+
+    // IZIN TIDAK MASUK
+    {
+        heading: "Izin",
+        route: "/leave",
+        pages: [
+            {
+                heading: "Izin Tidak Masuk",
+                route: "/leave/my",
+                name: "leave-my",
+                keenthemesIcon: "calendar-remove",
                 hideForAdmin: true,
             },
         ],
