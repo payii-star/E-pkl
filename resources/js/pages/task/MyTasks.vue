@@ -126,7 +126,7 @@ onMounted(fetchTasks);
                         >
                             {{ statusLabel[s] }}
                         </button>
-                    </div>
+                    </div>         
                 </div>
             </div>
         </div>
