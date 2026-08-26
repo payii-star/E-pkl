@@ -31,6 +31,13 @@ const MainMenuConfig: Array<MenuItem> = [
                 keenthemesIcon: "calendar-tick",
                 permission: "admin-attendance-recap",
             },
+            {
+                heading: "Kelola Tugas",
+                name: "admin-tasks",
+                route: "/admin/tasks",
+                keenthemesIcon: "clipboard",
+                permission: "task-management",
+            },
                 {
                     heading: "Periode Magang",
                     route: "/admin/intern-periods",
@@ -90,6 +97,21 @@ const MainMenuConfig: Array<MenuItem> = [
                 name: "journal-approval",
                 keenthemesIcon: "check-circle",
                 permission: "journal-approval",
+            },
+        ],
+    },
+
+    // TUGAS (diberikan hr-admin ke intern)
+    {
+        heading: "Tugas",
+        route: "/tasks",
+        pages: [
+            {
+                heading: "Tugas Saya",
+                route: "/tasks/my",
+                name: "tasks-my",
+                keenthemesIcon: "clipboard",
+                hideForAdmin: true,
             },
         ],
     },

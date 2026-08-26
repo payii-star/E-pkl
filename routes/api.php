@@ -547,12 +547,19 @@ Route::middleware(['auth', 'json'])->group(function () {
     // TASKS
     // ========================================================================
 
-    Route::prefix('tasks')->group(function () {
+    // Hanya hr-admin yang boleh membuat/melihat semua/menghapus tugas.
+    // Sebelumnya route POST '' di sini TIDAK dijaga permission apapun — bug
+    // keamanan: intern manapun bisa memberi tugas ke user lain lewat API
+    // langsung. Sekarang dipindah ke prefix admin/tasks + permission khusus.
+    Route::prefix('admin/tasks')
+        ->middleware('permission:task-management')
+        ->group(function () {
+            Route::get('', [TaskController::class, 'adminIndex']);
+            Route::post('', [TaskController::class, 'store']);
+            Route::delete('{task}', [TaskController::class, 'destroy']);
+        });
 
-        Route::post('', [
-            TaskController::class,
-            'store'
-        ]);
+    Route::prefix('tasks')->group(function () {
 
         Route::patch('{task}/status', [
             TaskController::class,

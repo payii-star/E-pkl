@@ -63,6 +63,17 @@ const routes: Array<RouteRecordRaw> = [
                     permission: "admin-attendance-recap",
                 },
             },
+            {
+                path: "/admin/tasks",
+                name: "admin-tasks",
+                component: () => import("@/pages/admin/AdminTasks.vue"),
+                meta: {
+                    pageTitle: "Kelola Tugas",
+                    breadcrumbs: ["Admin", "Kelola Tugas"],
+                    permission: "task-management",
+                },
+            },
+
                 {
                     path: "/admin/intern-periods",
                     name: "admin-intern-periods",
@@ -236,6 +247,17 @@ const routes: Array<RouteRecordRaw> = [
                 meta: {
                     pageTitle: "Jurnal Saya",
                     breadcrumbs: ["Jurnal", "Jurnal Saya"],
+                },
+            },
+
+            // TUGAS (dari hr-admin ke intern)
+            {
+                path: "/tasks/my",
+                name: "tasks-my",
+                component: () => import("@/pages/task/MyTasks.vue"),
+                meta: {
+                    pageTitle: "Tugas Saya",
+                    breadcrumbs: ["Tugas", "Tugas Saya"],
                 },
             },
             {

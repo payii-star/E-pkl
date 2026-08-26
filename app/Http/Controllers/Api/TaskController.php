@@ -22,7 +22,17 @@ class TaskController extends Controller
         return response()->json(['data' => $tasks]);
     }
 
-    // POST /tasks -> admin/pembimbing memberi tugas ke user tertentu
+    // GET /admin/tasks -> semua tugas yang pernah diberikan (buat hr-admin)
+    public function adminIndex(Request $request)
+    {
+        $tasks = Task::with(['user:id,name,email', 'creator:id,name'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json(['data' => $tasks]);
+    }
+
+    // POST /tasks / POST /admin/tasks -> admin/pembimbing memberi tugas ke user tertentu
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -45,7 +55,15 @@ class TaskController extends Controller
             'status' => 'belum',
         ]);
 
-        return response()->json(['data' => $task], 201);
+        return response()->json(['data' => $task->load('user:id,name,email')], 201);
+    }
+
+    // DELETE /admin/tasks/{task} -> hr-admin batalkan/hapus tugas yang sudah diberikan
+    public function destroy(Task $task)
+    {
+        $task->delete();
+
+        return response()->json(['message' => 'Tugas berhasil dihapus']);
     }
 
     // PATCH /tasks/{task}/status -> user update progress tugasnya sendiri

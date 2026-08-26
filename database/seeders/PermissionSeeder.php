@@ -25,6 +25,7 @@ class PermissionSeeder extends Seeder
         $menuMaster = ['master-user', 'master-role'];
         $menuAccount = ['dashboard-profile', 'setting'];
         $menuLanding = ['landing-management'];
+        $menuTask = ['task-management'];
 
         $permissionsByRole = [
             // HR Admin ("admin biasa"): HANYA 4 menu admin-level + Akun.
@@ -33,6 +34,7 @@ class PermissionSeeder extends Seeder
             'hr-admin' => array_merge(
                 $menuAdmin,
                 $menuJournalApproval,
+                $menuTask,
                 $menuAccount
             ),
             // Atasan/Supervisor: absen + jurnal + approval, tanpa manajemen user
