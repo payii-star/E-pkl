@@ -9,6 +9,12 @@ export interface User {
     name: string;
     email: string;
     phone: string;
+    nim_nis?: string;
+    asal_instansi?: string;
+    asal_instansi_address?: string;
+    asal_instansi_latitude?: number | null;
+    asal_instansi_longitude?: number | null;
+    asal_instansi_place_id?: string;
     photo?: string;
     password: string;
     permission: Array<string>;

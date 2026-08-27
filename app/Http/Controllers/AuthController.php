@@ -37,7 +37,9 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|unique:users,email',
-            'phone' => 'nullable|string|max:20',
+            'phone' => 'nullable|string|max:30',
+            'nim_nis' => 'required|string|min:5|max:18',
+            'asal_instansi' => 'required|string|max:255',
             'password' => 'required|string|min:8',
             'password_confirmation' => 'required|same:password',
         ]);
@@ -53,6 +55,8 @@ class AuthController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
+            'nim_nis' => $request->nim_nis,
+            'asal_instansi' => $request->asal_instansi,
             'password' => Hash::make($request->password),
             'status' => 'aktif',
         ]);
@@ -87,7 +91,9 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|unique:users,email',
-            'phone' => 'nullable|string|max:20',
+            'phone' => 'nullable|string|max:30',
+            'nim_nis' => 'required|string|min:5|max:18',
+            'asal_instansi' => 'required|string|max:255',
             'password' => 'required|string|min:8',
             'password_confirmation' => 'required|same:password',
             'descriptors' => 'required|array|min:' . self::MIN_FACE_SAMPLES . '|max:' . self::MAX_FACE_SAMPLES,
@@ -115,6 +121,8 @@ class AuthController extends Controller
                     'name' => $request->name,
                     'email' => $request->email,
                     'phone' => $request->phone,
+                    'nim_nis' => $request->nim_nis,
+                    'asal_instansi' => $request->asal_instansi,
                     'password' => Hash::make($request->password),
                     'status' => 'aktif',
                 ]);

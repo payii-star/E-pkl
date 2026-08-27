@@ -23,7 +23,7 @@
                 <tbody>
                     <tr>
                         <td colspan="4" class="text-center text-gray-500">
-                            Belum ada data (API belum terhubung)
+                            Belum ada data
                         </td>
                     </tr>
                 </tbody>
