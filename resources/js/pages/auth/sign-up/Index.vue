@@ -21,10 +21,7 @@
                     </label>
 
                     <div class="auth-field__wrap">
-                        <span
-                            class="auth-field__icon"
-                            aria-hidden="true"
-                        >
+                        <span class="auth-field__icon">
                             <svg
                                 viewBox="0 0 24 24"
                                 fill="none"
@@ -38,7 +35,6 @@
                                     stroke="currentColor"
                                     stroke-width="1.5"
                                 />
-
                                 <path
                                     d="M5 19.2c1.2-3.4 4-5.2 7-5.2s5.8 1.8 7 5.2"
                                     stroke="currentColor"
@@ -53,6 +49,7 @@
                             type="text"
                             class="auth-field__input auth-field__input--icon"
                             required
+                            maxlength="255"
                             autocomplete="name"
                             placeholder="Masukkan nama lengkap"
                         />
@@ -66,10 +63,7 @@
                     </label>
 
                     <div class="auth-field__wrap">
-                        <span
-                            class="auth-field__icon"
-                            aria-hidden="true"
-                        >
+                        <span class="auth-field__icon">
                             <svg
                                 viewBox="0 0 24 24"
                                 fill="none"
@@ -81,7 +75,6 @@
                                     stroke="currentColor"
                                     stroke-width="1.5"
                                 />
-
                                 <path
                                     d="m4.5 7 7.5 6 7.5-6"
                                     stroke="currentColor"
@@ -97,6 +90,7 @@
                             type="email"
                             class="auth-field__input auth-field__input--icon"
                             required
+                            maxlength="255"
                             autocomplete="email"
                             placeholder="Masukkan email"
                         />
@@ -110,10 +104,7 @@
                     </label>
 
                     <div class="auth-field__wrap">
-                        <span
-                            class="auth-field__icon"
-                            aria-hidden="true"
-                        >
+                        <span class="auth-field__icon">
                             <i class="bi bi-card-text"></i>
                         </span>
 
@@ -124,13 +115,15 @@
                             required
                             minlength="5"
                             maxlength="18"
+                            inputmode="numeric"
                             autocomplete="off"
                             placeholder="Masukkan NIS"
+                            @input="sanitizeNis"
                         />
                     </div>
 
                     <div class="form-text">
-                        NIS harus terdiri dari 5–18 karakter.
+                        NIS harus terdiri dari 5–18 angka.
                     </div>
                 </div>
 
@@ -141,10 +134,7 @@
                     </label>
 
                     <div class="auth-field__wrap">
-                        <span
-                            class="auth-field__icon"
-                            aria-hidden="true"
-                        >
+                        <span class="auth-field__icon">
                             <i class="bi bi-building"></i>
                         </span>
 
@@ -170,10 +160,7 @@
                     </label>
 
                     <div class="auth-field__wrap">
-                        <span
-                            class="auth-field__icon"
-                            aria-hidden="true"
-                        >
+                        <span class="auth-field__icon">
                             <svg
                                 viewBox="0 0 24 24"
                                 fill="none"
@@ -193,6 +180,7 @@
                             v-model="form.phone"
                             type="tel"
                             class="auth-field__input auth-field__input--icon"
+                            maxlength="30"
                             autocomplete="tel"
                             placeholder="Masukkan nomor telepon"
                         />
@@ -206,10 +194,7 @@
                     </label>
 
                     <div class="auth-field__wrap">
-                        <span
-                            class="auth-field__icon"
-                            aria-hidden="true"
-                        >
+                        <span class="auth-field__icon">
                             <svg
                                 viewBox="0 0 24 24"
                                 fill="none"
@@ -225,7 +210,6 @@
                                     stroke="currentColor"
                                     stroke-width="1.5"
                                 />
-
                                 <path
                                     d="M8 10.5V7.5a4 4 0 0 1 8 0v3"
                                     stroke="currentColor"
@@ -256,11 +240,6 @@
                                 showPassword =
                                     !showPassword
                             "
-                            :aria-label="
-                                showPassword
-                                    ? 'Sembunyikan kata sandi'
-                                    : 'Tampilkan kata sandi'
-                            "
                         >
                             <i
                                 :class="
@@ -281,10 +260,7 @@
                     </label>
 
                     <div class="auth-field__wrap">
-                        <span
-                            class="auth-field__icon"
-                            aria-hidden="true"
-                        >
+                        <span class="auth-field__icon">
                             <svg
                                 viewBox="0 0 24 24"
                                 fill="none"
@@ -300,7 +276,6 @@
                                     stroke="currentColor"
                                     stroke-width="1.5"
                                 />
-
                                 <path
                                     d="M8 10.5V7.5a4 4 0 0 1 8 0v3"
                                     stroke="currentColor"
@@ -333,11 +308,6 @@
                                 showPasswordConfirm =
                                     !showPasswordConfirm
                             "
-                            :aria-label="
-                                showPasswordConfirm
-                                    ? 'Sembunyikan kata sandi'
-                                    : 'Tampilkan kata sandi'
-                            "
                         >
                             <i
                                 :class="
@@ -359,7 +329,6 @@
                     {{ accountError }}
                 </div>
 
-                <!-- SUBMIT -->
                 <button
                     type="submit"
                     class="auth-submit w-100"
@@ -378,7 +347,7 @@
             </div>
         </template>
 
-        <!-- STEP 2: FACE REGISTRATION -->
+        <!-- STEP 2: FACE -->
         <template v-else-if="step === 'face'">
             <div class="signup__header">
                 <h2>Daftarkan Wajah Kamu</h2>
@@ -401,9 +370,7 @@
                     playsinline
                 ></video>
 
-                <canvas
-                    ref="canvasEl"
-                ></canvas>
+                <canvas ref="canvasEl"></canvas>
 
                 <div
                     v-if="
@@ -460,9 +427,9 @@
 
                     Mengambil sample wajah...
 
-                    {{
-                        collectedSamples.length
-                    }}/{{ SAMPLE_TARGET }}
+                    {{ collectedSamples.length }}/{{
+                        SAMPLE_TARGET
+                    }}
                 </template>
 
                 <template
@@ -474,9 +441,9 @@
                         class="signup__dot signup__dot--ok"
                     ></span>
 
-                    {{
-                        collectedSamples.length
-                    }}/{{ SAMPLE_TARGET }}
+                    {{ collectedSamples.length }}/{{
+                        SAMPLE_TARGET
+                    }}
 
                     sample terkumpul,
                     siap didaftarkan
@@ -484,8 +451,7 @@
 
                 <template
                     v-else-if="
-                        camStatus ===
-                        'capturing'
+                        camStatus === 'capturing'
                     "
                 >
                     <span
@@ -520,14 +486,13 @@
                     class="signup__progress-bar"
                     :style="{
                         width:
-                            (
-                                Math.min(
-                                    collectedSamples.length,
-                                    SAMPLE_TARGET
-                                ) /
+                            Math.min(
+                                collectedSamples.length,
+                                SAMPLE_TARGET
+                            ) /
                                 SAMPLE_TARGET *
-                                100
-                            ) + '%'
+                                100 +
+                            '%',
                     }"
                 ></div>
             </div>
@@ -582,7 +547,7 @@
             </div>
         </template>
 
-        <!-- STEP 3: SELESAI -->
+        <!-- STEP 3 -->
         <template v-else>
             <div
                 class="signup__header text-center"
@@ -617,17 +582,21 @@ import { useRouter } from "vue-router";
 
 const router = useRouter();
 
-// =========================================================
-// STEP
-// =========================================================
+/*
+|--------------------------------------------------------------------------
+| STEP
+|--------------------------------------------------------------------------
+*/
 
 const step = ref<
     "account" | "face" | "done"
 >("account");
 
-// =========================================================
-// FORM
-// =========================================================
+/*
+|--------------------------------------------------------------------------
+| FORM
+|--------------------------------------------------------------------------
+*/
 
 const form = ref({
     name: "",
@@ -646,32 +615,82 @@ const showPassword = ref(false);
 const showPasswordConfirm =
     ref(false);
 
-// =========================================================
-// VALIDASI FORM
-// =========================================================
+/*
+|--------------------------------------------------------------------------
+| SANITIZE NIS
+|--------------------------------------------------------------------------
+|
+| NIS hanya boleh angka.
+| Panjang maksimal 18 karakter.
+|
+*/
+
+function sanitizeNis(
+    event: Event
+) {
+    const target =
+        event.target as HTMLInputElement;
+
+    const value =
+        target.value
+            .replace(/\D/g, "")
+            .slice(0, 18);
+
+    form.value.nim_nis = value;
+}
+
+/*
+|--------------------------------------------------------------------------
+| VALIDASI FORM
+|--------------------------------------------------------------------------
+*/
 
 function goToFaceStep() {
     accountError.value = "";
 
-    // Nama
-    if (!form.value.name.trim()) {
+    const name =
+        form.value.name.trim();
+
+    const email =
+        form.value.email.trim();
+
+    const nis =
+        form.value.nim_nis.trim();
+
+    const school =
+        form.value.asal_instansi.trim();
+
+    /*
+    |--------------------------------------------------------------------------
+    | NAMA
+    |--------------------------------------------------------------------------
+    */
+
+    if (!name) {
         accountError.value =
             "Nama lengkap wajib diisi.";
 
         return;
     }
 
-    // Email
-    if (!form.value.email.trim()) {
+    /*
+    |--------------------------------------------------------------------------
+    | EMAIL
+    |--------------------------------------------------------------------------
+    */
+
+    if (!email) {
         accountError.value =
             "Email wajib diisi.";
 
         return;
     }
 
-    // NIS
-    const nis =
-        form.value.nim_nis.trim();
+    /*
+    |--------------------------------------------------------------------------
+    | NIS
+    |--------------------------------------------------------------------------
+    */
 
     if (!nis) {
         accountError.value =
@@ -680,31 +699,46 @@ function goToFaceStep() {
         return;
     }
 
+    if (!/^\d+$/.test(nis)) {
+        accountError.value =
+            "NIS hanya boleh berisi angka.";
+
+        return;
+    }
+
     if (nis.length < 5) {
         accountError.value =
-            "NIS minimal 5 karakter.";
+            "NIS minimal 5 angka.";
 
         return;
     }
 
     if (nis.length > 18) {
         accountError.value =
-            "NIS maksimal 18 karakter.";
+            "NIS maksimal 18 angka.";
 
         return;
     }
 
-    // Asal sekolah
-    if (
-        !form.value.asal_instansi.trim()
-    ) {
+    /*
+    |--------------------------------------------------------------------------
+    | SEKOLAH
+    |--------------------------------------------------------------------------
+    */
+
+    if (!school) {
         accountError.value =
             "Asal sekolah wajib diisi.";
 
         return;
     }
 
-    // Password
+    /*
+    |--------------------------------------------------------------------------
+    | PASSWORD
+    |--------------------------------------------------------------------------
+    */
+
     if (!form.value.password) {
         accountError.value =
             "Password wajib diisi.";
@@ -721,7 +755,12 @@ function goToFaceStep() {
         return;
     }
 
-    // Konfirmasi password
+    /*
+    |--------------------------------------------------------------------------
+    | KONFIRMASI PASSWORD
+    |--------------------------------------------------------------------------
+    */
+
     if (
         form.value.password !==
         form.value.password_confirmation
@@ -732,15 +771,22 @@ function goToFaceStep() {
         return;
     }
 
-    // Lanjut ke face registration
+    /*
+    |--------------------------------------------------------------------------
+    | LANJUT KE FACE
+    |--------------------------------------------------------------------------
+    */
+
     step.value = "face";
 
     startFaceEnrollment();
 }
 
-// =========================================================
-// KEMBALI KE FORM AKUN
-// =========================================================
+/*
+|--------------------------------------------------------------------------
+| KEMBALI
+|--------------------------------------------------------------------------
+*/
 
 function backToAccountStep() {
     stopCamera();
@@ -752,9 +798,11 @@ function backToAccountStep() {
     step.value = "account";
 }
 
-// =========================================================
-// FACE CONFIG
-// =========================================================
+/*
+|--------------------------------------------------------------------------
+| FACE CONFIG
+|--------------------------------------------------------------------------
+*/
 
 const MODEL_URL = "/models";
 
@@ -762,9 +810,11 @@ const SAMPLE_TARGET = 5;
 
 const SAMPLE_INTERVAL_MS = 700;
 
-// =========================================================
-// ELEMENT
-// =========================================================
+/*
+|--------------------------------------------------------------------------
+| ELEMENT
+|--------------------------------------------------------------------------
+*/
 
 const videoEl =
     ref<HTMLVideoElement | null>(
@@ -776,9 +826,11 @@ const canvasEl =
         null
     );
 
-// =========================================================
-// CAMERA STATUS
-// =========================================================
+/*
+|--------------------------------------------------------------------------
+| CAMERA STATUS
+|--------------------------------------------------------------------------
+*/
 
 const camStatus = ref<
     | "loading_models"
@@ -796,16 +848,20 @@ const faceError = ref("");
 
 const registering = ref(false);
 
-// =========================================================
-// SAMPLE
-// =========================================================
+/*
+|--------------------------------------------------------------------------
+| SAMPLE
+|--------------------------------------------------------------------------
+*/
 
 const collectedSamples =
     ref<number[][]>([]);
 
-// =========================================================
-// CAMERA VARIABLES
-// =========================================================
+/*
+|--------------------------------------------------------------------------
+| CAMERA VARIABLES
+|--------------------------------------------------------------------------
+*/
 
 let stream: MediaStream | null =
     null;
@@ -818,9 +874,11 @@ let samplingTimer:
 
 let modelsLoaded = false;
 
-// =========================================================
-// LOAD FACE MODELS
-// =========================================================
+/*
+|--------------------------------------------------------------------------
+| LOAD MODEL
+|--------------------------------------------------------------------------
+*/
 
 async function loadFaceModels() {
     if (modelsLoaded) {
@@ -851,9 +909,11 @@ async function loadFaceModels() {
     modelsLoaded = true;
 }
 
-// =========================================================
-// START CAMERA
-// =========================================================
+/*
+|--------------------------------------------------------------------------
+| START CAMERA
+|--------------------------------------------------------------------------
+*/
 
 async function startCamera() {
     if (!videoEl.value) {
@@ -868,16 +928,13 @@ async function startCamera() {
                 {
                     video: {
                         facingMode: "user",
-
                         width: {
                             ideal: 640,
                         },
-
                         height: {
                             ideal: 480,
                         },
                     },
-
                     audio: false,
                 }
             );
@@ -905,9 +962,11 @@ async function startCamera() {
     }
 }
 
-// =========================================================
-// STOP CAMERA
-// =========================================================
+/*
+|--------------------------------------------------------------------------
+| STOP CAMERA
+|--------------------------------------------------------------------------
+*/
 
 function stopCamera() {
     if (
@@ -946,9 +1005,11 @@ function stopCamera() {
     }
 }
 
-// =========================================================
-// DETECTION LOOP
-// =========================================================
+/*
+|--------------------------------------------------------------------------
+| DETECTION LOOP
+|--------------------------------------------------------------------------
+*/
 
 function startDetectionLoop() {
     if (!videoEl.value) {
@@ -972,9 +1033,11 @@ function startDetectionLoop() {
         );
 }
 
-// =========================================================
-// DETECT FACE
-// =========================================================
+/*
+|--------------------------------------------------------------------------
+| DETECT FACE
+|--------------------------------------------------------------------------
+*/
 
 async function detectFace() {
     if (
@@ -1039,9 +1102,11 @@ async function detectFace() {
     }
 }
 
-// =========================================================
-// SAMPLE
-// =========================================================
+/*
+|--------------------------------------------------------------------------
+| SAMPLE
+|--------------------------------------------------------------------------
+*/
 
 function scheduleSample(
     descriptor: number[]
@@ -1067,6 +1132,21 @@ function scheduleSample(
                 return;
             }
 
+            /*
+             * Pastikan descriptor benar-benar
+             * memiliki 128 angka.
+             */
+
+            if (
+                descriptor.length !==
+                128
+            ) {
+                faceError.value =
+                    "Descriptor wajah tidak valid.";
+
+                return;
+            }
+
             collectedSamples.value.push(
                 descriptor
             );
@@ -1082,9 +1162,11 @@ function scheduleSample(
         }, SAMPLE_INTERVAL_MS);
 }
 
-// =========================================================
-// RESET SAMPLE
-// =========================================================
+/*
+|--------------------------------------------------------------------------
+| RESET SAMPLE
+|--------------------------------------------------------------------------
+*/
 
 function resetSamples() {
     collectedSamples.value = [];
@@ -1105,60 +1187,45 @@ function resetSamples() {
     }
 }
 
-// =========================================================
-// AVERAGE DESCRIPTOR
-// =========================================================
-
-function averageDescriptors(
-    samples: number[][]
-): number[] {
-    if (!samples.length) {
-        return [];
-    }
-
-    const length =
-        samples[0].length;
-
-    const result =
-        new Array<number>(
-            length
-        ).fill(0);
-
-    for (const sample of samples) {
-        for (
-            let i = 0;
-            i < length;
-            i++
-        ) {
-            result[i] += sample[i];
-        }
-    }
-
-    for (
-        let i = 0;
-        i < length;
-        i++
-    ) {
-        result[i] /=
-            samples.length;
-    }
-
-    return result;
-}
-
-// =========================================================
-// REGISTRATION
-// =========================================================
+/*
+|--------------------------------------------------------------------------
+| REGISTRATION
+|--------------------------------------------------------------------------
+*/
 
 async function finishRegistration() {
     faceError.value = "";
 
     if (
-        collectedSamples.value
-            .length < SAMPLE_TARGET
+        collectedSamples.value.length <
+        SAMPLE_TARGET
     ) {
         faceError.value =
             "Sample wajah belum mencukupi.";
+
+        return;
+    }
+
+    /*
+     * Pastikan semua descriptor
+     * berjumlah 128 angka.
+     */
+
+    const invalidDescriptor =
+        collectedSamples.value.some(
+            (descriptor) =>
+                !Array.isArray(
+                    descriptor
+                ) ||
+                descriptor.length !==
+                    128
+        );
+
+    if (invalidDescriptor) {
+        faceError.value =
+            "Data descriptor wajah tidak valid. Silakan ulangi pengambilan sample.";
+
+        resetSamples();
 
         return;
     }
@@ -1173,11 +1240,6 @@ async function finishRegistration() {
         "capturing";
 
     try {
-        const descriptor =
-            averageDescriptors(
-                collectedSamples.value
-            );
-
         const payload = {
             name:
                 form.value.name.trim(),
@@ -1202,7 +1264,13 @@ async function finishRegistration() {
                 form.value
                     .password_confirmation,
 
-            descriptor,
+            /*
+             * PENTING:
+             * Backend meminta "descriptors",
+             * bukan "descriptor".
+             */
+            descriptors:
+                collectedSamples.value,
         };
 
         const response =
@@ -1254,14 +1322,15 @@ async function finishRegistration() {
         camStatus.value =
             "ready";
     } finally {
-        registering.value =
-            false;
+        registering.value = false;
     }
 }
 
-// =========================================================
-// START FACE ENROLLMENT
-// =========================================================
+/*
+|--------------------------------------------------------------------------
+| START FACE ENROLLMENT
+|--------------------------------------------------------------------------
+*/
 
 async function startFaceEnrollment() {
     faceError.value = "";
@@ -1287,9 +1356,11 @@ async function startFaceEnrollment() {
     }
 }
 
-// =========================================================
-// DASHBOARD
-// =========================================================
+/*
+|--------------------------------------------------------------------------
+| DASHBOARD
+|--------------------------------------------------------------------------
+*/
 
 function goToDashboard() {
     router.push({
@@ -1297,9 +1368,11 @@ function goToDashboard() {
     });
 }
 
-// =========================================================
-// CLEANUP
-// =========================================================
+/*
+|--------------------------------------------------------------------------
+| CLEANUP
+|--------------------------------------------------------------------------
+*/
 
 onBeforeUnmount(() => {
     stopCamera();
@@ -1512,6 +1585,12 @@ onBeforeUnmount(() => {
 
 .signup__retry:hover {
     background: #f4f7fc;
+}
+
+.form-text {
+    margin-top: 5px;
+    font-size: 12px;
+    color: #8b96a7;
 }
 
 @media (max-width: 576px) {
