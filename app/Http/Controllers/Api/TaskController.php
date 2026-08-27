@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Task;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class TaskController extends Controller
@@ -15,7 +16,8 @@ class TaskController extends Controller
         $user = $request->user();
 
         $tasks = Task::where('user_id', $user->id)
-            ->orderByRaw("FIELD(status, 'belum', 'sedang', 'selesai')")
+            ->with('creator:id,name')
+            ->orderByRaw("FIELD(status, 'revisi', 'sedang', 'belum', 'submitted', 'selesai', 'ditolak')")
             ->orderBy('due_date')
             ->get();
 
@@ -32,7 +34,7 @@ class TaskController extends Controller
         return response()->json(['data' => $tasks]);
     }
 
-    // POST /tasks / POST /admin/tasks -> admin/pembimbing memberi tugas ke user tertentu
+    // POST /admin/tasks -> admin/pembimbing memberi tugas ke user tertentu
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -61,16 +63,20 @@ class TaskController extends Controller
     // DELETE /admin/tasks/{task} -> hr-admin batalkan/hapus tugas yang sudah diberikan
     public function destroy(Task $task)
     {
+        if ($task->attachment) {
+            Storage::disk('public')->delete($task->attachment);
+        }
+
         $task->delete();
 
         return response()->json(['message' => 'Tugas berhasil dihapus']);
     }
 
-    // PATCH /tasks/{task}/status -> user update progress tugasnya sendiri
+    // PATCH /tasks/{task}/status -> user update progress (belum <-> sedang) tugasnya sendiri
     public function updateStatus(Request $request, Task $task)
     {
         $validator = Validator::make($request->all(), [
-            'status' => 'required|in:belum,sedang,selesai',
+            'status' => 'required|in:belum,sedang',
         ]);
 
         if ($validator->fails()) {
@@ -85,5 +91,86 @@ class TaskController extends Controller
         $task->update(['status' => $request->status]);
 
         return response()->json(['data' => $task]);
+    }
+
+    // POST /tasks/{task}/submit -> intern mengumpulkan tugas (file/gambar + catatan)
+    public function submit(Request $request, Task $task)
+    {
+        $user = $request->user();
+        if ($task->user_id !== $user->id) {
+            return response()->json(['message' => 'Tidak diizinkan'], 403);
+        }
+
+        if (in_array($task->status, ['selesai'])) {
+            return response()->json(['message' => 'Tugas ini sudah selesai, tidak bisa dikumpulkan lagi'], 422);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'submission_note' => 'nullable|string',
+            'attachment' => 'required|file|mimes:jpeg,png,jpg,webp,pdf,doc,docx,xls,xlsx,zip|max:10240',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        // Hapus file lama kalau ada (resubmit setelah revisi/ditolak)
+        if ($task->attachment) {
+            Storage::disk('public')->delete($task->attachment);
+        }
+
+        $task->update([
+            'attachment' => $request->file('attachment')->store('tasks/submissions', 'public'),
+            'submission_note' => $request->submission_note,
+            'status' => 'submitted',
+            'submitted_at' => now(),
+            // Reset catatan review lama begitu ada pengumpulan baru
+            'admin_note' => null,
+            'reviewed_at' => null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tugas berhasil dikumpulkan',
+            'data' => $task,
+        ]);
+    }
+
+    // POST /admin/tasks/{task}/review -> admin menerima, menolak, atau minta revisi
+    public function review(Request $request, Task $task)
+    {
+        $validator = Validator::make($request->all(), [
+            'action' => 'required|in:accept,reject,revise',
+            'admin_note' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['message' => $validator->errors()->first()], 422);
+        }
+
+        if ($task->status !== 'submitted') {
+            return response()->json(['message' => 'Tugas ini belum dikumpulkan, belum bisa direview'], 422);
+        }
+
+        $statusMap = [
+            'accept' => 'selesai',
+            'reject' => 'ditolak',
+            'revise' => 'revisi',
+        ];
+
+        $task->update([
+            'status' => $statusMap[$request->action],
+            'admin_note' => $request->admin_note,
+            'reviewed_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Review tugas berhasil disimpan',
+            'data' => $task->load('user:id,name,email'),
+        ]);
     }
 }

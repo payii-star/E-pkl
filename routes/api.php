@@ -558,6 +558,7 @@ Route::middleware(['auth', 'json'])->group(function () {
             Route::get('', [TaskController::class, 'adminIndex']);
             Route::post('', [TaskController::class, 'store']);
             Route::delete('{task}', [TaskController::class, 'destroy']);
+            Route::post('{task}/review', [TaskController::class, 'review']);
         });
 
     Route::prefix('tasks')->group(function () {
@@ -566,6 +567,8 @@ Route::middleware(['auth', 'json'])->group(function () {
             TaskController::class,
             'updateStatus'
         ]);
+
+        Route::post('{task}/submit', [TaskController::class, 'submit']);
     });
 
 
