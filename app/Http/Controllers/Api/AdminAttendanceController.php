@@ -11,20 +11,43 @@ use Illuminate\Http\Request;
 class AdminAttendanceController extends Controller
 {
     /**
-     * GET /admin/attendance/interns?month=YYYY-MM
-     * Daftar peserta magang beserta ringkasan jumlah hadir di bulan yang dipilih.
+     * Tentukan rentang tanggal [start, end] berdasarkan period ('week'/'month')
+     * dan tanggal acuan. Dipakai bareng oleh interns() dan recap() supaya
+     * konsisten satu sama lain.
+     */
+    private function resolveRange(string $period, ?string $date): array
+    {
+        if ($period === 'week') {
+            $anchor = $date ? Carbon::parse($date) : now();
+            $start  = $anchor->copy()->startOfWeek(Carbon::MONDAY);
+            $end    = $anchor->copy()->endOfWeek(Carbon::SUNDAY);
+        } else {
+            $month = $date ?? now()->format('Y-m');
+            $start = Carbon::parse($month . '-01')->startOfMonth();
+            $end   = $start->copy()->endOfMonth();
+        }
+
+        return [$start, $end];
+    }
+
+    /**
+     * GET /admin/attendance/interns?period=week|month&date=YYYY-MM-DD (week) atau &month=YYYY-MM
+     * Daftar peserta magang beserta ringkasan jumlah hadir di periode yang dipilih.
      */
     public function interns(Request $request)
     {
-        $month = $request->query('month', now()->format('Y-m'));
-        $start = Carbon::parse($month . '-01')->startOfMonth();
-        $end   = $start->copy()->endOfMonth();
+        $period = $request->query('period', 'month');
+        $refDate = $period === 'week'
+            ? $request->query('date')
+            : $request->query('month', now()->format('Y-m'));
+
+        [$start, $end] = $this->resolveRange($period, $refDate);
 
         $interns = User::query()
             ->whereDoesntHave('roles', function ($query) {
                 $query->whereIn('name', ['hr-admin', 'atasan']);
             })
-            ->withCount(['attendances as total_hadir_bulan_ini' => function ($query) use ($start, $end) {
+            ->withCount(['attendances as total_hadir_periode' => function ($query) use ($start, $end) {
                 $query->whereBetween('date', [$start, $end])
                     ->whereIn('status', ['hadir', 'hadir_belum_checkout']);
             }])
@@ -32,12 +55,12 @@ class AdminAttendanceController extends Controller
             ->get()
             ->map(function ($user) {
                 return [
-                    'intern_id'             => $user->id,
-                    'name'                  => $user->name,
-                    'institusi_asal'        => $user->asal_instansi,
-                    'posisi'                => $user->posisi,
-                    'photo'                 => $user->photo,
-                    'total_hadir_bulan_ini' => $user->total_hadir_bulan_ini,
+                    'intern_id'           => $user->id,
+                    'name'                => $user->name,
+                    'institusi_asal'      => $user->asal_instansi,
+                    'posisi'              => $user->posisi,
+                    'photo'               => $user->photo,
+                    'total_hadir_periode' => $user->total_hadir_periode,
                 ];
             });
 
@@ -45,14 +68,18 @@ class AdminAttendanceController extends Controller
     }
 
     /**
-     * GET /admin/attendance/{intern}?month=YYYY-MM
-     * Rincian absensi harian 1 peserta magang untuk 1 bulan penuh.
+     * GET /admin/attendance/{intern}?period=week|month&date=YYYY-MM-DD (week) atau &month=YYYY-MM
+     * Rincian absensi harian 1 peserta magang untuk 1 minggu atau 1 bulan penuh.
      */
     public function recap(Request $request, User $intern)
     {
-        $month = $request->query('month', now()->format('Y-m'));
-        $start = Carbon::parse($month . '-01')->startOfMonth();
-        $end   = $start->copy()->endOfMonth();
+        $period = $request->query('period', 'month');
+        $refDate = $period === 'week'
+            ? $request->query('date')
+            : $request->query('month', now()->format('Y-m'));
+
+        [$start, $end] = $this->resolveRange($period, $refDate);
+
         $today = Carbon::today();
         $dateColumn = Attendance::dateColumn();
         $checkInTimeColumn = Attendance::checkInTimeColumn();
@@ -83,7 +110,7 @@ class AdminAttendanceController extends Controller
                 $status = 'tidak_hadir';
             }
 
-            // Hari kerja dihitung dari awal bulan s/d hari ini saja (bukan tanggal yang belum terjadi)
+            // Hari kerja dihitung dari awal periode s/d hari ini saja (bukan tanggal yang belum terjadi)
             if (!$isWeekend && $date->lte($today)) {
                 $totalHariKerja++;
                 if ($status === 'hadir' || $status === 'hadir_belum_checkout') {
@@ -107,7 +134,11 @@ class AdminAttendanceController extends Controller
             : 0;
 
         return response()->json([
-            'month' => $month,
+            'period' => $period,
+            'range' => [
+                'start' => $start->format('Y-m-d'),
+                'end' => $end->format('Y-m-d'),
+            ],
             'summary' => [
                 'total_hari_kerja'     => $totalHariKerja,
                 'total_hadir'          => $totalHadir,
