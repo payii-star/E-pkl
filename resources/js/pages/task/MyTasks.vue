@@ -53,6 +53,16 @@ function canSubmit(task: Task) {
     return ["belum", "sedang", "revisi", "ditolak"].includes(task.status);
 }
 
+function formatDate(dateStr: string | null) {
+    if (!dateStr) return "-";
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+    });
+}
+
 function fetchTasks() {
     loading.value = true;
     axios
@@ -171,7 +181,7 @@ onMounted(fetchTasks);
                         <div>
                             <div class="fw-bold fs-5 text-gray-800">{{ task.title }}</div>
                             <div v-if="task.due_date" class="text-muted fs-7 mt-1">
-                                Deadline: {{ task.due_date }}
+                                Deadline: {{ formatDate(task.due_date) }}
                             </div>
                         </div>
                         <span class="badge" :class="statusBadge[task.status]">
