@@ -244,15 +244,46 @@ function drawBox(det: any) {
     ctx.strokeRect(box.x, box.y, box.width, box.height);
 }
 
+/**
+ * Ambil 1 snapshot dari frame video saat ini, dikirim sebagai foto absen
+ * masuk. Harus dipanggil SEBELUM stopCamera() — begitu stream dimatikan,
+ * video tidak bisa lagi digambar ke canvas.
+ */
+function capturePhotoSnapshot(): string | null {
+    if (!videoEl.value) return null;
+    try {
+        const canvas = document.createElement("canvas");
+        canvas.width = videoEl.value.videoWidth || 480;
+        canvas.height = videoEl.value.videoHeight || 360;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return null;
+
+        // Video di-mirror lewat CSS (scaleX(-1)), ikut mirror juga di sini
+        // biar foto yang tersimpan orientasinya sama seperti yang user lihat.
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(videoEl.value, 0, 0, canvas.width, canvas.height);
+
+        return canvas.toDataURL("image/jpeg", 0.85);
+    } catch (e) {
+        console.error("Gagal mengambil snapshot foto:", e);
+        return null;
+    }
+}
+
 async function doLogin(userId: number, name: string) {
     if (_isLoggingIn) return;
     _isLoggingIn = true;
     status.value = "matched";
     matchedName.value = name;
+
+    // Ambil snapshot SEBELUM kamera dimatikan.
+    const photo = capturePhotoSnapshot();
+
     stopCamera();
 
     try {
-        const res = await axios.post("/face/login", { user_id: userId });
+        const res = await axios.post("/face/login", { user_id: userId, photo });
         authStore.setAuth(res.data.user, res.data.token);
         router.push("/dashboard");
     } catch (e: any) {

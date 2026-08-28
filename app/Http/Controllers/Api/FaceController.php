@@ -108,7 +108,7 @@ class FaceController extends Controller
             return response()->json(['message' => 'Gagal generate token'], 500);
         }
 
-        $attendance = $this->recordFaceLoginAttendance($user->id);
+        $attendance = $this->recordFaceLoginAttendance($user->id, $request->input('photo'));
 
         return response()->json([
             'user' => $user,
@@ -122,11 +122,12 @@ class FaceController extends Controller
      * Hanya login PERTAMA di hari itu yang dihitung sebagai check-in
      * (login berikutnya di hari yang sama tidak menimpa jam check-in yang sudah ada).
      */
-    private function recordFaceLoginAttendance(int $userId): Attendance
+    private function recordFaceLoginAttendance(int $userId, ?string $photoBase64 = null): Attendance
     {
         $today = now()->toDateString();
         $dateColumn = Attendance::dateColumn();
         $checkInTimeColumn = Attendance::checkInTimeColumn();
+        $checkInPhotoColumn = Attendance::checkInPhotoColumn();
         $locationColumn = Attendance::locationColumn();
 
         $existing = Attendance::where('user_id', $userId)->where($dateColumn, $today)->first();
@@ -135,10 +136,13 @@ class FaceController extends Controller
             return $existing;
         }
 
+        $photoPath = $photoBase64 ? $this->saveAttendancePhoto($photoBase64, $userId) : null;
+
         return Attendance::updateOrCreate(
             ['user_id' => $userId, $dateColumn => $today],
             [
                 $checkInTimeColumn => now()->toTimeString(),
+                $checkInPhotoColumn => $photoPath,
                 'status' => 'hadir',
                 $locationColumn => 'Face Recognition Login',
             ]
@@ -153,6 +157,26 @@ class FaceController extends Controller
             if (!$decoded) return null;
 
             $path = "face-profiles/{$userId}_" . time() . '.jpg';
+            Storage::disk('public')->put($path, $decoded);
+            return $path;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * Sama seperti saveBase64Photo(), tapi khusus buat foto absen (check-in
+     * dari Login dengan Wajah) — folder terpisah dari face-profiles/ supaya
+     * tidak ketuker sama foto enrollment wajah.
+     */
+    private function saveAttendancePhoto(string $base64, int $userId): ?string
+    {
+        try {
+            $data = preg_replace('/^data:image\/\w+;base64,/', '', $base64);
+            $decoded = base64_decode($data);
+            if (!$decoded) return null;
+
+            $path = "attendances/{$userId}_" . time() . '.jpg';
             Storage::disk('public')->put($path, $decoded);
             return $path;
         } catch (\Throwable) {

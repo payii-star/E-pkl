@@ -7,6 +7,7 @@ use App\Models\Attendance;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class AdminAttendanceController extends Controller
 {
@@ -85,6 +86,9 @@ class AdminAttendanceController extends Controller
         $checkInTimeColumn = Attendance::checkInTimeColumn();
         $checkOutTimeColumn = Attendance::checkOutTimeColumn();
 
+        $checkInPhotoColumn = Attendance::checkInPhotoColumn();
+        $checkOutPhotoColumn = Attendance::checkOutPhotoColumn();
+
         $attendances = Attendance::where('user_id', $intern->id)
             ->whereBetween($dateColumn, [$start, $end])
             ->get()
@@ -121,11 +125,17 @@ class AdminAttendanceController extends Controller
             }
 
             $days[] = [
-                'date'           => $dateKey,
-                'is_weekend'     => $isWeekend,
-                'check_in_time'  => $attendance?->{$checkInTimeColumn},
-                'check_out_time' => $attendance?->{$checkOutTimeColumn},
-                'status'         => $status,
+                'date'            => $dateKey,
+                'is_weekend'      => $isWeekend,
+                'check_in_time'   => $attendance?->{$checkInTimeColumn},
+                'check_out_time'  => $attendance?->{$checkOutTimeColumn},
+                'check_in_photo'  => $attendance?->{$checkInPhotoColumn}
+                    ? Storage::disk('public')->url($attendance->{$checkInPhotoColumn})
+                    : null,
+                'check_out_photo' => $attendance?->{$checkOutPhotoColumn}
+                    ? Storage::disk('public')->url($attendance->{$checkOutPhotoColumn})
+                    : null,
+                'status'          => $status,
             ];
         }
 

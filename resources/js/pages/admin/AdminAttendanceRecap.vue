@@ -178,6 +178,7 @@
                                         <th>Jam Masuk</th>
                                         <th>Jam Keluar</th>
                                         <th>Status</th>
+                                        <th>Foto</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -192,6 +193,25 @@
                                                 {{ statusLabel(day.status) }}
                                             </span>
                                         </td>
+                                        <td>
+                                            <div class="d-flex gap-2">
+                                                <img
+                                                    v-if="day.check_in_photo"
+                                                    :src="day.check_in_photo"
+                                                    class="photo-thumb"
+                                                    title="Foto absen masuk"
+                                                    @click="openPhoto(day.check_in_photo, 'Foto Absen Masuk — ' + formatDayLabel(day.date))"
+                                                />
+                                                <img
+                                                    v-if="day.check_out_photo"
+                                                    :src="day.check_out_photo"
+                                                    class="photo-thumb"
+                                                    title="Foto absen pulang"
+                                                    @click="openPhoto(day.check_out_photo, 'Foto Absen Pulang — ' + formatDayLabel(day.date))"
+                                                />
+                                                <span v-if="!day.check_in_photo && !day.check_out_photo" class="text-muted fs-8">-</span>
+                                            </div>
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -200,6 +220,19 @@
                 </div>
             </template>
         </template>
+
+        <!-- ══ MODAL PREVIEW FOTO ══ -->
+        <div v-if="previewPhoto" class="photo-modal" @click.self="closePhoto">
+            <div class="photo-modal__box">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="fw-semibold text-white">{{ previewPhotoTitle }}</div>
+                    <button type="button" class="btn btn-sm btn-icon btn-light" @click="closePhoto">
+                        <KTIcon icon-name="cross" icon-class="fs-4" />
+                    </button>
+                </div>
+                <img :src="previewPhoto" class="photo-modal__img" />
+            </div>
+        </div>
     </div>
 </template>
 
@@ -219,6 +252,19 @@ const loadingRecap = ref(false)
 const period = ref<'week' | 'month'>('month')
 const selectedMonth = ref(currentMonthValue())
 const selectedWeekDate = ref(currentDateValue())
+
+// Preview foto absen
+const previewPhoto = ref<string | null>(null)
+const previewPhotoTitle = ref('')
+
+function openPhoto(url: string, title: string) {
+    previewPhoto.value = url
+    previewPhotoTitle.value = title
+}
+
+function closePhoto() {
+    previewPhoto.value = null
+}
 
 function currentMonthValue() {
     const now = new Date()
@@ -355,4 +401,45 @@ onMounted(async () => {
 }
 .intern-chip:hover     { background: #f9f9f9; border-color: #d9d9e0; }
 .intern-chip--active   { background: #eef6ff; border-color: #009ef7 !important; }
+
+/* ── Foto absen ── */
+.photo-thumb {
+    width: 36px;
+    height: 36px;
+    object-fit: cover;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1.5px solid #e4e6ef;
+    transition: transform .15s, border-color .15s;
+}
+.photo-thumb:hover {
+    transform: scale(1.08);
+    border-color: #009ef7;
+}
+
+/* ── Modal preview foto ── */
+.photo-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+    padding: 20px;
+}
+.photo-modal__box {
+    background: #1a1d29;
+    border-radius: 12px;
+    padding: 16px;
+    max-width: 90vw;
+    max-height: 90vh;
+}
+.photo-modal__img {
+    max-width: 100%;
+    max-height: 75vh;
+    display: block;
+    border-radius: 8px;
+    margin: 0 auto;
+}
 </style>

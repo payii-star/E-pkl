@@ -52,6 +52,13 @@ const MainMenuConfig: Array<MenuItem> = [
                     keenthemesIcon: "calendar",
                     permission: "admin-dashboard",
                 },
+            {
+                heading: "Approval Jurnal",
+                route: "/journal/approval",
+                name: "journal-approval",
+                keenthemesIcon: "check-circle",
+                permission: "journal-approval",
+            },
         ],
     },
 
@@ -95,15 +102,6 @@ const MainMenuConfig: Array<MenuItem> = [
                 name: "journal-history",
                 keenthemesIcon: "document",
                 hideForAdmin: true,
-            },
-            {
-                // TODO: idealnya item ini hanya tampil untuk role Atasan/Supervisor
-                // (butuh helper cek permission di SidebarMenu, dikerjakan setelah role HR final)
-                heading: "Approval Jurnal",
-                route: "/journal/approval",
-                name: "journal-approval",
-                keenthemesIcon: "check-circle",
-                permission: "journal-approval",
             },
         ],
     },
