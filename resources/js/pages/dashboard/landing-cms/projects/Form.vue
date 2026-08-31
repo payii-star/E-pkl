@@ -1,3 +1,4 @@
+```vue
 <script setup lang="ts">
 import { block, unblock } from "@/libs/utils";
 import { ref, watch } from "vue";
@@ -25,7 +26,7 @@ const project = ref<Project>({
 } as Project);
 
 const fileTypes = ref(["image/jpeg", "image/png", "image/jpg"]);
-const thumbnail = ref<any>([]);
+const thumbnail = ref<any[]>([]);
 const formRef = ref();
 
 const formSchema = Yup.object().shape({
@@ -42,6 +43,7 @@ const formSchema = Yup.object().shape({
 
 function getEdit() {
     block(document.getElementById("form-project"));
+
     axios
         .get(`/master/projects/${props.selected}`)
         .then(({ data }) => {
@@ -50,10 +52,15 @@ function getEdit() {
                 url: data.data.link_project,
                 category: data.data.category ?? "web",
             };
-            thumbnail.value = data.data.image ? ["/storage/" + data.data.image] : [];
+
+            thumbnail.value = data.data.image
+                ? ["/storage/" + data.data.image]
+                : [];
         })
         .catch((err: any) => {
-            toast.error(err.response?.data?.message ?? "Gagal memuat data");
+            toast.error(
+                err.response?.data?.message ?? "Gagal memuat data"
+            );
         })
         .finally(() => {
             unblock(document.getElementById("form-project"));
@@ -62,38 +69,67 @@ function getEdit() {
 
 function submit() {
     const formData = new FormData();
-    formData.append("title", project.value.title);
-    formData.append("description", project.value.description ?? "");
-    formData.append("url", project.value.url ?? "");
-    formData.append("category", project.value.category ?? "web");
-    formData.append("urutan", String(project.value.urutan));
-    formData.append("is_featured", project.value.is_featured ? "1" : "0");
 
-    if (thumbnail.value.length && thumbnail.value[0].file) {
-        formData.append("thumbnail", thumbnail.value[0].file);
-    }
-    if (props.selected) {
-        formData.append("_method", "PUT");
+    formData.append("title", project.value.title);
+    formData.append(
+        "description",
+        project.value.description ?? ""
+    );
+    formData.append("url", project.value.url ?? "");
+    formData.append(
+        "category",
+        project.value.category ?? "web"
+    );
+    formData.append(
+        "urutan",
+        String(project.value.urutan)
+    );
+    formData.append(
+        "is_featured",
+        project.value.is_featured ? "1" : "0"
+    );
+
+    if (
+        thumbnail.value.length &&
+        thumbnail.value[0]?.file
+    ) {
+        formData.append(
+            "thumbnail",
+            thumbnail.value[0].file
+        );
     }
 
     block(document.getElementById("form-project"));
+
     axios({
         method: "post",
-        url: props.selected ? `/master/projects/${props.selected}` : "/master/projects/store",
+        url: props.selected
+            ? `/master/projects/${props.selected}`
+            : "/master/projects",
         data: formData,
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+            "Content-Type": "multipart/form-data",
+        },
     })
         .then(() => {
             emit("close");
             emit("refresh");
+
             toast.success("Project berhasil disimpan");
-            formRef.value.resetForm();
+
+            formRef.value?.resetForm();
         })
         .catch((err: any) => {
             if (err.response?.data?.errors) {
-                formRef.value.setErrors(err.response.data.errors);
+                formRef.value?.setErrors(
+                    err.response.data.errors
+                );
             }
-            toast.error(err.response?.data?.message ?? "Gagal menyimpan project");
+
+            toast.error(
+                err.response?.data?.message ??
+                    "Gagal menyimpan project"
+            );
         })
         .finally(() => {
             unblock(document.getElementById("form-project"));
@@ -120,24 +156,32 @@ watch(
         ref="formRef"
     >
         <div class="card-header align-items-center">
-            <h2 class="mb-0">{{ selected ? "Edit" : "Tambah" }} Project</h2>
+            <h2 class="mb-0">
+                {{ selected ? "Edit" : "Tambah" }} Project
+            </h2>
+
             <button
                 type="button"
                 class="btn btn-sm btn-light-danger ms-auto"
                 @click="emit('close')"
             >
                 Batal
+
                 <i class="la la-times-circle p-0"></i>
             </button>
         </div>
+
         <div class="card-body">
             <div class="row">
+                <!-- Title -->
                 <div class="col-md-6">
-                    <!--begin::Input group-->
                     <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6 required">
+                        <label
+                            class="form-label fw-bold fs-6 required"
+                        >
                             Title
                         </label>
+
                         <Field
                             class="form-control form-control-lg form-control-solid"
                             type="text"
@@ -146,20 +190,26 @@ watch(
                             v-model="project.title"
                             placeholder="Masukkan judul project"
                         />
-                        <div class="fv-plugins-message-container">
+
+                        <div
+                            class="fv-plugins-message-container"
+                        >
                             <div class="fv-help-block">
                                 <ErrorMessage name="title" />
                             </div>
                         </div>
                     </div>
-                    <!--end::Input group-->
                 </div>
+
+                <!-- URL -->
                 <div class="col-md-6">
-                    <!--begin::Input group-->
                     <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6">
+                        <label
+                            class="form-label fw-bold fs-6"
+                        >
                             URL Project
                         </label>
+
                         <Field
                             class="form-control form-control-lg form-control-solid"
                             type="text"
@@ -168,20 +218,26 @@ watch(
                             v-model="project.url"
                             placeholder="https://..."
                         />
-                        <div class="fv-plugins-message-container">
+
+                        <div
+                            class="fv-plugins-message-container"
+                        >
                             <div class="fv-help-block">
                                 <ErrorMessage name="url" />
                             </div>
                         </div>
                     </div>
-                    <!--end::Input group-->
                 </div>
+
+                <!-- Description -->
                 <div class="col-md-12">
-                    <!--begin::Input group-->
                     <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6">
+                        <label
+                            class="form-label fw-bold fs-6"
+                        >
                             Deskripsi
                         </label>
+
                         <Field
                             as="textarea"
                             class="form-control form-control-lg form-control-solid"
@@ -190,64 +246,94 @@ watch(
                             v-model="project.description"
                             placeholder="Deskripsi singkat project"
                         />
-                        <div class="fv-plugins-message-container">
+
+                        <div
+                            class="fv-plugins-message-container"
+                        >
                             <div class="fv-help-block">
-                                <ErrorMessage name="description" />
+                                <ErrorMessage
+                                    name="description"
+                                />
                             </div>
                         </div>
                     </div>
-                    <!--end::Input group-->
                 </div>
+
+                <!-- Thumbnail -->
                 <div class="col-md-6">
-                    <!--begin::Input group-->
                     <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6">
+                        <label
+                            class="form-label fw-bold fs-6"
+                        >
                             Thumbnail
                         </label>
-                        <!--begin::Input-->
+
                         <file-upload
                             :files="thumbnail"
                             :accepted-file-types="fileTypes"
-                            v-on:updatefiles="(file) => (thumbnail = file)"
-                        ></file-upload>
-                        <!--end::Input-->
-                        <div class="fv-plugins-message-container">
+                            v-on:updatefiles="
+                                (file) => (thumbnail = file)
+                            "
+                        >
+                        </file-upload>
+
+                        <div
+                            class="fv-plugins-message-container"
+                        >
                             <div class="fv-help-block">
-                                <ErrorMessage name="thumbnail" />
+                                <ErrorMessage
+                                    name="thumbnail"
+                                />
                             </div>
                         </div>
                     </div>
-                    <!--end::Input group-->
                 </div>
+
+                <!-- Category -->
                 <div class="col-md-3">
-                    <!--begin::Input group-->
                     <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6 required">
+                        <label
+                            class="form-label fw-bold fs-6 required"
+                        >
                             Kategori
                         </label>
+
                         <Field
                             as="select"
                             class="form-select form-select-lg form-select-solid"
                             name="category"
                             v-model="project.category"
                         >
-                            <option value="web">Web</option>
-                            <option value="mobile">Mobile</option>
+                            <option value="web">
+                                Web
+                            </option>
+
+                            <option value="mobile">
+                                Mobile
+                            </option>
                         </Field>
-                        <div class="fv-plugins-message-container">
+
+                        <div
+                            class="fv-plugins-message-container"
+                        >
                             <div class="fv-help-block">
-                                <ErrorMessage name="category" />
+                                <ErrorMessage
+                                    name="category"
+                                />
                             </div>
                         </div>
                     </div>
-                    <!--end::Input group-->
                 </div>
+
+                <!-- Urutan -->
                 <div class="col-md-3">
-                    <!--begin::Input group-->
                     <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6 required">
+                        <label
+                            class="form-label fw-bold fs-6 required"
+                        >
                             Urutan
                         </label>
+
                         <Field
                             class="form-control form-control-lg form-control-solid"
                             type="number"
@@ -256,21 +342,29 @@ watch(
                             v-model="project.urutan"
                             placeholder="1"
                         />
-                        <div class="fv-plugins-message-container">
+
+                        <div
+                            class="fv-plugins-message-container"
+                        >
                             <div class="fv-help-block">
                                 <ErrorMessage name="urutan" />
                             </div>
                         </div>
                     </div>
-                    <!--end::Input group-->
                 </div>
+
+                <!-- Featured -->
                 <div class="col-md-3">
-                    <!--begin::Input group-->
                     <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6">
+                        <label
+                            class="form-label fw-bold fs-6"
+                        >
                             Featured
                         </label>
-                        <div class="form-check form-switch form-check-custom form-check-solid mt-3">
+
+                        <div
+                            class="form-check form-switch form-check-custom form-check-solid mt-3"
+                        >
                             <Field
                                 class="form-check-input"
                                 type="checkbox"
@@ -279,19 +373,28 @@ watch(
                                 :value="true"
                                 :unchecked-value="false"
                             />
+
                             <label class="form-check-label">
-                                {{ project.is_featured ? "Ya" : "Tidak" }}
+                                {{
+                                    project.is_featured
+                                        ? "Ya"
+                                        : "Tidak"
+                                }}
                             </label>
                         </div>
                     </div>
-                    <!--end::Input group-->
                 </div>
             </div>
         </div>
+
         <div class="card-footer d-flex">
-            <button type="submit" class="btn btn-primary btn-sm ms-auto">
+            <button
+                type="submit"
+                class="btn btn-primary btn-sm ms-auto"
+            >
                 Simpan
             </button>
         </div>
     </VForm>
 </template>
+```

@@ -30,6 +30,10 @@ class User extends Authenticatable implements JWTSubject
         'photo',
         'nim_nis',
         'asal_instansi',
+        'asal_instansi_address',
+        'asal_instansi_latitude',
+        'asal_instansi_longitude',
+        'asal_instansi_place_id',
         'posisi',
         'tanggal_mulai',
         'tanggal_selesai',
@@ -56,6 +60,8 @@ class User extends Authenticatable implements JWTSubject
         'password' => 'hashed',
         'tanggal_mulai' => 'date',
         'tanggal_selesai' => 'date',
+        'asal_instansi_latitude' => 'float',
+        'asal_instansi_longitude' => 'float',
     ];
 
     protected $appends = ['permission', 'role'];

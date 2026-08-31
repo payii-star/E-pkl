@@ -31,6 +31,34 @@ const MainMenuConfig: Array<MenuItem> = [
                 keenthemesIcon: "calendar-tick",
                 permission: "admin-attendance-recap",
             },
+            {
+                heading: "Kelola Tugas",
+                name: "admin-tasks",
+                route: "/admin/tasks",
+                keenthemesIcon: "clipboard",
+                permission: "task-management",
+            },
+            {
+                heading: "Kelola Izin",
+                name: "admin-leave-requests",
+                route: "/admin/leave-requests",
+                keenthemesIcon: "calendar-remove",
+                permission: "leave-management",
+            },
+                {
+                    heading: "Periode Magang",
+                    route: "/admin/intern-periods",
+                    name: "admin-intern-periods",
+                    keenthemesIcon: "calendar",
+                    permission: "admin-dashboard",
+                },
+            {
+                heading: "Approval Jurnal",
+                route: "/journal/approval",
+                name: "journal-approval",
+                keenthemesIcon: "check-circle",
+                permission: "journal-approval",
+            },
         ],
     },
 
@@ -75,14 +103,35 @@ const MainMenuConfig: Array<MenuItem> = [
                 keenthemesIcon: "document",
                 hideForAdmin: true,
             },
+        ],
+    },
+
+    // TUGAS (diberikan hr-admin ke intern)
+    {
+        heading: "Tugas",
+        route: "/tasks",
+        pages: [
             {
-                // TODO: idealnya item ini hanya tampil untuk role Atasan/Supervisor
-                // (butuh helper cek permission di SidebarMenu, dikerjakan setelah role HR final)
-                heading: "Approval Jurnal",
-                route: "/journal/approval",
-                name: "journal-approval",
-                keenthemesIcon: "check-circle",
-                permission: "journal-approval",
+                heading: "Tugas Saya",
+                route: "/tasks/my",
+                name: "tasks-my",
+                keenthemesIcon: "clipboard",
+                hideForAdmin: true,
+            },
+        ],
+    },
+
+    // IZIN TIDAK MASUK
+    {
+        heading: "Izin",
+        route: "/leave",
+        pages: [
+            {
+                heading: "Izin Tidak Masuk",
+                route: "/leave/my",
+                name: "leave-my",
+                keenthemesIcon: "calendar-remove",
+                hideForAdmin: true,
             },
         ],
     },

@@ -13,23 +13,30 @@ class LandingTestimonialController extends Controller
     public function adminIndex()
     {
         return response()->json([
-            'success' => true, 
-            'data' => LandingTestimonial::orderBy('urutan')->orderBy('id')->get()
+            'success' => true,
+            'data' => LandingTestimonial::orderBy('order')->orderBy('id')->get()
         ]);
     }
 
-    public function publicIndex()
+    public function publicIndex(Request $request)
     {
+        $query = LandingTestimonial::where('is_active', true)->orderBy('order');
+
+        // Landing bisa filter per section: ?placement=beranda atau ?placement=services
+        if ($request->filled('placement')) {
+            $query->where('placement', $request->placement);
+        }
+
         return response()->json([
-            'success' => true, 
-            'data' => LandingTestimonial::where('is_active', true)->orderBy('urutan')->get()
+            'success' => true,
+            'data' => $query->get()
         ]);
     }
 
     public function show(LandingTestimonial $testimonial)
     {
         return response()->json([
-            'success' => true, 
+            'success' => true,
             'data' => $testimonial
         ]);
     }
@@ -38,35 +45,34 @@ class LandingTestimonialController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name'      => 'required|string|max:255',
-            'role'      => 'nullable|string|max:255',
-            'company'   => 'nullable|string|max:255',
+            'position'  => 'nullable|string|max:255',
             'message'   => 'required|string',
-            'rating'    => 'nullable|integer|min:1|max:5',
-            'urutan'    => 'nullable|integer',
+            'placement' => 'required|in:beranda,services',
+            'order'     => 'nullable|integer',
             'is_active' => 'nullable|boolean',
-            'avatar'    => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'photo'     => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
-                'message' => $validator->errors()->first(), 
+                'message' => $validator->errors()->first(),
                 'errors'  => $validator->errors()
             ], 422);
         }
 
-        $data = $validator->safe()->except('avatar');
-        $data['urutan'] = $data['urutan'] ?? ((int) (LandingTestimonial::max('urutan') ?? 0) + 1);
+        $data = $validator->safe()->except('photo');
+        $data['order'] = $data['order'] ?? ((int) (LandingTestimonial::max('order') ?? 0) + 1);
         $data['is_active'] = $request->boolean('is_active', true);
 
-        if ($request->hasFile('avatar')) {
-            $data['avatar'] = $request->file('avatar')->store('landing/testimonials', 'public');
+        if ($request->hasFile('photo')) {
+            $data['photo'] = $request->file('photo')->store('landing/testimonials', 'public');
         }
 
         $testimonial = LandingTestimonial::create($data);
 
         return response()->json([
-            'success' => true, 
-            'message' => 'Testimonial berhasil ditambahkan', 
+            'success' => true,
+            'message' => 'Testimonial berhasil ditambahkan',
             'data'    => $testimonial
         ], 201);
     }
@@ -75,51 +81,50 @@ class LandingTestimonialController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name'      => 'required|string|max:255',
-            'role'      => 'nullable|string|max:255',
-            'company'   => 'nullable|string|max:255',
+            'position'  => 'nullable|string|max:255',
             'message'   => 'required|string',
-            'rating'    => 'nullable|integer|min:1|max:5',
-            'urutan'    => 'nullable|integer',
+            'placement' => 'required|in:beranda,services',
+            'order'     => 'nullable|integer',
             'is_active' => 'nullable|boolean',
-            'avatar'    => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'photo'     => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
-                'message' => $validator->errors()->first(), 
+                'message' => $validator->errors()->first(),
                 'errors'  => $validator->errors()
             ], 422);
         }
 
-        $data = $validator->safe()->except('avatar');
+        $data = $validator->safe()->except('photo');
         $data['is_active'] = $request->boolean('is_active', true);
 
-        if ($request->hasFile('avatar')) {
-            if ($testimonial->avatar) {
-                Storage::disk('public')->delete($testimonial->avatar);
+        if ($request->hasFile('photo')) {
+            if ($testimonial->photo) {
+                Storage::disk('public')->delete($testimonial->photo);
             }
-            $data['avatar'] = $request->file('avatar')->store('landing/testimonials', 'public');
+            $data['photo'] = $request->file('photo')->store('landing/testimonials', 'public');
         }
 
         $testimonial->update($data);
 
         return response()->json([
-            'success' => true, 
-            'message' => 'Testimonial berhasil diperbarui', 
+            'success' => true,
+            'message' => 'Testimonial berhasil diperbarui',
             'data'    => $testimonial
         ]);
     }
 
     public function destroy(LandingTestimonial $testimonial)
     {
-        if ($testimonial->avatar) {
-            Storage::disk('public')->delete($testimonial->avatar);
+        if ($testimonial->photo) {
+            Storage::disk('public')->delete($testimonial->photo);
         }
 
         $testimonial->delete();
 
         return response()->json([
-            'success' => true, 
+            'success' => true,
             'message' => 'Testimonial berhasil dihapus'
         ]);
     }

@@ -102,6 +102,18 @@ export default defineComponent({
         enabled: {
             type: Boolean,
             default: true
+        },
+        // BARU: method HTTP buat fetch listing.
+        // Default "get" — cocok untuk hampir semua resource (testimonials,
+        // projects, statistics, menu, services, teams, footer,
+        // landing-content, client-logos, users) yang memang mendaftarkan
+        // GET '' untuk index-nya.
+        // Resource lama seperti "roles" yang sengaja pakai POST '' untuk
+        // index (lihat RoleController@index) HARUS override lewat prop
+        // method="post" di komponen yang memakainya.
+        method: {
+            type: String,
+            default: "get"
         }
     },
     components: {
@@ -116,12 +128,20 @@ export default defineComponent({
 
         const { data = {}, isFetching, refetch } = useQuery({
             queryKey: [props.queryKey || props.url],
-            queryFn: () => axios.post(props.url, {
-                search: search.value,
-                page: page.value,
-                per: parseInt(per.value),
-                ...props.payload
-            }).then(res => res.data),
+            queryFn: () => {
+                const params = {
+                    search: search.value,
+                    page: page.value,
+                    per: parseInt(per.value),
+                    ...props.payload
+                };
+
+                return (
+                    props.method === "post"
+                        ? axios.post(props.url, params)
+                        : axios.get(props.url, { params })
+                ).then(res => res.data);
+            },
             placeholderData: { data: [] },
             cacheTime: 0,
             enabled: props.enabled,
@@ -187,5 +207,5 @@ export default defineComponent({
     }
 })
 </script>
-  
+
 <style></style>

@@ -63,6 +63,37 @@ const routes: Array<RouteRecordRaw> = [
                     permission: "admin-attendance-recap",
                 },
             },
+            {
+                path: "/admin/tasks",
+                name: "admin-tasks",
+                component: () => import("@/pages/admin/AdminTasks.vue"),
+                meta: {
+                    pageTitle: "Kelola Tugas",
+                    breadcrumbs: ["Admin", "Kelola Tugas"],
+                    permission: "task-management",
+                },
+            },
+            {
+                path: "/admin/leave-requests",
+                name: "admin-leave-requests",
+                component: () => import("@/pages/admin/AdminLeaveRequests.vue"),
+                meta: {
+                    pageTitle: "Kelola Izin",
+                    breadcrumbs: ["Admin", "Kelola Izin"],
+                    permission: "leave-management",
+                },
+            },
+
+                {
+                    path: "/admin/intern-periods",
+                    name: "admin-intern-periods",
+                    component: () => import("@/pages/admin/Admininternperiods.vue"),
+                    meta: {
+                        pageTitle: "Periode Magang",
+                        breadcrumbs: ["Admin", "Periode Magang"],
+                        permission: "admin-dashboard",
+                    },
+                },
 
             // KELOLA LANDING (dipindahkan dari dashboard Landing)
             {
@@ -201,7 +232,7 @@ const routes: Array<RouteRecordRaw> = [
                 path: "/attendance/check",
                 name: "attendance-check",
                 component: () =>
-                    import("@/pages/attendance/Checkout.vue"),
+                    import("@/pages/attendance/CheckOut.vue"),
                 meta: {
                     pageTitle: "Absen Sekarang",
                     breadcrumbs: ["Absensi", "Absen"],
@@ -226,6 +257,28 @@ const routes: Array<RouteRecordRaw> = [
                 meta: {
                     pageTitle: "Jurnal Saya",
                     breadcrumbs: ["Jurnal", "Jurnal Saya"],
+                },
+            },
+
+            // TUGAS (dari hr-admin ke intern)
+            {
+                path: "/tasks/my",
+                name: "tasks-my",
+                component: () => import("@/pages/task/MyTasks.vue"),
+                meta: {
+                    pageTitle: "Tugas Saya",
+                    breadcrumbs: ["Tugas", "Tugas Saya"],
+                },
+            },
+
+            // IZIN TIDAK MASUK
+            {
+                path: "/leave/my",
+                name: "leave-my",
+                component: () => import("@/pages/leave/MyLeaveRequests.vue"),
+                meta: {
+                    pageTitle: "Izin Tidak Masuk",
+                    breadcrumbs: ["Izin", "Izin Tidak Masuk"],
                 },
             },
             {

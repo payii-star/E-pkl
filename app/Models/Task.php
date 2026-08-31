@@ -17,11 +17,25 @@ class Task extends Model
         'description',
         'status',
         'due_date',
+        'attachment',
+        'submission_note',
+        'admin_note',
+        'submitted_at',
+        'reviewed_at',
     ];
 
     protected $casts = [
         'due_date' => 'date',
+        'submitted_at' => 'datetime',
+        'reviewed_at' => 'datetime',
     ];
+
+    protected $appends = ['attachment_url'];
+
+    public function getAttachmentUrlAttribute(): ?string
+    {
+        return $this->attachment ? asset('storage/' . $this->attachment) : null;
+    }
 
     public function user(): BelongsTo
     {

@@ -5,7 +5,6 @@ import * as Yup from "yup";
 import axios from "@/libs/axios";
 import { toast } from "vue3-toastify";
 import type { Team } from "@/types";
-import ApiService from "@/core/services/ApiService";
 
 const props = defineProps({
     selected: {
@@ -16,78 +15,195 @@ const props = defineProps({
 
 const emit = defineEmits(["close", "refresh"]);
 
-const team = ref<Team>({} as Team);
-const fileTypes = ref(["image/jpeg", "image/png", "image/jpg"]);
-const image = ref<any>([]);
+const team = ref<Team>({
+    name: "",
+    position: "",
+    order: 1,
+} as Team);
+
+const fileTypes = ref([
+    "image/jpeg",
+    "image/png",
+    "image/jpg",
+]);
+
+const image = ref<any[]>([]);
+
 const formRef = ref();
 
 const formSchema = Yup.object().shape({
-    name: Yup.string().required("Nama harus diisi"),
+    name: Yup.string().required(
+        "Nama harus diisi"
+    ),
+
     position: Yup.string().nullable(),
+
     order: Yup.number()
         .typeError("Urutan harus berupa angka")
         .required("Urutan harus diisi"),
 });
 
+function resetForm() {
+    team.value = {
+        name: "",
+        position: "",
+        order: 1,
+    } as Team;
+
+    image.value = [];
+}
+
 function getEdit() {
-    block(document.getElementById("form-team"));
-    ApiService.get("master/teams", props.selected)
+    if (!props.selected) {
+        return;
+    }
+
+    block(
+        document.getElementById("form-team")
+    );
+
+    axios
+        .get(`/master/teams/${props.selected}`)
         .then(({ data }) => {
-            team.value = data.team;
-            image.value = data.team.image
-                ? ["/storage/" + data.team.image]
+            /*
+             * Support response:
+             *
+             * {
+             *     data: {...}
+             * }
+             *
+             * atau:
+             *
+             * {
+             *     team: {...}
+             * }
+             */
+            const teamData =
+                data.data ??
+                data.team ??
+                data;
+
+            team.value = teamData;
+
+            image.value = teamData.image
+                ? ["/storage/" + teamData.image]
                 : [];
         })
         .catch((err: any) => {
-            toast.error(err.response.data.message);
+            toast.error(
+                err.response?.data?.message ??
+                    "Gagal memuat data team"
+            );
         })
         .finally(() => {
-            unblock(document.getElementById("form-team"));
+            unblock(
+                document.getElementById("form-team")
+            );
         });
 }
 
 function submit() {
     const formData = new FormData();
-    formData.append("name", team.value.name);
-    formData.append("position", team.value.position ?? "");
-    formData.append("order", String(team.value.order));
 
-    if (image.value.length) {
-        formData.append("image", image.value[0].file);
+    formData.append(
+        "name",
+        team.value.name ?? ""
+    );
+
+    formData.append(
+        "position",
+        team.value.position ?? ""
+    );
+
+    formData.append(
+        "order",
+        String(team.value.order ?? 1)
+    );
+
+    /*
+     * Hanya kirim foto jika user memilih
+     * file baru.
+     */
+    if (
+        image.value.length &&
+        image.value[0]?.file
+    ) {
+        formData.append(
+            "image",
+            image.value[0].file
+        );
     }
+
+    /*
+     * CREATE
+     * POST /api/master/teams
+     *
+     * EDIT
+     * PUT /api/master/teams/{id}
+     *
+     * Karena menggunakan multipart/form-data,
+     * edit dikirim POST + _method=PUT.
+     */
     if (props.selected) {
         formData.append("_method", "PUT");
     }
 
-    block(document.getElementById("form-team"));
+    block(
+        document.getElementById("form-team")
+    );
+
     axios({
         method: "post",
+
         url: props.selected
             ? `/master/teams/${props.selected}`
-            : "/master/teams/store",
+            : "/master/teams",
+
         data: formData,
+
         headers: {
-            "Content-Type": "multipart/form-data",
+            "Content-Type":
+                "multipart/form-data",
         },
     })
         .then(() => {
+            toast.success(
+                props.selected
+                    ? "Team berhasil diperbarui"
+                    : "Team berhasil ditambahkan"
+            );
+
             emit("close");
             emit("refresh");
-            toast.success("Data berhasil disimpan");
-            formRef.value.resetForm();
+
+            formRef.value?.resetForm();
         })
         .catch((err: any) => {
-            formRef.value.setErrors(err.response.data.errors);
-            toast.error(err.response.data.message);
+            if (
+                err.response?.data?.errors
+            ) {
+                formRef.value?.setErrors(
+                    err.response.data.errors
+                );
+            }
+
+            toast.error(
+                err.response?.data?.message ??
+                    "Gagal menyimpan team"
+            );
         })
         .finally(() => {
-            unblock(document.getElementById("form-team"));
+            unblock(
+                document.getElementById("form-team")
+            );
         });
 }
 
-onMounted(async () => {
+onMounted(() => {
     if (props.selected) {
         getEdit();
+    } else {
+        resetForm();
     }
 });
 
@@ -96,6 +212,8 @@ watch(
     () => {
         if (props.selected) {
             getEdit();
+        } else {
+            resetForm();
         }
     }
 );
@@ -109,25 +227,38 @@ watch(
         id="form-team"
         ref="formRef"
     >
-        <div class="card-header align-items-center">
-            <h2 class="mb-0">{{ selected ? "Edit" : "Tambah" }} Team Member</h2>
+        <div
+            class="card-header align-items-center"
+        >
+            <h2 class="mb-0">
+                {{ selected ? "Edit" : "Tambah" }}
+                Team Member
+            </h2>
+
             <button
                 type="button"
                 class="btn btn-sm btn-light-danger ms-auto"
                 @click="emit('close')"
             >
                 Batal
-                <i class="la la-times-circle p-0"></i>
+
+                <i
+                    class="la la-times-circle p-0"
+                ></i>
             </button>
         </div>
+
         <div class="card-body">
             <div class="row">
+                <!-- NAMA -->
                 <div class="col-md-6">
-                    <!--begin::Input group-->
                     <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6 required">
+                        <label
+                            class="form-label fw-bold fs-6 required"
+                        >
                             Nama
                         </label>
+
                         <Field
                             class="form-control form-control-lg form-control-solid"
                             type="text"
@@ -136,20 +267,30 @@ watch(
                             v-model="team.name"
                             placeholder="Masukkan Nama"
                         />
-                        <div class="fv-plugins-message-container">
-                            <div class="fv-help-block">
-                                <ErrorMessage name="name" />
+
+                        <div
+                            class="fv-plugins-message-container"
+                        >
+                            <div
+                                class="fv-help-block"
+                            >
+                                <ErrorMessage
+                                    name="name"
+                                />
                             </div>
                         </div>
                     </div>
-                    <!--end::Input group-->
                 </div>
+
+                <!-- JABATAN -->
                 <div class="col-md-6">
-                    <!--begin::Input group-->
                     <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6">
+                        <label
+                            class="form-label fw-bold fs-6"
+                        >
                             Jabatan
                         </label>
+
                         <Field
                             class="form-control form-control-lg form-control-solid"
                             type="text"
@@ -158,20 +299,30 @@ watch(
                             v-model="team.position"
                             placeholder="Contoh: Project Manager"
                         />
-                        <div class="fv-plugins-message-container">
-                            <div class="fv-help-block">
-                                <ErrorMessage name="position" />
+
+                        <div
+                            class="fv-plugins-message-container"
+                        >
+                            <div
+                                class="fv-help-block"
+                            >
+                                <ErrorMessage
+                                    name="position"
+                                />
                             </div>
                         </div>
                     </div>
-                    <!--end::Input group-->
                 </div>
+
+                <!-- URUTAN -->
                 <div class="col-md-6">
-                    <!--begin::Input group-->
                     <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6 required">
+                        <label
+                            class="form-label fw-bold fs-6 required"
+                        >
                             Urutan
                         </label>
+
                         <Field
                             class="form-control form-control-lg form-control-solid"
                             type="number"
@@ -180,39 +331,63 @@ watch(
                             v-model="team.order"
                             placeholder="1"
                         />
-                        <div class="fv-plugins-message-container">
-                            <div class="fv-help-block">
-                                <ErrorMessage name="order" />
+
+                        <div
+                            class="fv-plugins-message-container"
+                        >
+                            <div
+                                class="fv-help-block"
+                            >
+                                <ErrorMessage
+                                    name="order"
+                                />
                             </div>
                         </div>
                     </div>
-                    <!--end::Input group-->
                 </div>
+
+                <!-- FOTO -->
                 <div class="col-md-6">
-                    <!--begin::Input group-->
                     <div class="fv-row mb-7">
-                        <label class="form-label fw-bold fs-6">
+                        <label
+                            class="form-label fw-bold fs-6"
+                        >
                             Foto
                         </label>
-                        <!--begin::Input-->
+
                         <file-upload
                             :files="image"
-                            :accepted-file-types="fileTypes"
-                            v-on:updatefiles="(file) => (image = file)"
-                        ></file-upload>
-                        <!--end::Input-->
-                        <div class="fv-plugins-message-container">
-                            <div class="fv-help-block">
-                                <ErrorMessage name="image" />
+                            :accepted-file-types="
+                                fileTypes
+                            "
+                            v-on:updatefiles="
+                                (file) =>
+                                    (image = file)
+                            "
+                        >
+                        </file-upload>
+
+                        <div
+                            class="fv-plugins-message-container"
+                        >
+                            <div
+                                class="fv-help-block"
+                            >
+                                <ErrorMessage
+                                    name="image"
+                                />
                             </div>
                         </div>
                     </div>
-                    <!--end::Input group-->
                 </div>
             </div>
         </div>
+
         <div class="card-footer d-flex">
-            <button type="submit" class="btn btn-primary btn-sm ms-auto">
+            <button
+                type="submit"
+                class="btn btn-primary btn-sm ms-auto"
+            >
                 Simpan
             </button>
         </div>

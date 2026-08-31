@@ -13,13 +13,17 @@ const openForm = ref<boolean>(false);
 
 function fetchProjects() {
     loading.value = true;
+
     axios
         .get("/master/projects")
         .then(({ data }) => {
             projects.value = data.data;
         })
         .catch((err: any) => {
-            toast.error(err.response?.data?.message ?? "Gagal memuat data project");
+            toast.error(
+                err.response?.data?.message ??
+                    "Gagal memuat data project"
+            );
         })
         .finally(() => {
             loading.value = false;
@@ -47,6 +51,7 @@ function remove(project: Project) {
         buttonsStyling: false,
     }).then((result) => {
         if (!result.isConfirmed) return;
+
         axios
             .delete(`/master/projects/${project.id}`)
             .then(() => {
@@ -54,15 +59,23 @@ function remove(project: Project) {
                 fetchProjects();
             })
             .catch((err: any) => {
-                toast.error(err.response?.data?.message ?? "Gagal menghapus project");
+                toast.error(
+                    err.response?.data?.message ??
+                        "Gagal menghapus project"
+                );
             });
     });
 }
 
-const refresh = () => fetchProjects();
+const refresh = () => {
+    fetchProjects();
+};
 
 watch(openForm, (val) => {
-    if (!val) selected.value = null;
+    if (!val) {
+        selected.value = null;
+    }
+
     window.scrollTo(0, 0);
 });
 
@@ -80,6 +93,7 @@ onMounted(fetchProjects);
     <div class="card">
         <div class="card-header align-items-center">
             <h2 class="mb-0">List Projects</h2>
+
             <button
                 type="button"
                 class="btn btn-sm btn-primary ms-auto"
@@ -90,6 +104,7 @@ onMounted(fetchProjects);
                 <i class="la la-plus"></i>
             </button>
         </div>
+
         <div class="card-body">
             <div class="table-responsive">
                 <table
@@ -108,19 +123,32 @@ onMounted(fetchProjects);
                             <th class="py-4">Aksi</th>
                         </tr>
                     </thead>
+
                     <tbody>
                         <tr v-if="loading">
-                            <td colspan="7" class="text-center py-4">Memuat data...</td>
+                            <td
+                                colspan="7"
+                                class="text-center py-4"
+                            >
+                                Memuat data...
+                            </td>
                         </tr>
-                        <template v-else-if="projects.length">
+
+                        <template
+                            v-else-if="projects.length"
+                        >
                             <tr
                                 v-for="(project, index) in projects"
                                 :key="project.id"
                             >
-                                <td class="py-4">{{ index + 1 }}</td>
+                                <td class="py-4">
+                                    {{ index + 1 }}
+                                </td>
+
                                 <td class="py-4">
                                     <img
-                                        :src="project.image ? `/storage/${project.image}` : ''"
+                                        v-if="project.thumbnail"
+                                        :src="`/storage/${project.thumbnail}`"
                                         :alt="project.title"
                                         class="rounded"
                                         style="
@@ -128,10 +156,31 @@ onMounted(fetchProjects);
                                             height: 60px;
                                             object-fit: cover;
                                         "
-                                        onerror="this.src='https://placehold.co/60x60?text=No+Image'"
+                                        @error="
+                                            ($event) =>
+                                                (($event.target as HTMLImageElement).src =
+                                                    'https://placehold.co/60x60?text=No+Image')
+                                        "
                                     />
+
+                                    <div
+                                        v-else
+                                        class="rounded d-flex align-items-center justify-content-center bg-light-secondary"
+                                        style="
+                                            width: 60px;
+                                            height: 60px;
+                                            font-size: 11px;
+                                            color: #777;
+                                        "
+                                    >
+                                        No Image
+                                    </div>
                                 </td>
-                                <td class="py-4">{{ project.title }}</td>
+
+                                <td class="py-4">
+                                    {{ project.title }}
+                                </td>
+
                                 <td class="py-4">
                                     <span
                                         class="badge"
@@ -142,12 +191,13 @@ onMounted(fetchProjects);
                                         "
                                     >
                                         {{
-                                            project.category === 'mobile'
+                                            project.category === "mobile"
                                                 ? "Mobile"
                                                 : "Web"
                                         }}
                                     </span>
                                 </td>
+
                                 <td class="py-4">
                                     <span
                                         class="badge"
@@ -164,7 +214,11 @@ onMounted(fetchProjects);
                                         }}
                                     </span>
                                 </td>
-                                <td class="py-4">{{ project.urutan }}</td>
+
+                                <td class="py-4">
+                                    {{ project.urutan }}
+                                </td>
+
                                 <td class="py-4">
                                     <div class="d-flex gap-2">
                                         <button
@@ -172,21 +226,30 @@ onMounted(fetchProjects);
                                             class="btn btn-sm btn-icon btn-info"
                                             @click="edit(project)"
                                         >
-                                            <i class="la la-pencil fs-2"></i>
+                                            <i
+                                                class="la la-pencil fs-2"
+                                            ></i>
                                         </button>
+
                                         <button
                                             type="button"
                                             class="btn btn-sm btn-icon btn-danger"
                                             @click="remove(project)"
                                         >
-                                            <i class="la la-trash fs-2"></i>
+                                            <i
+                                                class="la la-trash fs-2"
+                                            ></i>
                                         </button>
                                     </div>
                                 </td>
                             </tr>
                         </template>
+
                         <tr v-else>
-                            <td colspan="7" class="text-center py-4">
+                            <td
+                                colspan="7"
+                                class="text-center py-4"
+                            >
                                 Data tidak ditemukan
                             </td>
                         </tr>

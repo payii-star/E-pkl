@@ -1,179 +1,237 @@
 <template>
-    <div class="row g-5">
+    <div class="d-flex flex-column gap-5">
 
-        <!-- ══ DAFTAR INTERN ══ -->
-        <div class="col-12 col-xl-4">
-            <div class="card h-100">
-                <div class="card-header border-0 pt-6">
-                    <div class="card-title">
-                        <h2 class="fw-bold">Daftar Peserta Magang</h2>
-                    </div>
-                    <div class="card-toolbar">
-                        <div class="position-relative w-200px">
-                            <KTIcon icon-name="magnifier"
-                                icon-class="fs-3 text-gray-500 position-absolute top-50 translate-middle-y ms-3" />
-                            <input v-model="search" type="text" class="form-control form-control-sm ps-10"
-                                placeholder="Cari nama..." />
-                        </div>
+        <!-- ══ STRIP PESERTA MAGANG (horizontal, bisa di-scroll) ══ -->
+        <div class="card">
+            <div class="card-header border-0 pt-6">
+                <div class="card-title">
+                    <h2 class="fw-bold">Daftar Peserta Magang</h2>
+                </div>
+                <div class="card-toolbar">
+                    <div class="position-relative w-200px">
+                        <KTIcon icon-name="magnifier"
+                            icon-class="fs-3 text-gray-500 position-absolute top-50 translate-middle-y ms-3" />
+                        <input v-model="search" type="text" class="form-control form-control-sm ps-10"
+                            placeholder="Cari nama..." />
                     </div>
                 </div>
-                <div class="card-body pt-2">
-                    <div v-if="loadingInterns" class="text-center py-10">
-                        <div class="spinner-border text-primary"></div>
-                    </div>
-                    <div v-else-if="filteredInterns.length === 0" class="text-center text-muted py-8">
-                        Tidak ada data peserta magang
-                    </div>
-                    <div v-else class="d-flex flex-column gap-3">
-                        <div v-for="intern in filteredInterns" :key="intern.intern_id"
-                            class="intern-card d-flex align-items-center gap-3 p-3 rounded cursor-pointer"
-                            :class="{ 'intern-card--active': selected?.intern_id === intern.intern_id }"
-                            @click="selectIntern(intern)">
+            </div>
+            <div class="card-body pt-2">
+                <div v-if="loadingInterns" class="text-center py-10">
+                    <div class="spinner-border text-primary"></div>
+                </div>
+                <div v-else-if="filteredInterns.length === 0" class="text-center text-muted py-8">
+                    Tidak ada data peserta magang
+                </div>
+                <div v-else class="intern-strip">
+                    <div v-for="intern in filteredInterns" :key="intern.intern_id"
+                        class="intern-chip d-flex flex-column align-items-center gap-2 p-3 rounded cursor-pointer flex-shrink-0"
+                        :class="{ 'intern-chip--active': selected?.intern_id === intern.intern_id }"
+                        @click="selectIntern(intern)">
 
-                            <!-- Avatar -->
-                            <div class="symbol symbol-45px flex-shrink-0">
-                                <img v-if="intern.photo" :src="intern.photo" alt="foto" class="rounded" />
-                                <span v-else class="symbol-label bg-light-primary text-primary fw-bold fs-5">
-                                    {{ intern.name?.charAt(0)?.toUpperCase() }}
-                                </span>
-                            </div>
+                        <div class="symbol symbol-50px">
+                            <img v-if="intern.photo" :src="intern.photo" alt="foto" class="rounded" />
+                            <span v-else class="symbol-label bg-light-primary text-primary fw-bold fs-5">
+                                {{ intern.name?.charAt(0)?.toUpperCase() }}
+                            </span>
+                        </div>
 
-                            <!-- Info -->
-                            <div class="flex-fill min-w-0">
-                                <div class="fw-bold text-gray-800 text-truncate">{{ intern.name }}</div>
-                                <div class="text-muted fs-8 text-truncate">{{ intern.institusi_asal ?? '-' }}</div>
-                            </div>
-
-                            <!-- Ringkasan hadir bulan ini -->
-                            <div class="flex-shrink-0 text-end">
-                                <span class="badge badge-light-success">
-                                    {{ intern.total_hadir_bulan_ini }}x hadir
-                                </span>
-                            </div>
+                        <div class="text-center" style="width: 100px">
+                            <div class="fw-bold text-gray-800 text-truncate fs-8">{{ intern.name }}</div>
+                            <span class="badge badge-light-success mt-1">{{ intern.total_hadir_periode }}x</span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ══ PANEL KANAN ══ -->
-        <div class="col-12 col-xl-8">
-
-            <!-- Placeholder jika belum pilih -->
-            <div v-if="!selected" class="card h-100 d-flex align-items-center justify-content-center">
-                <div class="text-center text-muted py-10">
+        <!-- ══ PLACEHOLDER JIKA BELUM PILIH ══ -->
+        <div v-if="!selected" class="card">
+            <div class="card-body d-flex align-items-center justify-content-center py-15">
+                <div class="text-center text-muted">
                     <KTIcon icon-name="calendar" icon-class="fs-3x mb-3 text-gray-300" />
                     <div class="fs-5 fw-semibold">Pilih peserta magang</div>
-                    <div class="fs-7 mt-1">Klik nama di sebelah kiri untuk melihat rekap absensi</div>
+                    <div class="fs-7 mt-1">Klik salah satu nama di atas untuk melihat rekap absensi</div>
+                </div>
+            </div>
+        </div>
+
+        <template v-else>
+            <!-- ══ PROFIL + FILTER PERIODE ══ -->
+            <div class="card">
+                <div class="card-body py-5">
+                    <div class="d-flex align-items-center gap-4 flex-wrap">
+                        <div class="symbol symbol-55px">
+                            <img v-if="selected.photo" :src="selected.photo" class="rounded" />
+                            <span v-else class="symbol-label bg-light-primary text-primary fw-bold fs-3">
+                                {{ selected.name?.charAt(0)?.toUpperCase() }}
+                            </span>
+                        </div>
+                        <div class="flex-fill min-w-150px">
+                            <div class="fw-bold fs-4 text-gray-800">{{ selected.name }}</div>
+                            <div class="text-muted fs-7">{{ selected.institusi_asal ?? '-' }} · {{ selected.posisi ?? '-' }}</div>
+                        </div>
+
+                        <div class="flex-shrink-0">
+                            <label class="fs-8 text-muted mb-1 d-block">Tampilan</label>
+                            <select class="form-select form-select-sm" v-model="period" @change="onPeriodChange">
+                                <option value="week">Mingguan</option>
+                                <option value="month">Bulanan</option>
+                            </select>
+                        </div>
+
+                        <div class="flex-shrink-0">
+                            <label class="fs-8 text-muted mb-1 d-block">
+                                {{ period === 'week' ? 'Pilih Tanggal' : 'Pilih Bulan' }}
+                            </label>
+                            <input
+                                v-if="period === 'month'"
+                                type="month"
+                                class="form-control form-control-sm"
+                                v-model="selectedMonth"
+                            />
+                            <input
+                                v-else
+                                type="date"
+                                class="form-control form-control-sm"
+                                v-model="selectedWeekDate"
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <template v-else>
-                <!-- Header + filter bulan -->
-                <div class="card mb-5">
-                    <div class="card-body py-4">
-                        <div class="d-flex align-items-center gap-4 flex-wrap">
-                            <div class="symbol symbol-55px">
-                                <img v-if="selected.photo" :src="selected.photo" class="rounded" />
-                                <span v-else class="symbol-label bg-light-primary text-primary fw-bold fs-3">
-                                    {{ selected.name?.charAt(0)?.toUpperCase() }}
-                                </span>
-                            </div>
-                            <div class="flex-fill min-w-150px">
-                                <div class="fw-bold fs-4 text-gray-800">{{ selected.name }}</div>
-                                <div class="text-muted fs-7">{{ selected.institusi_asal ?? '-' }} · {{ selected.posisi ?? '-' }}</div>
-                            </div>
-                            <div class="flex-shrink-0">
-                                <label class="fs-8 text-muted mb-1 d-block">Pilih Bulan</label>
-                                <input type="month" class="form-control form-control-sm" v-model="selectedMonth" />
-                            </div>
-                        </div>
-                    </div>
+            <!-- Loading rekap -->
+            <div v-if="loadingRecap" class="card">
+                <div class="card-body text-center py-15">
+                    <div class="spinner-border text-primary"></div>
                 </div>
+            </div>
 
-                <!-- Loading rekap -->
-                <div v-if="loadingRecap" class="card">
-                    <div class="card-body text-center py-15">
-                        <div class="spinner-border text-primary"></div>
-                    </div>
-                </div>
-
-                <template v-else-if="recap">
-                    <!-- Ringkasan Bulanan -->
-                    <div class="row g-4 mb-5">
-                        <div class="col-6 col-md-3">
-                            <div class="card card-flush">
-                                <div class="card-body text-center py-5">
-                                    <div class="fs-2 fw-bold text-gray-800">{{ recap.summary.total_hari_kerja }}</div>
+            <template v-else-if="recap">
+                <!-- ══ RINGKASAN — bar horizontal ikon + angka ══ -->
+                <div class="card">
+                    <div class="card-body py-5">
+                        <div class="d-flex flex-wrap gap-5">
+                            <div class="d-flex align-items-center gap-3 flex-fill">
+                                <div class="symbol symbol-45px">
+                                    <span class="symbol-label bg-light">
+                                        <KTIcon icon-name="calendar" icon-class="fs-2 text-gray-600" />
+                                    </span>
+                                </div>
+                                <div>
+                                    <div class="fs-3 fw-bold text-gray-800 lh-1">{{ recap.summary.total_hari_kerja }}</div>
                                     <div class="text-muted fs-8">Hari Kerja</div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="card card-flush">
-                                <div class="card-body text-center py-5">
-                                    <div class="fs-2 fw-bold text-success">{{ recap.summary.total_hadir }}</div>
+                            <div class="d-flex align-items-center gap-3 flex-fill">
+                                <div class="symbol symbol-45px">
+                                    <span class="symbol-label bg-light-success">
+                                        <KTIcon icon-name="check" icon-class="fs-2 text-success" />
+                                    </span>
+                                </div>
+                                <div>
+                                    <div class="fs-3 fw-bold text-success lh-1">{{ recap.summary.total_hadir }}</div>
                                     <div class="text-muted fs-8">Hadir</div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="card card-flush">
-                                <div class="card-body text-center py-5">
-                                    <div class="fs-2 fw-bold text-danger">{{ recap.summary.total_tidak_hadir }}</div>
+                            <div class="d-flex align-items-center gap-3 flex-fill">
+                                <div class="symbol symbol-45px">
+                                    <span class="symbol-label bg-light-danger">
+                                        <KTIcon icon-name="cross" icon-class="fs-2 text-danger" />
+                                    </span>
+                                </div>
+                                <div>
+                                    <div class="fs-3 fw-bold text-danger lh-1">{{ recap.summary.total_tidak_hadir }}</div>
                                     <div class="text-muted fs-8">Tidak Hadir</div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="card card-flush">
-                                <div class="card-body text-center py-5">
-                                    <div class="fs-2 fw-bold text-primary">{{ recap.summary.persentase_kehadiran }}%</div>
+                            <div class="d-flex align-items-center gap-3 flex-fill">
+                                <div class="symbol symbol-45px">
+                                    <span class="symbol-label bg-light-primary">
+                                        <KTIcon icon-name="chart-simple" icon-class="fs-2 text-primary" />
+                                    </span>
+                                </div>
+                                <div>
+                                    <div class="fs-3 fw-bold text-primary lh-1">{{ recap.summary.persentase_kehadiran }}%</div>
                                     <div class="text-muted fs-8">Kehadiran</div>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Tabel Harian -->
-                    <div class="card">
-                        <div class="card-header border-0 pt-6">
-                            <div class="card-title">
-                                <h3 class="fw-bold mb-0">Rincian Harian — {{ formatMonthLabel(recap.month) }}</h3>
-                            </div>
-                        </div>
-                        <div class="card-body pt-2">
-                            <div class="table-responsive">
-                                <table class="table table-row-bordered align-middle">
-                                    <thead>
-                                        <tr class="text-muted fw-bold fs-7 text-uppercase">
-                                            <th>Tanggal</th>
-                                            <th>Hari</th>
-                                            <th>Jam Masuk</th>
-                                            <th>Jam Keluar</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr v-for="day in recap.days" :key="day.date"
-                                            :class="{ 'bg-light-secondary': day.is_weekend }">
-                                            <td>{{ formatDayLabel(day.date) }}</td>
-                                            <td>{{ formatDayName(day.date) }}</td>
-                                            <td>{{ day.check_in_time ?? '-' }}</td>
-                                            <td>{{ day.check_out_time ?? '-' }}</td>
-                                            <td>
-                                                <span class="badge" :class="statusBadgeClass(day.status)">
-                                                    {{ statusLabel(day.status) }}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                <!-- ══ TABEL HARIAN ══ -->
+                <div class="card">
+                    <div class="card-header border-0 pt-6">
+                        <div class="card-title">
+                            <h3 class="fw-bold mb-0">Rincian Harian — {{ periodLabel }}</h3>
                         </div>
                     </div>
-                </template>
+                    <div class="card-body pt-2">
+                        <div class="table-responsive">
+                            <table class="table table-row-bordered align-middle">
+                                <thead>
+                                    <tr class="text-muted fw-bold fs-7 text-uppercase">
+                                        <th>Tanggal</th>
+                                        <th>Hari</th>
+                                        <th>Jam Masuk</th>
+                                        <th>Jam Keluar</th>
+                                        <th>Status</th>
+                                        <th>Foto</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="day in recap.days" :key="day.date"
+                                        :class="{ 'bg-light-secondary': day.is_weekend }">
+                                        <td>{{ formatDayLabel(day.date) }}</td>
+                                        <td>{{ formatDayName(day.date) }}</td>
+                                        <td>{{ day.check_in_time ?? '-' }}</td>
+                                        <td>{{ day.check_out_time ?? '-' }}</td>
+                                        <td>
+                                            <span class="badge" :class="statusBadgeClass(day.status)">
+                                                {{ statusLabel(day.status) }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex gap-2">
+                                                <img
+                                                    v-if="day.check_in_photo"
+                                                    :src="day.check_in_photo"
+                                                    class="photo-thumb"
+                                                    title="Foto absen masuk"
+                                                    @click="openPhoto(day.check_in_photo, 'Foto Absen Masuk — ' + formatDayLabel(day.date))"
+                                                />
+                                                <img
+                                                    v-if="day.check_out_photo"
+                                                    :src="day.check_out_photo"
+                                                    class="photo-thumb"
+                                                    title="Foto absen pulang"
+                                                    @click="openPhoto(day.check_out_photo, 'Foto Absen Pulang — ' + formatDayLabel(day.date))"
+                                                />
+                                                <span v-if="!day.check_in_photo && !day.check_out_photo" class="text-muted fs-8">-</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </template>
+        </template>
+
+        <!-- ══ MODAL PREVIEW FOTO ══ -->
+        <div v-if="previewPhoto" class="photo-modal" @click.self="closePhoto">
+            <div class="photo-modal__box">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="fw-semibold text-white">{{ previewPhotoTitle }}</div>
+                    <button type="button" class="btn btn-sm btn-icon btn-light" @click="closePhoto">
+                        <KTIcon icon-name="cross" icon-class="fs-4" />
+                    </button>
+                </div>
+                <img :src="previewPhoto" class="photo-modal__img" />
+            </div>
         </div>
     </div>
 </template>
@@ -190,11 +248,32 @@ const loadingInterns = ref(false)
 
 const recap = ref<any>(null)
 const loadingRecap = ref(false)
+
+const period = ref<'week' | 'month'>('month')
 const selectedMonth = ref(currentMonthValue())
+const selectedWeekDate = ref(currentDateValue())
+
+// Preview foto absen
+const previewPhoto = ref<string | null>(null)
+const previewPhotoTitle = ref('')
+
+function openPhoto(url: string, title: string) {
+    previewPhoto.value = url
+    previewPhotoTitle.value = title
+}
+
+function closePhoto() {
+    previewPhoto.value = null
+}
 
 function currentMonthValue() {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
+function currentDateValue() {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
 
 // ─── Computed ─────────────────────────────────────────────────────────────────
@@ -205,13 +284,31 @@ const filteredInterns = computed(() =>
     )
 )
 
+const periodParams = computed(() =>
+    period.value === 'week'
+        ? { period: 'week', date: selectedWeekDate.value }
+        : { period: 'month', month: selectedMonth.value }
+)
+
+const periodLabel = computed(() => {
+    if (!recap.value?.range) return '-'
+    const start = new Date(recap.value.range.start + 'T00:00:00')
+    const end = new Date(recap.value.range.end + 'T00:00:00')
+
+    if (period.value === 'week') {
+        const startLabel = start.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })
+        const endLabel = end.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+        return `${startLabel} - ${endLabel}`
+    }
+
+    return start.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+})
+
 // ─── Load data ────────────────────────────────────────────────────────────────
 async function loadInterns() {
     loadingInterns.value = true
     try {
-        const res = await axios.get('/admin/attendance/interns', {
-            params: { month: selectedMonth.value },
-        })
+        const res = await axios.get('/admin/attendance/interns', { params: periodParams.value })
         interns.value = res.data.data ?? []
     } catch (e: any) {
         console.error('Gagal load peserta magang:', e)
@@ -225,9 +322,7 @@ async function loadRecap() {
     loadingRecap.value = true
     recap.value = null
     try {
-        const res = await axios.get(`/admin/attendance/${selected.value.intern_id}`, {
-            params: { month: selectedMonth.value },
-        })
+        const res = await axios.get(`/admin/attendance/${selected.value.intern_id}`, { params: periodParams.value })
         recap.value = res.data
     } catch (e: any) {
         console.error('Gagal load rekap absensi:', e)
@@ -241,8 +336,13 @@ function selectIntern(intern: any) {
     loadRecap()
 }
 
-// Reload rekap saat bulan diganti
-watch(selectedMonth, () => {
+function onPeriodChange() {
+    loadInterns()
+    if (selected.value) loadRecap()
+}
+
+// Reload saat bulan/tanggal-minggu diganti
+watch([selectedMonth, selectedWeekDate], () => {
     if (selected.value) loadRecap()
     loadInterns()
 })
@@ -256,11 +356,6 @@ function formatDayLabel(dateStr: string) {
 function formatDayName(dateStr: string) {
     const d = new Date(dateStr + 'T00:00:00')
     return d.toLocaleDateString('id-ID', { weekday: 'long' })
-}
-
-function formatMonthLabel(monthStr: string) {
-    const d = new Date(monthStr + '-01T00:00:00')
-    return d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
 }
 
 function statusLabel(status: string) {
@@ -292,11 +387,59 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.intern-card {
+.intern-strip {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+.intern-chip {
     border: 1.5px solid #f1f1f2;
     transition: all .15s;
     cursor: pointer;
+    min-width: 110px;
 }
-.intern-card:hover     { background: #f9f9f9; border-color: #d9d9e0; }
-.intern-card--active   { background: #eef6ff; border-color: #009ef7 !important; }
+.intern-chip:hover     { background: #f9f9f9; border-color: #d9d9e0; }
+.intern-chip--active   { background: #eef6ff; border-color: #009ef7 !important; }
+
+/* ── Foto absen ── */
+.photo-thumb {
+    width: 36px;
+    height: 36px;
+    object-fit: cover;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1.5px solid #e4e6ef;
+    transition: transform .15s, border-color .15s;
+}
+.photo-thumb:hover {
+    transform: scale(1.08);
+    border-color: #009ef7;
+}
+
+/* ── Modal preview foto ── */
+.photo-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+    padding: 20px;
+}
+.photo-modal__box {
+    background: #1a1d29;
+    border-radius: 12px;
+    padding: 16px;
+    max-width: 90vw;
+    max-height: 90vh;
+}
+.photo-modal__img {
+    max-width: 100%;
+    max-height: 75vh;
+    display: block;
+    border-radius: 8px;
+    margin: 0 auto;
+}
 </style>

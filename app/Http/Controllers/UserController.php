@@ -138,6 +138,12 @@ class UserController extends Controller
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
             'phone' => ['required', 'string', 'max:20', Rule::unique('users')->ignore($user->id)],
+            'nim_nis' => ['required', 'string', 'max:100'],
+            'asal_instansi' => ['required', 'string', 'max:255'],
+            'asal_instansi_address' => ['required', 'string', 'max:500'],
+            'asal_instansi_latitude' => ['required', 'numeric', 'between:-90,90'],
+            'asal_instansi_longitude' => ['required', 'numeric', 'between:-180,180'],
+            'asal_instansi_place_id' => ['required', 'string', 'max:255'],
             'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048', // Foto tidak wajib
             'remove_photo' => 'nullable|boolean',
         ]);
@@ -167,6 +173,12 @@ class UserController extends Controller
         // 4. Update data user
         $user->name = $validatedData['name'];
         $user->phone = $validatedData['phone'];
+        $user->nim_nis = $validatedData['nim_nis'];
+        $user->asal_instansi = $validatedData['asal_instansi'];
+        $user->asal_instansi_address = $validatedData['asal_instansi_address'];
+        $user->asal_instansi_latitude = $validatedData['asal_instansi_latitude'];
+        $user->asal_instansi_longitude = $validatedData['asal_instansi_longitude'];
+        $user->asal_instansi_place_id = $validatedData['asal_instansi_place_id'];
 
         // 5. Simpan perubahan
         $user->save();

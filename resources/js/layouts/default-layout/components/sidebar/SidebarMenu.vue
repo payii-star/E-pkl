@@ -36,6 +36,11 @@ const hasNoPersonalItems = () => {
     return rolesWithoutPersonalItems.includes(roleName);
 };
 
+const isAdminUser = () => {
+    const roleName = user?.value?.role?.name;
+    return roleName === "admin";
+};
+
 // MainMenuConfig sudah berisi SEMUA item (termasuk item khusus admin,
 // masing-masing dengan field `permission`-nya sendiri). checkPermission()
 // di bawah sudah otomatis meloloskan semua item untuk isAdminUser(),
@@ -56,6 +61,7 @@ const hasActiveChildren = (match: string) => {
 const checkPermission = (item: any) => {
     if (item?.hideForAdmin && hasNoPersonalItems()) return false;
     if (!item?.permission) return true;
+    if (isAdminUser()) return true;
     return !!user?.value?.permission?.includes(item.permission);
 };
 
