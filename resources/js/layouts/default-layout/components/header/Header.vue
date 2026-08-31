@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { getAssetPath } from "@/core/helpers/assets";
 import KTHeaderNavbar from "@/layouts/default-layout/components/header/Navbar.vue";
 import {
@@ -7,6 +8,40 @@ import {
     layout,
     themeMode,
 } from "@/layouts/default-layout/config/helper";
+import { useSetting } from "@/services";
+
+const { data: setting = {} } = useSetting();
+const mobileLogoFallback = "/media/logos/default-small.svg";
+
+const resolveLogoUrl = (rawLogo?: string): string => {
+    if (!rawLogo) {
+        return getAssetPath(mobileLogoFallback.replace(/^\/+/, ""));
+    }
+
+    // Already a full/absolute URL (http://... or https://...) -> use as-is.
+    if (/^(https?:)?\/\//i.test(rawLogo)) {
+        return rawLogo;
+    }
+
+    // Relative path from API/DB, e.g. "/storage/setting/xxx.png" or "media/...".
+    // Must go through getAssetPath() so the backend host (VITE_BASE_URL) is prefixed,
+    // otherwise the browser requests it against the frontend's own origin and 404s.
+    return getAssetPath(rawLogo.replace(/^\/+/, ""));
+};
+
+const mobileLogo = computed(() => {
+    return resolveLogoUrl(setting.value?.dashboard_logo || setting.value?.logo);
+});
+
+const onMobileLogoError = (event: Event) => {
+    const img = event.target as HTMLImageElement;
+
+    if (!img || img.src.endsWith(mobileLogoFallback)) {
+        return;
+    }
+
+    img.src = mobileLogoFallback;
+};
 </script>
 
 <template>
@@ -69,7 +104,8 @@ import {
                     <router-link to="/" class="d-lg-none">
                         <img
                             alt="Logo"
-                            :src="getAssetPath('media/logos/default-small.svg')"
+                            :src="mobileLogo"
+                            @error="onMobileLogoError"
                             class="h-30px"
                         />
                     </router-link>

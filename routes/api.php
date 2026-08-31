@@ -323,6 +323,16 @@ Route::middleware(['auth', 'json'])->group(function () {
             'approvalHistory'
         ]);
 
+        Route::get('dates-taken', [
+            JournalController::class,
+            'datesTaken'
+        ]);
+
+        Route::put('{journal}', [
+            JournalController::class,
+            'update'
+        ]);
+
         Route::post('{journal}/approve', [
             JournalController::class,
             'approve'

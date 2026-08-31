@@ -102,6 +102,19 @@ class JournalController extends Controller
             }
         }
 
+        // Cegah 1 user membuat lebih dari 1 jurnal di tanggal yang sama.
+        // Kalau sudah ada, user harus mengedit lewat Riwayat Jurnal.
+        $existing = Journal::where('user_id', $user->id)
+            ->whereDate('date', $request->date)
+            ->first();
+
+        if ($existing) {
+            return response()->json([
+                'message' => 'Kamu sudah membuat jurnal di tanggal ini. Silakan edit lewat menu Riwayat Jurnal.',
+                'existing_journal_id' => $existing->id,
+            ], 422);
+        }
+
         $fotoPath = null;
 
         if ($request->hasFile('foto')) {
@@ -130,6 +143,100 @@ class JournalController extends Controller
             'message' => 'Jurnal berhasil disimpan.',
             'data' => $journal->load('activities'),
         ], 201);
+    }
+
+    /**
+     * GET /api/journals/dates-taken
+     * Dipakai frontend untuk men-disable tanggal yang sudah ada jurnalnya di datepicker.
+     */
+    public function datesTaken(Request $request)
+    {
+        $user = $request->user();
+
+        $dates = Journal::where('user_id', $user->id)
+            ->pluck('date')
+            ->map(fn ($d) => $d->format('Y-m-d'))
+            ->values();
+
+        return response()->json([
+            'data' => $dates,
+        ]);
+    }
+
+    /**
+     * PUT /api/journals/{journal}
+     * Edit jurnal yang sudah pernah dibuat (dipanggil dari Riwayat Jurnal).
+     * Kalau jurnal sebelumnya sudah 'approved', status otomatis balik jadi 'pending'
+     * karena isinya berubah dan perlu diperiksa ulang oleh pembimbing.
+     */
+    public function update(Request $request, Journal $journal)
+    {
+        $user = $request->user();
+
+        if ($journal->user_id !== $user->id) {
+            abort(403, 'Kamu tidak bisa mengedit jurnal milik orang lain.');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'activities' => 'required|array|min:1',
+            'activities.*.jam_mulai' => ['required', 'date_format:H:i'],
+            'activities.*.jam_selesai' => ['required', 'date_format:H:i'],
+            'activities.*.kegiatan' => ['required', 'string'],
+            'foto' => ['nullable', 'file', 'mimes:jpg,jpeg,png', 'max:1024'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => $validator->errors()->first(),
+            ], 422);
+        }
+
+        foreach ($request->input('activities', []) as $index => $activity) {
+            $jamMulai = $activity['jam_mulai'] ?? '';
+            $jamSelesai = $activity['jam_selesai'] ?? '';
+
+            if ($jamSelesai <= $jamMulai) {
+                return response()->json([
+                    'message' =>
+                        'Jam selesai pada aktivitas ke-' .
+                        ($index + 1) .
+                        ' harus lebih besar dari jam mulai.',
+                ], 422);
+            }
+        }
+
+        $wasApproved = $journal->status === 'approved';
+
+        $fotoPath = $journal->foto;
+        if ($request->hasFile('foto')) {
+            $fotoPath = $request->file('foto')->store('journals', 'public');
+        }
+
+        $journal->update([
+            'foto' => $fotoPath,
+            'status' => $wasApproved ? 'pending' : $journal->status,
+            'approved_by' => $wasApproved ? null : $journal->approved_by,
+            'approved_at' => $wasApproved ? null : $journal->approved_at,
+            'catatan_approval' => $wasApproved ? null : $journal->catatan_approval,
+            'last_edited_at' => now(),
+            'edit_count' => $journal->edit_count + 1,
+        ]);
+
+        $journal->activities()->delete();
+        foreach ($request->activities as $activity) {
+            $journal->activities()->create([
+                'jam_mulai' => $activity['jam_mulai'],
+                'jam_selesai' => $activity['jam_selesai'],
+                'kegiatan' => $activity['kegiatan'],
+            ]);
+        }
+
+        return response()->json([
+            'message' => $wasApproved
+                ? 'Jurnal diperbarui. Status kembali menunggu approval pembimbing.'
+                : 'Jurnal berhasil diperbarui.',
+            'data' => $journal->fresh('activities'),
+        ]);
     }
 
     /**

@@ -1,7 +1,7 @@
 <template>
     <div class="card">
         <div class="card-header border-0 pt-6">
-            <div class="card-title"><h2>Riwayat Jurnal</h2></div>
+            <div class="card-title"><h2> Jurnal</h2></div>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -40,6 +40,9 @@
                                 >
                                     {{ statusLabel(journal.status) }}
                                 </span>
+                                <div v-if="journal.last_edited_at" class="text-gray-500 fs-9 fst-italic mt-1">
+                                    Diedit pada {{ formatDate(journal.last_edited_at) }}
+                                </div>
                             </td>
                             <td style="min-width: 180px">
                                 <span v-if="journal.catatan_approval" :class="journal.status === 'rejected' ? 'text-danger' : 'text-gray-700'">
@@ -50,7 +53,10 @@
                                 </span>
                             </td>
                             <td class="text-nowrap">
-                                <button class="btn btn-sm btn-light-primary" @click="openDetail(journal)">Detail</button>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-light-primary" @click="openDetail(journal)">Detail</button>
+                                    <button class="btn btn-sm btn-light-warning" @click="openEdit(journal)">Edit</button>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
@@ -92,6 +98,64 @@
                 </div>
             </div>
         </div>
+
+        <!--begin::Modal Edit-->
+        <div v-if="editing" class="modal-backdrop-custom" @click.self="closeEdit">
+            <div class="modal-box-custom">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3 class="mb-0">Edit Jurnal — {{ formatDate(editing.date) }}</h3>
+                    <button class="btn btn-sm btn-icon btn-light" @click="closeEdit">✕</button>
+                </div>
+
+                <div v-if="editing.status === 'approved'" class="alert alert-warning fs-7 mb-4">
+                    Jurnal ini sudah <strong>Disetujui</strong>. Kalau kamu simpan perubahan, status akan
+                    kembali menjadi <strong>Menunggu Approval</strong> dan perlu diperiksa ulang oleh pembimbing.
+                </div>
+
+                <div v-if="editError" class="alert alert-danger fs-7 mb-4">{{ editError }}</div>
+
+                <div class="edit-activity-list mb-4">
+                    <div v-for="(act, idx) in editActivities" :key="idx" class="mb-3 p-3 border rounded position-relative">
+                        <div class="row g-3">
+                            <div class="col-6 col-md-3">
+                                <label class="form-label fs-8 text-gray-500 mb-1">Jam Mulai</label>
+                                <input type="time" class="form-control form-control-solid" v-model="act.jam_mulai" />
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <label class="form-label fs-8 text-gray-500 mb-1">Jam Selesai</label>
+                                <input type="time" class="form-control form-control-solid" v-model="act.jam_selesai" />
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fs-8 text-gray-500 mb-1">Kegiatan</label>
+                                <textarea class="form-control form-control-solid" rows="2" v-model="act.kegiatan"></textarea>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-icon btn-light-danger position-absolute top-0 end-0 m-2"
+                            :disabled="editActivities.length === 1"
+                            @click="removeEditActivity(idx)"
+                            title="Hapus aktivitas ini"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                </div>
+
+                <button type="button" class="btn btn-sm btn-light-primary mb-6" @click="addEditActivity">
+                    + Tambah Aktivitas
+                </button>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <button class="btn btn-light" @click="closeEdit" :disabled="editLoading">Batal</button>
+                    <button class="btn btn-primary" @click="submitEdit" :disabled="editLoading">
+                        <span v-if="editLoading" class="spinner-border spinner-border-sm me-2"></span>
+                        Simpan Perubahan
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!--end::Modal Edit-->
     </div>
 </template>
 
@@ -103,6 +167,68 @@ export default defineComponent({
     setup() {
         const journals = ref<any[]>([]);
         const selected = ref<any>(null);
+
+        // State untuk modal Edit
+        const editing = ref<any>(null);
+        const editActivities = ref<any[]>([]);
+        const editLoading = ref(false);
+        const editError = ref('');
+
+        const openEdit = (journal: any) => {
+            editing.value = journal;
+            editError.value = '';
+            editActivities.value = (journal.activities ?? []).map((a: any) => ({
+                jam_mulai: a.jam_mulai,
+                jam_selesai: a.jam_selesai,
+                kegiatan: a.kegiatan,
+            }));
+            if (editActivities.value.length === 0) {
+                editActivities.value.push({ jam_mulai: '', jam_selesai: '', kegiatan: '' });
+            }
+        };
+
+        const closeEdit = () => {
+            editing.value = null;
+            editActivities.value = [];
+            editError.value = '';
+        };
+
+        const addEditActivity = () => {
+            editActivities.value.push({ jam_mulai: '', jam_selesai: '', kegiatan: '' });
+        };
+
+        const removeEditActivity = (idx: number) => {
+            editActivities.value.splice(idx, 1);
+        };
+
+        const submitEdit = async () => {
+            if (!editing.value) return;
+
+            editError.value = '';
+            editLoading.value = true;
+
+            try {
+                const payload = new FormData();
+                payload.append('_method', 'PUT');
+
+                editActivities.value.forEach((act, index) => {
+                    payload.append(`activities[${index}][jam_mulai]`, act.jam_mulai);
+                    payload.append(`activities[${index}][jam_selesai]`, act.jam_selesai);
+                    payload.append(`activities[${index}][kegiatan]`, act.kegiatan);
+                });
+
+                // Laravel tidak membaca body multipart pada method PUT asli,
+                // jadi dikirim sebagai POST dengan _method override di atas.
+                await ApiService.post(`/journals/${editing.value.id}`, payload);
+
+                closeEdit();
+                await fetchHistory();
+            } catch (e: any) {
+                editError.value = e?.response?.data?.message ?? 'Gagal menyimpan perubahan jurnal.';
+            } finally {
+                editLoading.value = false;
+            }
+        };
 
         const fetchHistory = async () => {
             try {
@@ -139,7 +265,24 @@ export default defineComponent({
 
         onMounted(fetchHistory);
 
-        return { journals, selected, formatDate, statusLabel, truncate, fotoUrl, openDetail };
+        return {
+            journals,
+            selected,
+            formatDate,
+            statusLabel,
+            truncate,
+            fotoUrl,
+            openDetail,
+            editing,
+            editActivities,
+            editLoading,
+            editError,
+            openEdit,
+            closeEdit,
+            addEditActivity,
+            removeEditActivity,
+            submitEdit,
+        };
     },
 });
 </script>

@@ -26,7 +26,16 @@
             <!--begin::Tanggal-->
             <div class="mb-8">
                 <label class="form-label fw-bold">Tanggal</label>
-                <input type="date" class="form-control form-control-solid w-md-300px" v-model="date" />
+                <flat-pickr
+                    v-model="date"
+                    :config="datePickerConfig"
+                    class="form-control form-control-solid w-md-300px"
+                    placeholder="Pilih tanggal"
+                />
+                <div class="text-gray-500 fs-8 mt-2">
+                    Tanggal yang sudah diisi jurnal (ditandai abu-abu di kalender) tidak bisa dipilih lagi.
+                    Untuk mengubah jurnal yang sudah ada, buka menu <strong>Riwayat Jurnal</strong>.
+                </div>
             </div>
             <!--end::Tanggal-->
 
@@ -136,8 +145,10 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue';
+import { defineComponent, ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import flatPickr from 'vue-flatpickr-component';
+import 'flatpickr/dist/flatpickr.css';
 import ApiService from '@/core/services/ApiService';
 
 interface Activity {
@@ -147,6 +158,9 @@ interface Activity {
 }
 
 export default defineComponent({
+    components: {
+        flatPickr,
+    },
     setup() {
         const today = new Date().toISOString().slice(0, 10);
         const router = useRouter();
@@ -158,6 +172,27 @@ export default defineComponent({
 
         const fotoFile = ref<File | null>(null);
         const previewUrl = ref<string | null>(null);
+
+        // Tanggal-tanggal yang sudah punya jurnal, tidak boleh dipilih lagi.
+        const takenDates = ref<string[]>([]);
+
+        const fetchTakenDates = async () => {
+            try {
+                const { data } = await ApiService.get('/journals/dates-taken');
+                takenDates.value = data.data ?? [];
+            } catch (e) {
+                console.error('Gagal memuat tanggal yang sudah terpakai', e);
+            }
+        };
+
+        const datePickerConfig = computed(() => ({
+            dateFormat: 'Y-m-d',
+            altInput: true,
+            altFormat: 'd F Y',
+            disable: takenDates.value,
+        }));
+
+        onMounted(fetchTakenDates);
 
         const addActivity = () => {
             activities.value.push({ jam_mulai: '', jam_selesai: '', kegiatan: '' });
@@ -215,6 +250,7 @@ export default defineComponent({
                 activities.value = [{ jam_mulai: '', jam_selesai: '', kegiatan: '' }];
                 date.value = today;
                 removeFile();
+                await fetchTakenDates();
 
                 router.push({ name: 'journal-history' });
             } catch (e: any) {
@@ -232,6 +268,7 @@ export default defineComponent({
             errorMessage,
             fotoFile,
             previewUrl,
+            datePickerConfig,
             addActivity,
             removeActivity,
             onFileChange,

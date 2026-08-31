@@ -57,7 +57,7 @@ function getEdit() {
         })
         .finally(() => {
             unblock(document.getElementById("form-project"));
-        });
+       });
 }
 
 function submit() {
