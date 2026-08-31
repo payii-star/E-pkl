@@ -205,7 +205,10 @@ class JournalController extends Controller
             }
         }
 
-        $wasApproved = $journal->status === 'approved';
+        // Kalau jurnal sebelumnya sudah diputuskan (disetujui ATAU ditolak),
+        // begitu diedit isinya, keputusan lama tidak relevan lagi -> balik ke pending
+        // supaya diperiksa ulang oleh pembimbing.
+        $wasDecided = in_array($journal->status, ['approved', 'rejected'], true);
 
         $fotoPath = $journal->foto;
         if ($request->hasFile('foto')) {
@@ -214,10 +217,10 @@ class JournalController extends Controller
 
         $journal->update([
             'foto' => $fotoPath,
-            'status' => $wasApproved ? 'pending' : $journal->status,
-            'approved_by' => $wasApproved ? null : $journal->approved_by,
-            'approved_at' => $wasApproved ? null : $journal->approved_at,
-            'catatan_approval' => $wasApproved ? null : $journal->catatan_approval,
+            'status' => $wasDecided ? 'pending' : $journal->status,
+            'approved_by' => $wasDecided ? null : $journal->approved_by,
+            'approved_at' => $wasDecided ? null : $journal->approved_at,
+            'catatan_approval' => $wasDecided ? null : $journal->catatan_approval,
             'last_edited_at' => now(),
             'edit_count' => $journal->edit_count + 1,
         ]);
@@ -232,7 +235,7 @@ class JournalController extends Controller
         }
 
         return response()->json([
-            'message' => $wasApproved
+            'message' => $wasDecided
                 ? 'Jurnal diperbarui. Status kembali menunggu approval pembimbing.'
                 : 'Jurnal berhasil diperbarui.',
             'data' => $journal->fresh('activities'),
