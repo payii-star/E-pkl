@@ -12,121 +12,122 @@ class LandingTeamController extends Controller
 {
     public function adminIndex()
     {
+        $teams = LandingTeam::orderBy('order')->orderBy('id')->get();
+
         return response()->json([
-            'success' => true, 
-            'data' => LandingTeam::orderBy('urutan')->orderBy('id')->get()
+            'success' => true,
+            'data' => $teams->map(fn (LandingTeam $team) => $this->format($team)),
         ]);
     }
 
     public function publicIndex()
     {
         return response()->json([
-            'success' => true, 
-            'data' => LandingTeam::orderBy('urutan')->orderBy('id')->get()
+            'success' => true,
+            'data' => LandingTeam::where('is_active', true)
+                ->orderBy('order')
+                ->orderBy('id')
+                ->get()
         ]);
     }
 
     public function show(LandingTeam $team)
     {
         return response()->json([
-            'success' => true, 
-            'data' => $team
+            'success' => true,
+            'data' => $this->format($team)
         ]);
     }
 
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name'       => 'required|string|max:255',
-            'position'   => 'required|string|max:255',
-            'bio'        => 'nullable|string',
-            'urutan'     => 'nullable|integer',
-            'photo'      => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
-            'socials'    => 'nullable',
+            'name'     => 'required|string|max:255',
+            'position' => 'nullable|string|max:255',
+            'order'    => 'nullable|integer',
+            'image'    => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
-                'message' => $validator->errors()->first(), 
+                'message' => $validator->errors()->first(),
                 'errors'  => $validator->errors()
             ], 422);
         }
 
-        $data = $validator->safe()->except(['photo', 'socials']);
-        $data['urutan'] = $data['urutan'] ?? ((int) (LandingTeam::max('urutan') ?? 0) + 1);
+        $data = $validator->safe()->except(['image']);
+        $data['order'] = $data['order'] ?? ((int) (LandingTeam::max('order') ?? 0) + 1);
 
-        if ($request->has('socials')) {
-            $data['socials'] = is_string($request->socials) 
-                ? json_decode($request->socials, true) 
-                : $request->socials;
-        }
-
-        if ($request->hasFile('photo')) {
-            $data['photo'] = $request->file('photo')->store('landing/team', 'public');
+        if ($request->hasFile('image')) {
+            $data['image'] = $request->file('image')->store('landing/team', 'public');
         }
 
         $team = LandingTeam::create($data);
 
         return response()->json([
-            'success' => true, 
-            'message' => 'Anggota tim berhasil ditambahkan', 
-            'data'    => $team
+            'success' => true,
+            'message' => 'Anggota tim berhasil ditambahkan',
+            'data'    => $this->format($team)
         ], 201);
     }
 
     public function update(Request $request, LandingTeam $team)
     {
         $validator = Validator::make($request->all(), [
-            'name'       => 'required|string|max:255',
-            'position'   => 'required|string|max:255',
-            'bio'        => 'nullable|string',
-            'urutan'     => 'nullable|integer',
-            'photo'      => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
-            'socials'    => 'nullable',
+            'name'     => 'required|string|max:255',
+            'position' => 'nullable|string|max:255',
+            'order'    => 'nullable|integer',
+            'image'    => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
-                'message' => $validator->errors()->first(), 
+                'message' => $validator->errors()->first(),
                 'errors'  => $validator->errors()
             ], 422);
         }
 
-        $data = $validator->safe()->except(['photo', 'socials']);
+        $data = $validator->safe()->except(['image']);
 
-        if ($request->has('socials')) {
-            $data['socials'] = is_string($request->socials) 
-                ? json_decode($request->socials, true) 
-                : $request->socials;
-        }
-
-        if ($request->hasFile('photo')) {
-            if ($team->photo) {
-                Storage::disk('public')->delete($team->photo);
+        if ($request->hasFile('image')) {
+            if ($team->image) {
+                Storage::disk('public')->delete($team->image);
             }
-            $data['photo'] = $request->file('photo')->store('landing/team', 'public');
+            $data['image'] = $request->file('image')->store('landing/team', 'public');
         }
 
         $team->update($data);
 
         return response()->json([
-            'success' => true, 
-            'message' => 'Anggota tim berhasil diperbarui', 
-            'data'    => $team
+            'success' => true,
+            'message' => 'Anggota tim berhasil diperbarui',
+            'data'    => $this->format($team)
         ]);
     }
 
     public function destroy(LandingTeam $team)
     {
-        if ($team->photo) {
-            Storage::disk('public')->delete($team->photo);
+        if ($team->image) {
+            Storage::disk('public')->delete($team->image);
         }
-
         $team->delete();
 
         return response()->json([
-            'success' => true, 
+            'success' => true,
             'message' => 'Anggota tim berhasil dihapus'
         ]);
     }
-}
+
+    private function format(LandingTeam $team): array
+    {
+        return [
+            'id' => $team->id,
+            'uuid' => (string) $team->id,
+            'name' => $team->name,
+            'position' => $team->position,
+            'image' => $team->image,
+            'order' => $team->order,
+            'is_active' => $team->is_active,
+        ];
+    }
+} 
