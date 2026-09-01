@@ -7,6 +7,7 @@ use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use ZipArchive;
 
 class TaskController extends Controller
 {
@@ -16,7 +17,7 @@ class TaskController extends Controller
         $user = $request->user();
 
         $tasks = Task::where('user_id', $user->id)
-            ->with('creator:id,name')
+            ->with(['creator:id,name', 'attachments'])
             ->orderByRaw("FIELD(status, 'revisi', 'sedang', 'belum', 'submitted', 'selesai', 'ditolak')")
             ->orderBy('due_date')
             ->get();
@@ -27,7 +28,7 @@ class TaskController extends Controller
     // GET /admin/tasks -> semua tugas yang pernah diberikan (buat hr-admin)
     public function adminIndex(Request $request)
     {
-        $tasks = Task::with(['user:id,name,email', 'creator:id,name'])
+        $tasks = Task::with(['user:id,name,email', 'creator:id,name', 'attachments'])
             ->orderByDesc('created_at')
             ->get();
 
@@ -63,8 +64,8 @@ class TaskController extends Controller
     // DELETE /admin/tasks/{task} -> hr-admin batalkan/hapus tugas yang sudah diberikan
     public function destroy(Task $task)
     {
-        if ($task->attachment) {
-            Storage::disk('public')->delete($task->attachment);
+        foreach ($task->attachments as $att) {
+            Storage::disk('public')->delete($att->path);
         }
 
         $task->delete();
@@ -93,7 +94,7 @@ class TaskController extends Controller
         return response()->json(['data' => $task]);
     }
 
-    // POST /tasks/{task}/submit -> intern mengumpulkan tugas (file/gambar + catatan)
+    // POST /tasks/{task}/submit -> intern mengumpulkan tugas (banyak file/gambar sekaligus + catatan)
     public function submit(Request $request, Task $task)
     {
         $user = $request->user();
@@ -101,13 +102,14 @@ class TaskController extends Controller
             return response()->json(['message' => 'Tidak diizinkan'], 403);
         }
 
-        if (in_array($task->status, ['selesai'])) {
+        if ($task->status === 'selesai') {
             return response()->json(['message' => 'Tugas ini sudah selesai, tidak bisa dikumpulkan lagi'], 422);
         }
 
         $validator = Validator::make($request->all(), [
             'submission_note' => 'nullable|string',
-            'attachment' => 'required|file|mimes:jpeg,png,jpg,webp,pdf,doc,docx,xls,xlsx,zip|max:10240',
+            'attachments' => 'required|array|min:1',
+            'attachments.*' => 'file|mimes:jpeg,png,jpg,webp,pdf,doc,docx,xls,xlsx,zip|max:10240',
         ]);
 
         if ($validator->fails()) {
@@ -117,13 +119,22 @@ class TaskController extends Controller
             ], 422);
         }
 
-        // Hapus file lama kalau ada (resubmit setelah revisi/ditolak)
-        if ($task->attachment) {
-            Storage::disk('public')->delete($task->attachment);
+        // Hapus lampiran lama kalau ini pengumpulan ulang (setelah revisi/ditolak)
+        foreach ($task->attachments as $old) {
+            Storage::disk('public')->delete($old->path);
+            $old->delete();
+        }
+
+        foreach ($request->file('attachments') as $file) {
+            $path = $file->store('tasks/submissions', 'public');
+            $task->attachments()->create([
+                'path' => $path,
+                'original_name' => $file->getClientOriginalName(),
+                'mime_type' => $file->getClientMimeType(),
+            ]);
         }
 
         $task->update([
-            'attachment' => $request->file('attachment')->store('tasks/submissions', 'public'),
             'submission_note' => $request->submission_note,
             'status' => 'submitted',
             'submitted_at' => now(),
@@ -135,8 +146,62 @@ class TaskController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Tugas berhasil dikumpulkan',
-            'data' => $task,
+            'data' => $task->load('attachments'),
         ]);
+    }
+
+    // GET /tasks/{task}/attachments/zip -> download semua lampiran tugas sebagai 1 file ZIP
+    public function downloadAttachmentsZip(Request $request, Task $task)
+    {
+        $user = $request->user();
+        $isOwner = $task->user_id === $user->id;
+        $isAdmin = $user->hasPermissionTo('task-management');
+
+        if (!$isOwner && !$isAdmin) {
+            return response()->json(['message' => 'Tidak diizinkan'], 403);
+        }
+
+        $attachments = $task->attachments;
+        if ($attachments->isEmpty()) {
+            return response()->json(['message' => 'Tidak ada lampiran untuk tugas ini'], 404);
+        }
+
+        $tmpDir = storage_path('app/tmp');
+        if (!is_dir($tmpDir)) {
+            mkdir($tmpDir, 0755, true);
+        }
+
+        $zipFileName = 'tugas-' . $task->id . '-lampiran-' . time() . '.zip';
+        $zipPath = $tmpDir . '/' . $zipFileName;
+
+        $zip = new ZipArchive();
+        $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+
+        $usedNames = [];
+        foreach ($attachments as $att) {
+            $fullPath = Storage::disk('public')->path($att->path);
+            if (!file_exists($fullPath)) {
+                continue;
+            }
+
+            $name = $att->original_name ?: basename($att->path);
+            // Hindari nama file bentrok di dalam zip
+            if (isset($usedNames[$name])) {
+                $usedNames[$name]++;
+                $ext = pathinfo($name, PATHINFO_EXTENSION);
+                $base = pathinfo($name, PATHINFO_FILENAME);
+                $name = $base . '-' . $usedNames[$name] . ($ext ? ".{$ext}" : '');
+            } else {
+                $usedNames[$name] = 0;
+            }
+
+            $zip->addFile($fullPath, $name);
+        }
+
+        $zip->close();
+
+        return response()->download($zipPath, 'tugas-' . $task->id . '-lampiran.zip')
+            ->deleteFileAfterSend(true);
     }
 
     // POST /admin/tasks/{task}/review -> admin menerima, menolak, atau minta revisi
@@ -170,7 +235,7 @@ class TaskController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Review tugas berhasil disimpan',
-            'data' => $task->load('user:id,name,email'),
+            'data' => $task->load(['user:id,name,email', 'attachments']),
         ]);
     }
 }

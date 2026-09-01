@@ -204,7 +204,7 @@ onMounted(fetchProjects);
                                         :class="
                                             project.is_featured
                                                 ? 'badge-light-success'
-                                                : 'badge-light-secondary'
+                                                : 'badge-secondary'
                                         "
                                     >
                                         {{

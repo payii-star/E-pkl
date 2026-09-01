@@ -45,12 +45,52 @@
 
                             <p v-if="task.description" class="text-muted fs-7 mb-3">{{ task.description }}</p>
 
-                            <!-- File yang dikumpulkan intern -->
-                            <div v-if="task.attachment_url" class="bg-light-secondary bg-opacity-25 rounded p-3 mb-3">
-                                <a :href="task.attachment_url" target="_blank" class="btn btn-sm btn-light-primary mb-2">
-                                    <KTIcon icon-name="paper-clip" icon-class="fs-6 me-1" />
-                                    Lihat File Terkumpul
-                                </a>
+                            <!-- Lampiran yang dikumpulkan intern -->
+                            <div v-if="task.attachments && task.attachments.length" class="bg-light-secondary bg-opacity-25 rounded p-3 mb-3">
+                                <!-- Galeri gambar -->
+                                <div
+                                    v-if="imageAttachments(task).length"
+                                    class="mb-3"
+                                    :style="imageAttachments(task).length > 5
+                                        ? 'display:grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap:0.5rem;'
+                                        : 'display:grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap:0.5rem;'"
+                                >
+                                    <div
+                                        v-for="img in imageAttachments(task)"
+                                        :key="img.id"
+                                    >
+                                        <div
+                                            role="button"
+                                            tabindex="0"
+                                            class="card border-0 overflow-hidden shadow-sm h-100"
+                                            style="cursor:pointer; user-select:none;"
+                                            @click="openImagePreview(img.url)"
+                                            @keydown.enter.prevent="openImagePreview(img.url)"
+                                            @keydown.space.prevent="openImagePreview(img.url)"
+                                        >
+                                            <img :src="img.url" class="w-100" style="aspect-ratio:1/1; object-fit:cover; display:block;" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- File non-gambar -->
+                                <div v-if="fileAttachments(task).length" class="mb-2">
+                                    <div v-for="f in fileAttachments(task)" :key="f.id" class="d-flex align-items-center gap-2 fs-8 text-muted mb-1">
+                                        <KTIcon icon-name="file" icon-class="fs-7" />
+                                        {{ f.original_name }}
+                                    </div>
+                                </div>
+
+                                <button
+                                    class="btn btn-sm btn-light-primary mb-2"
+                                    :disabled="downloadingZipId === task.id"
+                                    @click="downloadZip(task)"
+                                >
+                                    <span v-if="downloadingZipId === task.id" class="spinner-border spinner-border-sm me-2"></span>
+                                    <KTIcon v-else icon-name="folder-down" icon-class="fs-6 me-1" />
+                                    Download Semua Lampiran (ZIP)
+                                </button>
+
                                 <div v-if="task.submission_note" class="text-muted fs-8">
                                     Catatan intern: {{ task.submission_note }}
                                 </div>
@@ -148,6 +188,19 @@
             </div>
         </div>
     </div>
+
+    <div v-if="previewImageUrl" class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,0.7)">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content border-0 bg-transparent shadow-none">
+                <div class="d-flex justify-content-end mb-2">
+                    <button class="btn btn-icon btn-light" @click="closeImagePreview">
+                        <KTIcon icon-name="cross" icon-class="fs-4" />
+                    </button>
+                </div>
+                <img :src="previewImageUrl" class="rounded shadow" style="max-height:80vh; width:100%; object-fit:contain; background:#000;" />
+            </div>
+        </div>
+    </div>
 </template>
 
 <script setup lang="ts">
@@ -155,13 +208,20 @@ import { ref, onMounted } from 'vue'
 import axios from '@/libs/axios'
 import { toast } from 'vue3-toastify'
 
+interface Attachment {
+    id: number
+    original_name: string
+    url: string
+    is_image: boolean
+}
+
 interface Task {
     id: number
     title: string
     description: string | null
     status: 'belum' | 'sedang' | 'submitted' | 'revisi' | 'selesai' | 'ditolak'
     due_date: string | null
-    attachment_url: string | null
+    attachments: Attachment[]
     submission_note: string | null
     admin_note: string | null
     submitted_at: string | null
@@ -173,6 +233,8 @@ const tasks = ref<Task[]>([])
 const interns = ref<any[]>([])
 const loading = ref(false)
 const deletingId = ref<number | null>(null)
+const downloadingZipId = ref<number | null>(null)
+const previewImageUrl = ref<string | null>(null)
 
 const showForm = ref(false)
 const saving = ref(false)
@@ -213,6 +275,14 @@ const reviewActionLabel: Record<string, string> = {
     accept: 'Terima tugas ini?',
     reject: 'Tolak tugas ini — jelaskan alasannya',
     revise: 'Minta revisi — jelaskan apa yang perlu diperbaiki',
+}
+
+function imageAttachments(task: Task) {
+    return (task.attachments ?? []).filter((a) => a.is_image)
+}
+
+function fileAttachments(task: Task) {
+    return (task.attachments ?? []).filter((a) => !a.is_image)
 }
 
 function formatDate(dateStr: string | null) {
@@ -256,6 +326,14 @@ function openCreate() {
     showForm.value = true
 }
 
+function openImagePreview(url: string) {
+    previewImageUrl.value = url
+}
+
+function closeImagePreview() {
+    previewImageUrl.value = null
+}
+
 function closeForm() {
     showForm.value = false
 }
@@ -296,6 +374,27 @@ async function removeTask(task: Task) {
     } finally {
         deletingId.value = null
     }
+}
+
+function downloadZip(task: Task) {
+    downloadingZipId.value = task.id
+    axios
+        .get(`/tasks/${task.id}/attachments/zip`, { responseType: 'blob' })
+        .then((res) => {
+            const url = window.URL.createObjectURL(new Blob([res.data]))
+            const link = document.createElement('a')
+            link.href = url
+            link.setAttribute('download', `tugas-${task.id}-lampiran.zip`)
+            document.body.appendChild(link)
+            link.click()
+            link.remove()
+        })
+        .catch(() => {
+            toast.error('Gagal mengunduh lampiran')
+        })
+        .finally(() => {
+            downloadingZipId.value = null
+        })
 }
 
 function openReview(task: Task, action: 'accept' | 'reject' | 'revise') {

@@ -568,6 +568,8 @@ Route::middleware(['auth', 'json'])->group(function () {
             'updateStatus'
         ]);
 
+        Route::get('{task}/attachments/zip', [TaskController::class, 'downloadAttachmentsZip']);
+
         Route::post('{task}/submit', [TaskController::class, 'submit']);
     });
 

@@ -46,4 +46,9 @@ class Task extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    public function attachments(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(TaskAttachment::class);
+    }
 }
