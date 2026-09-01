@@ -68,29 +68,36 @@
             Belum ada tugas dari admin.
           </div>
 
-          <div
+          <router-link
             v-for="task in tasks"
             :key="task.id"
-            class="d-flex align-items-center mb-6"
+            :to="{ name: 'tasks-my' }"
+            class="d-flex align-items-center justify-content-between gap-4 mb-5 text-decoration-none text-reset px-2 py-3 rounded-3 hover-bg-light"
+            style="cursor:pointer; border:1px solid rgba(255,255,255,0.04); transition: all 0.2s ease;"
           >
-            <div class="symbol symbol-45px me-5">
-              <span class="symbol-label" :class="statusBg(task.status)">
-                <KTIcon :icon-name="statusIcon(task.status)" icon-class="fs-2 text-white" />
-              </span>
+            <div class="d-flex align-items-center flex-grow-1 min-w-0">
+              <div class="symbol symbol-45px me-4 flex-shrink-0">
+                <span class="symbol-label" :class="statusBg(task.status)">
+                  <KTIcon :icon-name="statusIcon(task.status)" icon-class="fs-2 text-white" />
+                </span>
+              </div>
+
+              <div class="d-flex flex-column min-w-0">
+                <span class="text-dark fw-bold fs-6 text-truncate">{{ task.title }}</span>
+                <span class="text-muted fw-semibold fs-7 text-truncate">{{ task.description }}</span>
+              </div>
             </div>
 
-            <div class="d-flex flex-column flex-grow-1">
-              <a href="#" class="text-dark text-hover-primary fw-bold fs-6">{{ task.title }}</a>
-              <span class="text-muted fw-semibold fs-7">{{ task.description }}</span>
-            </div>
-
-            <div class="d-flex flex-column align-items-end ms-3">
-              <span class="badge fs-8" :class="statusBadge(task.status)">
+            <div class="d-flex flex-column align-items-end ms-3 flex-shrink-0 text-end">
+              <span class="badge fs-8 px-3 py-2" :class="statusBadge(task.status)">
                 {{ statusLabel(task.status) }}
               </span>
-              <span class="text-muted fs-8 mt-1">Deadline: {{ formatDate(task.due_date) }}</span>
+              <span class="text-muted fs-8 mt-1">
+                {{ task.status === 'belum' ? 'Belum dikerjakan' : task.status === 'submitted' ? 'Menunggu review' : 'Deadline:' }}
+                {{ task.status === 'submitted' ? '' : formatDate(task.due_date) }}
+              </span>
             </div>
-          </div>
+          </router-link>
         </div>
       </div>
     </div>
@@ -99,6 +106,7 @@
 
 <script setup lang="ts">
 import { reactive, computed, onMounted, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
 import ApiService from "@/core/services/ApiService";
 
 // --- Tipe Data ---
@@ -112,7 +120,7 @@ interface EstimationData {
   status: "incomplete" | "invalid" | "not_started" | "active" | "completed" | "error";
 }
 
-type TaskStatus = "belum" | "sedang" | "selesai";
+type TaskStatus = "belum" | "sedang" | "submitted" | "revisi" | "selesai" | "ditolak";
 
 interface TaskItem {
   id: number;
@@ -134,6 +142,7 @@ const estimation = reactive<EstimationData>({
 });
 
 const tasks = reactive<TaskItem[]>([]);
+const router = useRouter();
 
 // --- Label "Bulan X — Bulan Y" ---
 const monthRangeLabel = computed(() => {
@@ -153,25 +162,34 @@ const statusLabel = (status: TaskStatus) => {
   const map: Record<TaskStatus, string> = {
     belum: "Belum Dikerjakan",
     sedang: "Sedang Dikerjakan",
+    submitted: "Menunggu Review",
+    revisi: "Perlu Revisi",
     selesai: "Selesai",
+    ditolak: "Ditolak",
   };
   return map[status] ?? status;
 };
 
 const statusBadge = (status: TaskStatus) => {
   const map: Record<TaskStatus, string> = {
-    belum: "badge-light-secondary",
+    belum: "badge-light-danger",
     sedang: "badge-light-warning",
+    submitted: "badge-light-info",
+    revisi: "badge-light-danger",
     selesai: "badge-light-success",
+    ditolak: "badge-light-danger",
   };
-  return map[status] ?? "badge-light-secondary";
+  return map[status] ?? "badge-light-danger";
 };
 
 const statusBg = (status: TaskStatus) => {
   const map: Record<TaskStatus, string> = {
     belum: "bg-secondary",
     sedang: "bg-warning",
+    submitted: "bg-info",
+    revisi: "bg-danger",
     selesai: "bg-success",
+    ditolak: "bg-danger",
   };
   return map[status] ?? "bg-secondary";
 };
@@ -179,8 +197,11 @@ const statusBg = (status: TaskStatus) => {
 const statusIcon = (status: TaskStatus) => {
   const map: Record<TaskStatus, string> = {
     belum: "time",
-    sedang: "loading",
+    sedang: "time",
+    submitted: "time",
+    revisi: "refresh",
     selesai: "check-circle",
+    ditolak: "cross",
   };
   return map[status] ?? "time";
 };

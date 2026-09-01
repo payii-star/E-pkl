@@ -89,7 +89,7 @@
                             </thead>
                             <tbody>
                                 <tr v-for="lr in leaveRequests" :key="lr.id">
-                                    <td>{{ lr.date }}</td>
+                                    <td>{{ formatDate(lr.date) }}</td>
                                     <td>{{ reasonLabel[lr.reason_type] }}</td>
                                     <td>{{ lr.note ?? '-' }}</td>
                                     <td>
@@ -157,6 +157,15 @@ const statusBadge: Record<string, string> = {
     pending: 'badge-light-warning',
     approved: 'badge-light-success',
     rejected: 'badge-light-danger',
+}
+
+function formatDate(dateStr: string | null) {
+    if (!dateStr) return '-'
+    return new Date(dateStr).toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+    })
 }
 
 function attachmentUrl(path: string) {
