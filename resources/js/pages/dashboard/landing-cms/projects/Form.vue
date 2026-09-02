@@ -11,7 +11,7 @@ const props = defineProps({
         type: Number,
         default: null,
     },
-});
+}); 
 
 const emit = defineEmits(["close", "refresh"]);
 

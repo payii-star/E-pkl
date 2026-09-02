@@ -26,13 +26,13 @@ class AttendanceController extends Controller
     // GET /attendances/today
     // Dibikin terpisah dari index() supaya "hari ini" ditentukan oleh backend
     // (pakai timezone Asia/Jakarta dari config), bukan dicocokkan manual di
-    // frontend — karena cast 'date' di model dikonversi ke UTC saat jadi JSON,
-    // dan itu bisa geser mundur 1 hari kalau dicocokkan pakai tanggal browser.
+    // frontend — karena cast 'date' di model bisa bergeser kalau frontend
+    // memakai timezone browser yang berbeda.
     public function today(Request $request)
     {
         $user = $request->user();
         $dateColumn = Attendance::dateColumn();
-        $today = now()->toDateString();
+        $today = now()->setTimezone(config('app.timezone', 'Asia/Jakarta'))->toDateString();
 
         $attendance = Attendance::where('user_id', $user->id)
             ->where($dateColumn, $today)
@@ -42,6 +42,8 @@ class AttendanceController extends Controller
     }
 
     // POST /attendances/check-in
+    // JANGAN DIUBAH STRUKTURNYA — endpoint ini dipakai project mobile,
+    // terima foto sebagai file upload biasa (bukan base64).
     public function checkIn(Request $request)
     {
         $user = $request->user();
@@ -55,7 +57,7 @@ class AttendanceController extends Controller
             return response()->json(['message' => $validator->errors()->first()], 422);
         }
 
-        $today = now()->toDateString();
+        $today = now()->setTimezone(config('app.timezone', 'Asia/Jakarta'))->toDateString();
         $dateColumn = Attendance::dateColumn();
         $checkInTimeColumn = Attendance::checkInTimeColumn();
         $checkInPhotoColumn = Attendance::checkInPhotoColumn();
@@ -81,10 +83,12 @@ class AttendanceController extends Controller
         return response()->json(['data' => $attendance], 201);
     }
 
-    // POST /attendance/check-out
-    // Menerima foto sebagai base64 dari kamera (dipakai halaman "Absen Pulang"
-    // yang cuma deteksi wajah biasa, tanpa liveness challenge).
-    public function checkOut(Request $request)
+    // POST /attendances/check-in-web
+    // Endpoint BARU, terpisah dari checkIn() di atas — khusus dipakai halaman
+    // web "Absen Masuk" yang deteksi wajah via kamera & kirim foto base64
+    // (sama polanya kayak checkOut() di bawah). Nggak menyentuh/mengganti
+    // endpoint checkIn() yang dipakai mobile.
+    public function checkInWeb(Request $request)
     {
         $user = $request->user();
 
@@ -97,6 +101,47 @@ class AttendanceController extends Controller
         }
 
         $today = now()->toDateString();
+        $dateColumn = Attendance::dateColumn();
+        $checkInTimeColumn = Attendance::checkInTimeColumn();
+        $checkInPhotoColumn = Attendance::checkInPhotoColumn();
+
+        $existing = Attendance::where('user_id', $user->id)->where($dateColumn, $today)->first();
+        if ($existing && $existing->{$checkInTimeColumn}) {
+            return response()->json(['message' => 'Kamu sudah absen masuk hari ini'], 422);
+        }
+
+        $photoPath = $this->saveBase64Photo($request->photo, $user->id);
+
+        $attendance = Attendance::updateOrCreate(
+            ['user_id' => $user->id, $dateColumn => $today],
+            [
+                $checkInTimeColumn => now()->setTimezone(config('app.timezone', 'Asia/Jakarta'))->toTimeString(),
+                $checkInPhotoColumn => $photoPath,
+                'location' => $request->location,
+                'status' => 'hadir',
+            ]
+        );
+
+        return response()->json(['data' => $attendance, 'message' => 'Absen masuk berhasil'], 201);
+    }
+
+    // POST /attendances/check-out
+    // Menerima foto sebagai base64 dari kamera (dipakai halaman "Absen Pulang"
+    // yang cuma deteksi wajah biasa, tanpa liveness challenge).
+    public function checkOut(Request $request)
+    {
+        $user = $request->user();
+
+        $validator = Validator::make($request->all(), [
+            'photo' => 'required|string',
+            'location' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['message' => $validator->errors()->first()], 422);
+        }
+
+        $today = now()->setTimezone(config('app.timezone', 'Asia/Jakarta'))->toDateString();
         $dateColumn = Attendance::dateColumn();
         $checkInTimeColumn = Attendance::checkInTimeColumn();
         $checkOutTimeColumn = Attendance::checkOutTimeColumn();
@@ -114,8 +159,9 @@ class AttendanceController extends Controller
         $photoPath = $this->saveBase64Photo($request->photo, $user->id);
 
         $attendance->update([
-            $checkOutTimeColumn => now()->toTimeString(),
+            $checkOutTimeColumn => now()->setTimezone(config('app.timezone', 'Asia/Jakarta'))->toTimeString(),
             $checkOutPhotoColumn => $photoPath,
+            'location' => $request->location ?? $attendance->location,
         ]);
 
         return response()->json(['data' => $attendance, 'message' => 'Absen pulang berhasil']);

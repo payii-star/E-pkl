@@ -68,9 +68,16 @@ const MainMenuConfig: Array<MenuItem> = [
         route: "/attendance",
         pages: [
             {
+                heading: "Absen Masuk",
+                route: "/attendance/check-in",
+                name: "attendance-check-in",
+                keenthemesIcon: "geolocation",
+                hideForAdmin: true,
+            },
+            {
                 heading: "Absen Pulang",
-                route: "/attendance/check",
-                name: "attendance-check",
+                route: "/attendance/check-out",
+                name: "attendance-check-out",
                 keenthemesIcon: "geolocation",
                 hideForAdmin: true,
             },

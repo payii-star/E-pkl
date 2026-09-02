@@ -7,11 +7,9 @@ use App\Http\Controllers\SettingController;
 
 use App\Http\Controllers\Api\InternController;
 use App\Http\Controllers\Api\TaskController;
-use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\Api\JournalController;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AdminAttendanceController;
-use App\Http\Controllers\Api\AdminInternPeriodController;
 use App\Http\Controllers\Api\AdminDashboardController;
 use App\Http\Controllers\Api\FaceController;
 use App\Http\Controllers\Api\AdminFaceController;
@@ -548,49 +546,18 @@ Route::middleware(['auth', 'json'])->group(function () {
     // TASKS
     // ========================================================================
 
-    // Hanya hr-admin yang boleh membuat/melihat semua/menghapus tugas.
-    // Sebelumnya route POST '' di sini TIDAK dijaga permission apapun — bug
-    // keamanan: intern manapun bisa memberi tugas ke user lain lewat API
-    // langsung. Sekarang dipindah ke prefix admin/tasks + permission khusus.
-    Route::prefix('admin/tasks')
-        ->middleware('permission:task-management')
-        ->group(function () {
-            Route::get('', [TaskController::class, 'adminIndex']);
-            Route::post('', [TaskController::class, 'store']);
-            Route::delete('{task}', [TaskController::class, 'destroy']);
-            Route::post('{task}/review', [TaskController::class, 'review']);
-        });
-
     Route::prefix('tasks')->group(function () {
+
+        Route::post('', [
+            TaskController::class,
+            'store'
+        ]);
 
         Route::patch('{task}/status', [
             TaskController::class,
             'updateStatus'
         ]);
-
-        Route::get('{task}/attachments/zip', [TaskController::class, 'downloadAttachmentsZip']);
-
-        Route::post('{task}/submit', [TaskController::class, 'submit']);
     });
-
-
-    // ========================================================================
-    // IZIN TIDAK MASUK (leave requests)
-    // ========================================================================
-
-    // User (intern/atasan) ajukan izin & lihat riwayat izinnya sendiri
-    Route::prefix('leave-requests')->group(function () {
-        Route::get('', [LeaveRequestController::class, 'index']);
-        Route::post('', [LeaveRequestController::class, 'store']);
-    });
-
-    // hr-admin lihat semua pengajuan izin & approve/reject
-    Route::prefix('admin/leave-requests')
-        ->middleware('permission:leave-management')
-        ->group(function () {
-            Route::get('', [LeaveRequestController::class, 'adminIndex']);
-            Route::patch('{leaveRequest}/status', [LeaveRequestController::class, 'updateStatus']);
-        });
 
 
     // ========================================================================
@@ -624,16 +591,6 @@ Route::middleware(['auth', 'json'])->group(function () {
             'approvalHistory'
         ]);
 
-        Route::get('dates-taken', [
-            JournalController::class,
-            'datesTaken'
-        ]);
-
-        Route::put('{journal}', [
-            JournalController::class,
-            'update'
-        ]);
-
         Route::post('{journal}/approve', [
             JournalController::class,
             'approve'
@@ -654,18 +611,6 @@ Route::middleware(['auth', 'json'])->group(function () {
         AdminDashboardController::class,
         'summary'
     ])->middleware('role:hr-admin');
-
-
-    // ========================================================================
-    // ADMIN - PERIODE MAGANG (buat countdown & estimasi di dashboard intern)
-    // ========================================================================
-
-    Route::prefix('admin/intern-periods')
-        ->middleware('role:hr-admin')
-        ->group(function () {
-            Route::get('', [AdminInternPeriodController::class, 'index']);
-            Route::put('{user}', [AdminInternPeriodController::class, 'update']);
-        });
 
 
     // ========================================================================
@@ -707,6 +652,13 @@ Route::middleware(['auth', 'json'])->group(function () {
         Route::post('check-in', [
             AttendanceController::class,
             'checkIn'
+        ]);
+
+        // BARU — khusus halaman web "Absen Masuk" (kamera + base64).
+        // Endpoint check-in di atas TETAP UTUH, dipakai project mobile.
+        Route::post('check-in-web', [
+            AttendanceController::class,
+            'checkInWeb'
         ]);
 
         Route::post('check-out', [

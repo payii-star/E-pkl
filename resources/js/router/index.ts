@@ -12,6 +12,7 @@ declare module "vue-router" {
     interface RouteMeta {
         pageTitle?: string;
         permission?: string;
+        roles?: string[];
     }
 }
 
@@ -229,13 +230,25 @@ const routes: Array<RouteRecordRaw> = [
 
             // ABSENSI (baru - struktur awal)
             {
-                path: "/attendance/check",
-                name: "attendance-check",
+                path: "/attendance/check-in",
+                name: "attendance-check-in",
+                component: () =>
+                    import("@/pages/attendance/CheckIn.vue"),
+                meta: {
+                    pageTitle: "Check In",
+                    breadcrumbs: ["Absensi", "Check In"],
+                    roles: ["karyawan"],
+                },
+            },
+            {
+                path: "/attendance/check-out",
+                name: "attendance-check-out",
                 component: () =>
                     import("@/pages/attendance/CheckOut.vue"),
                 meta: {
-                    pageTitle: "Absen Sekarang",
-                    breadcrumbs: ["Absensi", "Absen"],
+                    pageTitle: "Check Out",
+                    breadcrumbs: ["Absensi", "Check Out"],
+                    roles: ["karyawan"],
                 },
             },
             {
@@ -411,12 +424,22 @@ router.beforeEach(async (to, from, next) => {
         return roleName === "admin" || roleName === "hr-admin";
     };
 
+    const hasRequiredRole = (roles: string[] = []) => {
+        if (!roles.length) return true;
+        const roleName = authStore.user?.role?.name;
+        return !!roleName && roles.includes(roleName);
+    };
+
     // verify auth token before each page change
     if (!authStore.isAuthenticated) await authStore.verifyAuth();
 
     // before page access check if page requires authentication
     if (to.meta.middleware == "auth") {
         if (authStore.isAuthenticated) {
+            if (to.meta.roles && !hasRequiredRole(to.meta.roles)) {
+                return next({ name: "404" });
+            }
+
             if (to.meta.permission && isAdminUser()) {
                 return next();
             }

@@ -4,7 +4,7 @@
             <div class="card">
                 <div class="card-header border-0 pt-6">
                     <div class="card-title">
-                        <h2 class="fw-bold">Absen Pulang</h2>
+                        <h2 class="fw-bold">Absen Masuk</h2>
                     </div>
                     <div class="card-toolbar">
                         <span class="badge" :class="statusBadgeClass">{{ statusLabel }}</span>
@@ -12,18 +12,17 @@
                 </div>
                 <div class="card-body pt-2 d-flex flex-column align-items-center">
 
-                    <!-- Sudah selesai absen hari ini -->
+                    <!-- Sudah absen masuk hari ini -->
                     <div v-if="alreadyDone" class="w-100 text-center py-10">
                         <div class="symbol symbol-60px mb-3 mx-auto">
                             <span class="symbol-label bg-light-success">
                                 <KTIcon icon-name="check-circle" icon-class="fs-1 text-success" />
                             </span>
                         </div>
-                        <div class="fw-bold fs-5 text-gray-800">Absensi hari ini sudah lengkap</div>
-                        <div class="text-muted fs-7 mt-1">Sampai jumpa besok!</div>
+                        <div class="fw-bold fs-5 text-gray-800">Kamu sudah absen masuk hari ini</div>
+                        <div class="text-muted fs-7 mt-1">Selamat bekerja!</div>
                         <div class="text-muted fs-7 mt-3">
-                            Absen masuk jam <span class="fw-semibold text-gray-700">{{ todayAttendance?.check_in_time ?? '-' }}</span>,
-                            absen pulang jam <span class="fw-semibold text-gray-700">{{ todayAttendance?.check_out_time ?? '-' }}</span>
+                            Absen masuk tercatat jam <span class="fw-semibold text-gray-700">{{ todayAttendance?.check_in_time ?? '-' }}</span>
                         </div>
                     </div>
 
@@ -34,12 +33,8 @@
                                 <KTIcon icon-name="camera" icon-class="fs-1 text-primary" />
                             </span>
                         </div>
-                        <div class="fw-bold fs-5 text-gray-800 mb-1">Siap absen pulang?</div>
-                        <div class="text-muted fs-7 mb-2">Kamera akan menyala setelah kamu menekan tombol di bawah</div>
-                        <div v-if="todayAttendance?.check_in_time" class="text-muted fs-7 mb-5">
-                            Absen masuk tercatat jam <span class="fw-semibold text-gray-700">{{ todayAttendance.check_in_time }}</span>
-                        </div>
-                        <div v-else class="mb-5"></div>
+                        <div class="fw-bold fs-5 text-gray-800 mb-1">Siap absen masuk?</div>
+                        <div class="text-muted fs-7 mb-5">Kamera akan menyala setelah kamu menekan tombol di bawah</div>
                         <button class="btn btn-primary" @click="openCamera">
                             <KTIcon icon-name="camera" icon-class="fs-4 me-2" />
                             Buka Kamera
@@ -60,20 +55,6 @@
                             <img :src="capturedPhoto" class="cam-photo rounded" alt="Preview foto absen" />
                         </div>
 
-                        <!-- Info absensi hari ini -->
-                        <div v-if="todayAttendance" class="w-100 mb-3">
-                            <div class="d-flex gap-3">
-                                <div class="flex-fill bg-light-success rounded p-3 text-center">
-                                    <div class="text-muted fs-8 fw-semibold mb-1">MASUK</div>
-                                    <div class="fw-bold text-success fs-5">{{ todayAttendance.check_in_time ?? '-' }}</div>
-                                </div>
-                                <div class="flex-fill bg-light-danger rounded p-3 text-center">
-                                    <div class="text-muted fs-8 fw-semibold mb-1">KELUAR</div>
-                                    <div class="fw-bold text-danger fs-5">{{ todayAttendance.check_out_time ?? '-' }}</div>
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- Tombol ambil foto -->
                         <div v-if="!capturedPhoto" class="d-flex gap-2 mb-3">
                             <button class="btn btn-primary" @click="takePhoto">
@@ -88,10 +69,10 @@
 
                         <!-- Tombol konfirmasi / ambil ulang -->
                         <div v-else class="d-flex gap-2 mb-3">
-                            <button class="btn btn-success" :disabled="submitting" @click="submitCheckOut">
+                            <button class="btn btn-success" :disabled="submitting" @click="submitCheckIn">
                                 <span v-if="submitting" class="spinner-border spinner-border-sm me-2"></span>
                                 <KTIcon v-else icon-name="check" icon-class="fs-4 me-2" />
-                                Konfirmasi Absen Pulang
+                                Konfirmasi Absen Masuk
                             </button>
                             <button class="btn btn-light" :disabled="submitting" @click="retakePhoto">
                                 <KTIcon icon-name="arrows-circle" icon-class="fs-6 me-1" />
@@ -138,18 +119,16 @@ let _stream: MediaStream | null = null
 
 // ─── Computed ─────────────────────────────────────────────────────────────────
 const alreadyDone = computed(() =>
-    !!todayAttendance.value?.check_in_time && !!todayAttendance.value?.check_out_time
+    !!todayAttendance.value?.check_in_time
 )
 
 const statusLabel = computed(() => {
-    if (!todayAttendance.value) return 'Belum Absen'
-    if (!todayAttendance.value.check_out_time) return 'Sudah Masuk'
-    return 'Selesai'
+    if (!todayAttendance.value?.check_in_time) return 'Belum Absen'
+    return 'Sudah Masuk'
 })
 
 const statusBadgeClass = computed(() => {
-    if (!todayAttendance.value) return 'badge-light-warning'
-    if (!todayAttendance.value.check_out_time) return 'badge-light-primary'
+    if (!todayAttendance.value?.check_in_time) return 'badge-light-warning'
     return 'badge-light-success'
 })
 
@@ -215,19 +194,19 @@ function retakePhoto() {
     capturedPhoto.value = null
 }
 
-// ─── Check-out ────────────────────────────────────────────────────────────────
-async function submitCheckOut() {
+// ─── Check-in ─────────────────────────────────────────────────────────────────
+async function submitCheckIn() {
     if (!capturedPhoto.value || submitting.value) return
     submitting.value = true
     errMsg.value = ''
     try {
-        await axios.post('/attendances/check-out', { photo: capturedPhoto.value })
+        await axios.post('/attendances/check-in-web', { photo: capturedPhoto.value })
         stopCamera()
         cameraOpen.value = false
         capturedPhoto.value = null
         await fetchToday()
     } catch (e: any) {
-        errMsg.value = e.response?.data?.message ?? e.message ?? 'Gagal mencatat absen pulang'
+        errMsg.value = e.response?.data?.message ?? e.message ?? 'Gagal mencatat absen masuk'
     } finally {
         submitting.value = false
     }
