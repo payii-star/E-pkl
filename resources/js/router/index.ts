@@ -436,7 +436,9 @@ router.beforeEach(async (to, from, next) => {
     // before page access check if page requires authentication
     if (to.meta.middleware == "auth") {
         if (authStore.isAuthenticated) {
-            if (to.meta.roles && !hasRequiredRole(to.meta.roles)) {
+            const isWebAttendanceRoute = typeof to.path === "string" && to.path.startsWith("/attendance/");
+
+            if (isWebAttendanceRoute && to.meta.roles && !hasRequiredRole(to.meta.roles)) {
                 return next({ name: "404" });
             }
 

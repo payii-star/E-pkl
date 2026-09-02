@@ -167,6 +167,47 @@ class AttendanceController extends Controller
         return response()->json(['data' => $attendance, 'message' => 'Absen pulang berhasil']);
     }
 
+    // POST /attendances/check-out-web
+    // Endpoint khusus halaman web "Absen Pulang" yang menerima base64 dari kamera.
+    public function checkOutWeb(Request $request)
+    {
+        $user = $request->user();
+
+        $validator = Validator::make($request->all(), [
+            'photo' => 'required|string',
+            'location' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['message' => $validator->errors()->first()], 422);
+        }
+
+        $today = now()->setTimezone(config('app.timezone', 'Asia/Jakarta'))->toDateString();
+        $dateColumn = Attendance::dateColumn();
+        $checkInTimeColumn = Attendance::checkInTimeColumn();
+        $checkOutTimeColumn = Attendance::checkOutTimeColumn();
+        $checkOutPhotoColumn = Attendance::checkOutPhotoColumn();
+
+        $attendance = Attendance::where('user_id', $user->id)->where($dateColumn, $today)->first();
+
+        if (!$attendance || !$attendance->{$checkInTimeColumn}) {
+            return response()->json(['message' => 'Kamu belum absen masuk hari ini'], 422);
+        }
+        if ($attendance->{$checkOutTimeColumn}) {
+            return response()->json(['message' => 'Kamu sudah absen keluar hari ini'], 422);
+        }
+
+        $photoPath = $this->saveBase64Photo($request->photo, $user->id);
+
+        $attendance->update([
+            $checkOutTimeColumn => now()->setTimezone(config('app.timezone', 'Asia/Jakarta'))->toTimeString(),
+            $checkOutPhotoColumn => $photoPath,
+            'location' => $request->location ?? $attendance->location,
+        ]);
+
+        return response()->json(['data' => $attendance, 'message' => 'Absen pulang berhasil'], 200);
+    }
+
     private function saveBase64Photo(string $base64, int $userId): ?string
     {
         try {

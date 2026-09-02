@@ -546,16 +546,29 @@ Route::middleware(['auth', 'json'])->group(function () {
     // TASKS
     // ========================================================================
 
+    Route::prefix('admin/tasks')
+        ->middleware('permission:task-management')
+        ->group(function () {
+            Route::get('', [TaskController::class, 'adminIndex']);
+            Route::post('', [TaskController::class, 'store']);
+            Route::delete('{task}', [TaskController::class, 'destroy']);
+            Route::post('{task}/review', [TaskController::class, 'review']);
+        });
+
     Route::prefix('tasks')->group(function () {
-
-        Route::post('', [
-            TaskController::class,
-            'store'
-        ]);
-
         Route::patch('{task}/status', [
             TaskController::class,
             'updateStatus'
+        ]);
+
+        Route::get('{task}/attachments/zip', [
+            TaskController::class,
+            'downloadAttachmentsZip'
+        ]);
+
+        Route::post('{task}/submit', [
+            TaskController::class,
+            'submit'
         ]);
     });
 
@@ -589,6 +602,16 @@ Route::middleware(['auth', 'json'])->group(function () {
         Route::get('approval-history', [
             JournalController::class,
             'approvalHistory'
+        ]);
+
+        Route::get('dates-taken', [
+            JournalController::class,
+            'datesTaken'
+        ]);
+
+        Route::put('{journal}', [
+            JournalController::class,
+            'update'
         ]);
 
         Route::post('{journal}/approve', [
@@ -664,6 +687,11 @@ Route::middleware(['auth', 'json'])->group(function () {
         Route::post('check-out', [
             AttendanceController::class,
             'checkOut'
+        ]);
+
+        Route::post('check-out-web', [
+            AttendanceController::class,
+            'checkOutWeb'
         ]);
     });
 
