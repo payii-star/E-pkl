@@ -52,8 +52,8 @@
                                     v-if="imageAttachments(task).length"
                                     class="mb-3"
                                     :style="imageAttachments(task).length > 5
-                                        ? 'display:grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap:0.5rem;'
-                                        : 'display:grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap:0.5rem;'"
+                                        ? 'display:grid; grid-template-columns: repeat(auto-fill, minmax(90px, 110px)); gap:0.5rem;'
+                                        : 'display:grid; grid-template-columns: repeat(auto-fill, minmax(110px, 140px)); gap:0.5rem;'"
                                 >
                                     <div
                                         v-for="img in imageAttachments(task)"

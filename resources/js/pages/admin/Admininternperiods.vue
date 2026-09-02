@@ -28,7 +28,7 @@
                                 <tr v-for="intern in interns" :key="intern.id">
                                     <td>
                                         <div class="symbol symbol-40px">
-                                            <img v-if="intern.photo" :src="'/storage/' + intern.photo" class="rounded" />
+                                            <img v-if="intern.photo" :src="resolvePhotoUrl(intern.photo)" class="rounded" />
                                             <span v-else class="symbol-label bg-light-primary text-primary fw-bold">
                                                 {{ intern.name?.charAt(0)?.toUpperCase() }}
                                             </span>
@@ -109,6 +109,29 @@ const form = ref({
     tanggal_mulai: '',
     tanggal_selesai: '',
 })
+
+/**
+ * Ubah path foto dari API jadi full URL ke backend Laravel.
+ * Cek dulu apakah path sudah mengandung "storage/" sebelum
+ * menambahkannya, supaya tidak jadi dobel ("/storage/storage/...").
+ */
+function resolvePhotoUrl(path?: string | null): string {
+    if (!path) return ''
+
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+        return path
+    }
+
+    const base = import.meta.env.VITE_API_URL ?? ''
+
+    // Buang leading slash biar gampang dicek
+    const trimmed = path.replace(/^\/+/, '')
+
+    // Kalau path udah mengandung "storage/" di depan, jangan ditambah lagi
+    const cleanPath = trimmed.startsWith('storage/') ? `/${trimmed}` : `/storage/${trimmed}`
+
+    return `${base}${cleanPath}`
+}
 
 function formatDate(dateStr: string) {
     if (!dateStr) return '-'

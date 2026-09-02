@@ -18,29 +18,15 @@ const emit = defineEmits(["close", "refresh"]);
 const service = ref<Service>({
     title: "",
     description: "",
+    icon: "",
     order: 1,
 } as Service);
-
-const fileTypes = ref([
-    "image/jpeg",
-    "image/png",
-    "image/jpg",
-    "image/svg+xml",
-]);
-
-const icon = ref<any[]>([]);
 
 const formRef = ref();
 
 const formSchema = Yup.object().shape({
-    title: Yup.string().required(
-        "Judul layanan harus diisi"
-    ),
-
-    description: Yup.string().required(
-        "Deskripsi harus diisi"
-    ),
-
+    title: Yup.string().required("Judul layanan harus diisi"),
+    description: Yup.string().required("Deskripsi harus diisi"),
     order: Yup.number()
         .typeError("Urutan harus berupa angka")
         .required("Urutan harus diisi"),
@@ -50,129 +36,45 @@ function resetForm() {
     service.value = {
         title: "",
         description: "",
+        icon: "",
         order: 1,
     } as Service;
-
-    icon.value = [];
 }
 
 function getEdit() {
-    if (!props.selected) {
-        return;
-    }
+    if (!props.selected) return;
 
-    block(
-        document.getElementById("form-service")
-    );
+    block(document.getElementById("form-service"));
 
     axios
         .get(`/master/services/${props.selected}`)
         .then(({ data }) => {
-            /*
-             * Support beberapa bentuk response API:
-             *
-             * {
-             *     data: {...}
-             * }
-             *
-             * atau:
-             *
-             * {
-             *     service: {...}
-             * }
-             */
-            const serviceData =
-                data.data ??
-                data.service ??
-                data;
-
-            service.value = serviceData;
-
-            icon.value = serviceData.icon
-                ? ["/storage/" + serviceData.icon]
-                : [];
+            service.value = data.data ?? data.service ?? data;
         })
         .catch((err: any) => {
-            toast.error(
-                err.response?.data?.message ??
-                    "Gagal memuat data layanan"
-            );
+            toast.error(err.response?.data?.message ?? "Gagal memuat data layanan");
         })
         .finally(() => {
-            unblock(
-                document.getElementById(
-                    "form-service"
-                )
-            );
+            unblock(document.getElementById("form-service"));
         });
 }
 
 function submit() {
-    const formData = new FormData();
+    const payload = {
+        title: service.value.title ?? "",
+        description: service.value.description ?? "",
+        icon: service.value.icon ?? "",
+        order: Number(service.value.order ?? 1),
+    };
 
-    formData.append(
-        "title",
-        service.value.title ?? ""
-    );
-
-    formData.append(
-        "description",
-        service.value.description ?? ""
-    );
-
-    formData.append(
-        "order",
-        String(service.value.order ?? 1)
-    );
-
-    /*
-     * Upload icon hanya jika user memilih
-     * file baru.
-     */
-    if (
-        icon.value.length &&
-        icon.value[0]?.file
-    ) {
-        formData.append(
-            "icon",
-            icon.value[0].file
-        );
-    }
-
-    /*
-     * Backend Service:
-     *
-     * CREATE
-     * POST /api/master/services
-     *
-     * EDIT
-     * PUT /api/master/services/{id}
-     *
-     * Karena upload file menggunakan FormData,
-     * request tetap dikirim sebagai POST dan
-     * Laravel method spoofing digunakan untuk edit.
-     */
-    if (props.selected) {
-        formData.append("_method", "PUT");
-    }
-
-    block(
-        document.getElementById("form-service")
-    );
+    block(document.getElementById("form-service"));
 
     axios({
-        method: "post",
-
+        method: props.selected ? "put" : "post",
         url: props.selected
             ? `/master/services/${props.selected}`
             : "/master/services",
-
-        data: formData,
-
-        headers: {
-            "Content-Type":
-                "multipart/form-data",
-        },
+        data: payload,
     })
         .then(() => {
             toast.success(
@@ -180,51 +82,31 @@ function submit() {
                     ? "Layanan berhasil diperbarui"
                     : "Layanan berhasil ditambahkan"
             );
-
             emit("close");
             emit("refresh");
-
             formRef.value?.resetForm();
         })
         .catch((err: any) => {
-            if (
-                err.response?.data?.errors
-            ) {
-                formRef.value?.setErrors(
-                    err.response.data.errors
-                );
+            if (err.response?.data?.errors) {
+                formRef.value?.setErrors(err.response.data.errors);
             }
-
-            toast.error(
-                err.response?.data?.message ??
-                    "Gagal menyimpan layanan"
-            );
+            toast.error(err.response?.data?.message ?? "Gagal menyimpan layanan");
         })
         .finally(() => {
-            unblock(
-                document.getElementById(
-                    "form-service"
-                )
-            );
+            unblock(document.getElementById("form-service"));
         });
 }
 
 onMounted(() => {
-    if (props.selected) {
-        getEdit();
-    } else {
-        resetForm();
-    }
+    if (props.selected) getEdit();
+    else resetForm();
 });
 
 watch(
     () => props.selected,
     () => {
-        if (props.selected) {
-            getEdit();
-        } else {
-            resetForm();
-        }
+        if (props.selected) getEdit();
+        else resetForm();
     }
 );
 </script>
@@ -237,9 +119,7 @@ watch(
         id="form-service"
         ref="formRef"
     >
-        <div
-            class="card-header align-items-center"
-        >
+        <div class="card-header align-items-center">
             <h2 class="mb-0">
                 {{ selected ? "Edit" : "Tambah" }}
                 Service
@@ -252,9 +132,7 @@ watch(
             >
                 Batal
 
-                <i
-                    class="la la-times-circle p-0"
-                ></i>
+                <i class="la la-times-circle p-0"></i>
             </button>
         </div>
 
@@ -263,9 +141,7 @@ watch(
                 <!-- Judul -->
                 <div class="col-md-6">
                     <div class="fv-row mb-7">
-                        <label
-                            class="form-label fw-bold fs-6 required"
-                        >
+                        <label class="form-label fw-bold fs-6 required">
                             Judul Layanan
                         </label>
 
@@ -278,15 +154,9 @@ watch(
                             placeholder="Masukkan Judul Layanan"
                         />
 
-                        <div
-                            class="fv-plugins-message-container"
-                        >
-                            <div
-                                class="fv-help-block"
-                            >
-                                <ErrorMessage
-                                    name="title"
-                                />
+                        <div class="fv-plugins-message-container">
+                            <div class="fv-help-block">
+                                <ErrorMessage name="title" />
                             </div>
                         </div>
                     </div>
@@ -295,9 +165,7 @@ watch(
                 <!-- Urutan -->
                 <div class="col-md-6">
                     <div class="fv-row mb-7">
-                        <label
-                            class="form-label fw-bold fs-6 required"
-                        >
+                        <label class="form-label fw-bold fs-6 required">
                             Urutan
                         </label>
 
@@ -310,15 +178,9 @@ watch(
                             placeholder="1"
                         />
 
-                        <div
-                            class="fv-plugins-message-container"
-                        >
-                            <div
-                                class="fv-help-block"
-                            >
-                                <ErrorMessage
-                                    name="order"
-                                />
+                        <div class="fv-plugins-message-container">
+                            <div class="fv-help-block">
+                                <ErrorMessage name="order" />
                             </div>
                         </div>
                     </div>
@@ -327,9 +189,7 @@ watch(
                 <!-- Deskripsi -->
                 <div class="col-md-12">
                     <div class="fv-row mb-7">
-                        <label
-                            class="form-label fw-bold fs-6 required"
-                        >
+                        <label class="form-label fw-bold fs-6 required">
                             Deskripsi
                         </label>
 
@@ -339,21 +199,13 @@ watch(
                             rows="4"
                             name="description"
                             autocomplete="off"
-                            v-model="
-                                service.description
-                            "
+                            v-model="service.description"
                             placeholder="Masukkan Deskripsi Layanan"
                         />
 
-                        <div
-                            class="fv-plugins-message-container"
-                        >
-                            <div
-                                class="fv-help-block"
-                            >
-                                <ErrorMessage
-                                    name="description"
-                                />
+                        <div class="fv-plugins-message-container">
+                            <div class="fv-help-block">
+                                <ErrorMessage name="description" />
                             </div>
                         </div>
                     </div>
@@ -362,33 +214,26 @@ watch(
                 <!-- Icon -->
                 <div class="col-md-6">
                     <div class="fv-row mb-7">
-                        <label
-                            class="form-label fw-bold fs-6"
-                        >
-                            Icon / Gambar Layanan
+                        <label class="form-label fw-bold fs-6">
+                            Icon (Font Awesome)
                         </label>
 
-                        <file-upload
-                            :files="icon"
-                            :accepted-file-types="
-                                fileTypes
-                            "
-                            v-on:updatefiles="
-                                (file) =>
-                                    (icon = file)
-                            "
-                        >
-                        </file-upload>
+                        <Field
+                            class="form-control form-control-lg form-control-solid"
+                            type="text"
+                            name="icon"
+                            autocomplete="off"
+                            v-model="service.icon"
+                            placeholder="cth: briefcase, code, cloud"
+                        />
 
-                        <div
-                            class="fv-plugins-message-container"
-                        >
-                            <div
-                                class="fv-help-block"
-                            >
-                                <ErrorMessage
-                                    name="icon"
-                                />
+                        <div class="form-text">
+                            Nama ikon Font Awesome tanpa prefix "fa-", cth: "briefcase"
+                        </div>
+
+                        <div class="fv-plugins-message-container">
+                            <div class="fv-help-block">
+                                <ErrorMessage name="icon" />
                             </div>
                         </div>
                     </div>
@@ -397,10 +242,7 @@ watch(
         </div>
 
         <div class="card-footer d-flex">
-            <button
-                type="submit"
-                class="btn btn-primary btn-sm ms-auto"
-            >
+            <button type="submit" class="btn btn-primary btn-sm ms-auto">
                 Simpan
             </button>
         </div>

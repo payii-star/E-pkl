@@ -312,6 +312,31 @@ const loading = ref(false);
 const errorMessage = ref("");
 
 /* =========================
+   HELPERS
+========================= */
+
+/**
+ * Ubah path foto relatif (mis. "profile-photos/xxx.jpg" atau
+ * "/storage/profile-photos/xxx.jpg") menjadi full URL ke backend Laravel.
+ * Tanpa ini, browser akan coba load foto dari origin frontend (Vite)
+ * bukan dari server Laravel, sehingga foto tampak broken.
+ */
+const resolvePhotoUrl = (path?: string | null): string | null => {
+    if (!path) return null;
+
+    if (path.startsWith("http://") || path.startsWith("https://")) {
+        return path;
+    }
+
+    const base = import.meta.env.VITE_API_URL ?? "";
+    const cleanPath = path.startsWith("/storage/")
+        ? path
+        : `/storage/${path.replace(/^\/+/, "")}`;
+
+    return `${base}${cleanPath}`;
+};
+
+/* =========================
    COMPUTED
 ========================= */
 
@@ -353,10 +378,7 @@ const loadProfile = async () => {
             phone: user.phone || "",
             nim_nis: user.nim_nis || "",
             asal_instansi: user.asal_instansi || "",
-            photo:
-                user.profile_photo ||
-                user.photo ||
-                null,
+            photo: resolvePhotoUrl(user.profile_photo || user.photo),
         };
     } catch (error) {
         console.error("Gagal mengambil profile", error);
@@ -461,7 +483,7 @@ const saveProfile = async () => {
                 user.asal_instansi ||
                 editForm.value.asal_instansi,
             photo:
-                user.profile_photo ||
+                resolvePhotoUrl(user.profile_photo) ||
                 profile.value.photo,
         };
 

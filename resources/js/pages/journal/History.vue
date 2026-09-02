@@ -336,7 +336,7 @@ export default defineComponent({
         const fotoUrl = (path: string) => {
             if (!path) return '';
             if (path.startsWith('http://') || path.startsWith('https://')) return path;
-            return path.startsWith('/storage/') ? path : `/storage/${path.replace(/^\/+/, '')}`;
+                return path.startsWith('/storage/') ? path : `/storage/${path.replace(/^\/+/, '')}`;
         };
 
         const openDetail = (journal: any) => {

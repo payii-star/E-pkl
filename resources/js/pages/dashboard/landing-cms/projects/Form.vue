@@ -1,4 +1,3 @@
-```vue
 <script setup lang="ts">
 import { block, unblock } from "@/libs/utils";
 import { ref, watch } from "vue";
@@ -27,6 +26,7 @@ const project = ref<Project>({
 
 const fileTypes = ref(["image/jpeg", "image/png", "image/jpg"]);
 const thumbnail = ref<any[]>([]);
+const hadInitialThumbnail = ref(false);
 const formRef = ref();
 
 const formSchema = Yup.object().shape({
@@ -53,8 +53,10 @@ function getEdit() {
                 category: data.data.category ?? "web",
             };
 
-            thumbnail.value = data.data.image
-                ? ["/storage/" + data.data.image]
+            hadInitialThumbnail.value = !!data.data.thumbnail;
+
+            thumbnail.value = data.data.thumbnail
+                ? ["/storage/" + data.data.thumbnail]
                 : [];
         })
         .catch((err: any) => {
@@ -65,6 +67,10 @@ function getEdit() {
         .finally(() => {
             unblock(document.getElementById("form-project"));
        });
+}
+
+function handleRemoveThumbnail() {
+    thumbnail.value = [];
 }
 
 function submit() {
@@ -97,6 +103,8 @@ function submit() {
             "thumbnail",
             thumbnail.value[0].file
         );
+    } else if (hadInitialThumbnail.value && thumbnail.value.length === 0) {
+        formData.append("remove_thumbnail", "1");
     }
 
     block(document.getElementById("form-project"));
@@ -277,6 +285,15 @@ watch(
                         >
                         </file-upload>
 
+                        <button
+                            v-if="thumbnail.length"
+                            type="button"
+                            class="btn btn-sm btn-light-danger mt-2"
+                            @click="handleRemoveThumbnail"
+                        >
+                            Hapus Thumbnail
+                        </button>
+
                         <div
                             class="fv-plugins-message-container"
                         >
@@ -317,9 +334,7 @@ watch(
                             class="fv-plugins-message-container"
                         >
                             <div class="fv-help-block">
-                                <ErrorMessage
-                                    name="category"
-                                />
+                                <ErrorMessage name="category" />
                             </div>
                         </div>
                     </div>
@@ -397,4 +412,3 @@ watch(
         </div>
     </VForm>
 </template>
-```

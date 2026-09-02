@@ -83,13 +83,14 @@ class LandingProjectController extends Controller
     public function update(Request $request, LandingProject $project)
     {
         $validator = Validator::make($request->all(), [
-            'title'       => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'category'    => 'nullable|string|max:255',
-            'url'         => 'nullable|string|max:255',
-            'is_featured' => 'nullable|boolean',
-            'urutan'      => 'nullable|integer',
-            'thumbnail'   => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'title'            => 'required|string|max:255',
+            'description'      => 'nullable|string',
+            'category'         => 'nullable|string|max:255',
+            'url'              => 'nullable|string|max:255',
+            'is_featured'      => 'nullable|boolean',
+            'urutan'           => 'nullable|integer',
+            'thumbnail'        => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'remove_thumbnail' => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -99,7 +100,7 @@ class LandingProjectController extends Controller
             ], 422);
         }
 
-        $data = $validator->safe()->except('thumbnail');
+        $data = $validator->safe()->except(['thumbnail', 'remove_thumbnail']);
 
         if ($data['title'] !== $project->title) {
             $data['slug'] = Str::slug($data['title']) . '-' . Str::random(5);
@@ -108,10 +109,15 @@ class LandingProjectController extends Controller
         $data['is_featured'] = $request->boolean('is_featured');
 
         if ($request->hasFile('thumbnail')) {
+            // Upload thumbnail baru -> hapus yang lama, pasang yang baru
             if ($project->thumbnail) {
                 Storage::disk('public')->delete($project->thumbnail);
             }
             $data['thumbnail'] = $request->file('thumbnail')->store('landing/projects', 'public');
+        } elseif ($request->boolean('remove_thumbnail') && $project->thumbnail) {
+            // Tidak ada file baru, tapi user minta hapus thumbnail lama
+            Storage::disk('public')->delete($project->thumbnail);
+            $data['thumbnail'] = null;
         }
 
         $project->update($data);
