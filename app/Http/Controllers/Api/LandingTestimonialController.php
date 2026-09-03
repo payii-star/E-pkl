@@ -12,9 +12,13 @@ class LandingTestimonialController extends Controller
 {
     public function adminIndex()
     {
+        $testimonials = LandingTestimonial::orderBy('order')->orderBy('id')->get();
+
         return response()->json([
             'success' => true,
-            'data' => LandingTestimonial::orderBy('order')->orderBy('id')->get()
+            'data' => $testimonials->map(
+                fn (LandingTestimonial $t) => $this->format($t)
+            ),
         ]);
     }
 
@@ -37,7 +41,7 @@ class LandingTestimonialController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => $testimonial
+            'data' => $this->format($testimonial),
         ]);
     }
 
@@ -73,7 +77,7 @@ class LandingTestimonialController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Testimonial berhasil ditambahkan',
-            'data'    => $testimonial
+            'data'    => $this->format($testimonial),
         ], 201);
     }
 
@@ -97,7 +101,7 @@ class LandingTestimonialController extends Controller
         }
 
         $data = $validator->safe()->except('photo');
-        $data['is_active'] = $request->boolean('is_active', true);
+        $data['is_active'] = $request->boolean('is_active', $testimonial->is_active);
 
         if ($request->hasFile('photo')) {
             if ($testimonial->photo) {
@@ -111,7 +115,7 @@ class LandingTestimonialController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Testimonial berhasil diperbarui',
-            'data'    => $testimonial
+            'data'    => $this->format($testimonial),
         ]);
     }
 
@@ -127,5 +131,20 @@ class LandingTestimonialController extends Controller
             'success' => true,
             'message' => 'Testimonial berhasil dihapus'
         ]);
+    }
+
+    private function format(LandingTestimonial $testimonial): array
+    {
+        return [
+            'id'        => $testimonial->id,
+            'uuid'      => (string) $testimonial->id,
+            'name'      => $testimonial->name,
+            'position'  => $testimonial->position,
+            'photo'     => $testimonial->photo,
+            'message'   => $testimonial->message,
+            'placement' => $testimonial->placement,
+            'order'     => $testimonial->order,
+            'is_active' => $testimonial->is_active,
+        ];
     }
 }

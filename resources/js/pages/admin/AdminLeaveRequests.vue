@@ -7,7 +7,18 @@
                         <h2 class="fw-bold mb-1">Kelola Izin</h2>
                         <div class="text-gray-500 fs-7">{{ pendingCount }} pengajuan menunggu persetujuan</div>
                     </div>
-                    <div class="card-toolbar">
+                    <div class="card-toolbar d-flex gap-3">
+                        <select class="form-select form-select-sm w-150px" v-model="period">
+                            <option value="month">Bulanan</option>
+                            <option value="week">Mingguan</option>
+                        </select>
+                        <input
+                            v-if="period === 'month'"
+                            v-model="selectedMonth"
+                            type="month"
+                            class="form-control form-control-sm w-150px"
+                            aria-label="Pilih bulan pengajuan izin"
+                        />
                         <select class="form-select form-select-sm w-150px" v-model="filterStatus" @change="fetchLeaveRequests">
                             <option value="">Semua Status</option>
                             <option value="pending">Menunggu</option>
@@ -22,8 +33,8 @@
                         <div class="spinner-border text-primary"></div>
                     </div>
 
-                    <div v-else-if="!leaveRequests.length" class="text-center text-muted py-10">
-                        Belum ada pengajuan izin.
+                    <div v-else-if="!filteredLeaveRequests.length" class="text-center text-muted py-10">
+                        Tidak ada pengajuan izin pada periode yang dipilih.
                     </div>
 
                     <div v-else class="table-responsive">
@@ -40,7 +51,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="lr in leaveRequests" :key="lr.id">
+                                <tr v-for="lr in filteredLeaveRequests" :key="lr.id">
                                     <td>
                                         <div class="fw-semibold">{{ lr.user?.name ?? '-' }}</div>
                                         <div class="text-muted fs-8">{{ lr.user?.email ?? '' }}</div>
@@ -49,9 +60,14 @@
                                     <td>{{ reasonLabel[lr.reason_type] }}</td>
                                     <td class="text-truncate" style="max-width:220px">{{ lr.note ?? '-' }}</td>
                                     <td>
-                                        <a v-if="lr.attachment" :href="attachmentUrl(lr.attachment)" target="_blank" class="text-primary">
+                                        <button
+                                            v-if="lr.attachment"
+                                            type="button"
+                                            class="btn btn-link btn-sm p-0 text-primary"
+                                            @click="openImagePreview(lr.attachment)"
+                                        >
                                             Lihat
-                                        </a>
+                                        </button>
                                         <span v-else>-</span>
                                     </td>
                                     <td>
@@ -86,6 +102,37 @@
             </div>
         </div>
     </div>
+
+    <div
+        v-if="previewImageUrl"
+        class="modal fade show d-block"
+        tabindex="-1"
+        style="background: rgba(0, 0, 0, 0.7)"
+        @click.self="closeImagePreview"
+    >
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 bg-transparent shadow-none">
+                <div class="d-flex justify-content-end mb-2">
+                    <button
+                        type="button"
+                        class="btn btn-icon btn-light"
+                        aria-label="Tutup preview foto"
+                        @click="closeImagePreview"
+                    >
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="card shadow-sm overflow-hidden">
+                    <img
+                        :src="previewImageUrl"
+                        alt="Preview foto lampiran izin"
+                        class="w-100"
+                        style="max-height: 80vh; object-fit: contain; background: #000"
+                    />
+                </div>
+            </div>
+        </div>
+    </div>
 </template>
 
 <script setup lang="ts">
@@ -108,6 +155,10 @@ const leaveRequests = ref<LeaveRequest[]>([])
 const loading = ref(false)
 const updatingId = ref<number | null>(null)
 const filterStatus = ref('')
+const previewImageUrl = ref<string | null>(null)
+const period = ref<'week' | 'month'>('month')
+const selectedMonth = ref(currentMonthValue())
+const selectedWeekDate = ref(currentDateValue())
 
 const reasonLabel: Record<string, string> = {
     tanpa_keterangan: 'Tanpa Keterangan',
@@ -127,12 +178,61 @@ const statusBadge: Record<string, string> = {
     rejected: 'badge-light-danger',
 }
 
+const filteredLeaveRequests = computed(() => {
+    if (period.value === 'month') {
+        return leaveRequests.value.filter((lr) => dateKey(lr.date).startsWith(selectedMonth.value))
+    }
+
+    const selectedDate = parseDate(selectedWeekDate.value)
+    const dayOfWeek = selectedDate.getDay() || 7
+    selectedDate.setDate(selectedDate.getDate() - dayOfWeek + 1)
+    const weekStart = dateKeyFromDate(selectedDate)
+    selectedDate.setDate(selectedDate.getDate() + 6)
+    const weekEnd = dateKeyFromDate(selectedDate)
+
+    return leaveRequests.value.filter((lr) => {
+        const date = dateKey(lr.date)
+        return date >= weekStart && date <= weekEnd
+    })
+})
+
 const pendingCount = computed(
-    () => leaveRequests.value.filter((lr) => lr.status === 'pending').length
+    () => filteredLeaveRequests.value.filter((lr) => lr.status === 'pending').length
 )
 
 function attachmentUrl(path: string) {
     return `${BACKEND_URL}/storage/${path}`
+}
+
+function openImagePreview(path: string) {
+    previewImageUrl.value = attachmentUrl(path)
+}
+
+function closeImagePreview() {
+    previewImageUrl.value = null
+}
+
+function currentMonthValue() {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
+function currentDateValue() {
+    const now = new Date()
+    return dateKeyFromDate(now)
+}
+
+function parseDate(dateStr: string) {
+    const [year, month, day] = dateStr.slice(0, 10).split('-').map(Number)
+    return new Date(year, month - 1, day)
+}
+
+function dateKey(dateStr: string) {
+    return dateStr.slice(0, 10)
+}
+
+function dateKeyFromDate(date: Date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
 function fetchLeaveRequests() {

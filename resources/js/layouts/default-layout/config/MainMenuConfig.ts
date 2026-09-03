@@ -128,7 +128,7 @@ const MainMenuConfig: Array<MenuItem> = [
         ],
     },
 
-    // IZIN TIDAK MASUK
+    // IZIN TIDAK MASUK DAN RIWAYAT IZIN
     {
         heading: "Izin",
         route: "/leave",
@@ -140,8 +140,16 @@ const MainMenuConfig: Array<MenuItem> = [
                 keenthemesIcon: "calendar-remove",
                 hideForAdmin: true,
             },
+            {
+                heading: "Riwayat Izin",
+                route: "/leave/history",
+                name: "leave-history",
+                keenthemesIcon: "document",
+                hideForAdmin: true,
+            },
         ],
     },
+
 
     // MASTER (user & role management)
     {

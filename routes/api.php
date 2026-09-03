@@ -663,6 +663,15 @@ Route::middleware(['auth', 'json'])->group(function () {
             LeaveRequestController::class,
             'store'
         ]);
+
+        // Frontend kirim POST + _method=PUT (form-data, karena upload file).
+        // Laravel otomatis meng-override effective method jadi PUT begitu
+        // membaca field _method itu, jadi route WAJIB didaftarkan sebagai PUT
+        // (bukan POST), walau axios-nya sendiri kirim verb POST.
+        Route::put('{leaveRequest}', [
+            LeaveRequestController::class,
+            'update'
+        ]);
     });
 
     Route::prefix('admin/leave-requests')

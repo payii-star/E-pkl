@@ -284,7 +284,7 @@ const routes: Array<RouteRecordRaw> = [
                 },
             },
 
-            // IZIN TIDAK MASUK
+            // IZIN TIDAK MASUK DAN RIWAYAT IZIN
             {
                 path: "/leave/my",
                 name: "leave-my",
@@ -292,6 +292,15 @@ const routes: Array<RouteRecordRaw> = [
                 meta: {
                     pageTitle: "Izin Tidak Masuk",
                     breadcrumbs: ["Izin", "Izin Tidak Masuk"],
+                },
+            },
+            {
+                path: "/leave/history",
+                name: "leave-history",
+                component: () => import("@/pages/leave/MyLeaveHistory.vue"),
+                meta: {
+                    pageTitle: "Riwayat Izin",
+                    breadcrumbs: ["Izin", "Riwayat Izin"],
                 },
             },
             {

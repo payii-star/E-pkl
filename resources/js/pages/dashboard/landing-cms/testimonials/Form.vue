@@ -19,7 +19,7 @@ const testimonial = ref<Testimonial>({
     name: "",
     position: "",
     message: "",
-    placement: "",
+    placement: "services",
 } as Testimonial);
 
 const fileTypes = ref([
@@ -44,10 +44,6 @@ const formSchema = Yup.object().shape({
     message: Yup.string().required(
         "Isi testimoni harus diisi"
     ),
-
-    placement: Yup.string().required(
-        "Pilih tempat tampil"
-    ),
 });
 
 function resetForm() {
@@ -55,7 +51,7 @@ function resetForm() {
         name: "",
         position: "",
         message: "",
-        placement: "",
+        placement: "services",
     } as Testimonial;
 
     photo.value = [];
@@ -122,17 +118,18 @@ function getEdit() {
 }
 
 function submit(values: any) {
-    // ── DEBUG SEMENTARA — hapus 2 baris ini setelah masalah ketemu ──
-    console.log("DEBUG values (dari vee-validate):", values);
-    console.log("DEBUG testimonial.value (dari ref manual):", testimonial.value);
-    // ──────────────────────────────────────────────────────────────
-
     const formData = new FormData();
 
     formData.append("name", values.name ?? "");
     formData.append("position", values.position ?? "");
     formData.append("message", values.message ?? "");
-    formData.append("placement", values.placement ?? "");
+
+    /*
+     * Field "Tampilkan di" sudah dihapus dari form —
+     * testimonial yang ditambah/diedit lewat sini selalu
+     * ditampilkan di halaman Layanan.
+     */
+    formData.append("placement", "services");
 
     /*
      * Hanya upload foto jika user memilih
@@ -369,55 +366,6 @@ watch(
                             >
                                 <ErrorMessage
                                     name="message"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- PLACEMENT -->
-                <div class="col-md-12">
-                    <div class="fv-row mb-7">
-                        <label
-                            class="form-label fw-bold fs-6 required"
-                        >
-                            Tampilkan di
-                        </label>
-
-                        <Field
-                            as="select"
-                            class="form-select form-select-lg form-select-solid"
-                            name="placement"
-                            v-model="
-                                testimonial.placement
-                            "
-                        >
-                            <option
-                                value=""
-                                disabled
-                            >
-                                Pilih lokasi tampil
-                            </option>
-
-                            <option value="services">
-                                Halaman Layanan
-                                (Klien)
-                            </option>
-
-                            <option value="beranda">
-                                Beranda
-                                (Testimoni CEO)
-                            </option>
-                        </Field>
-
-                        <div
-                            class="fv-plugins-message-container"
-                        >
-                            <div
-                                class="fv-help-block"
-                            >
-                                <ErrorMessage
-                                    name="placement"
                                 />
                             </div>
                         </div>

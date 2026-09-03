@@ -7,6 +7,7 @@ use App\Models\LeaveRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class LeaveRequestController extends Controller
 {
@@ -23,8 +24,16 @@ class LeaveRequestController extends Controller
     // POST /leave-requests -> user mengajukan izin tidak masuk
     public function store(Request $request)
     {
+        $userId = $request->user()->id;
+
         $validator = Validator::make($request->all(), [
-            'date' => 'required|date',
+            'date' => [
+                'required',
+                'date',
+                // Cegah spam: 1 user cuma boleh punya 1 pengajuan izin untuk tanggal yang sama
+                Rule::unique('leave_requests', 'date')
+                    ->where(fn ($query) => $query->where('user_id', $userId)),
+            ],
             'reason_type' => 'required|in:tanpa_keterangan,sakit,acara_keluarga',
             'note' => 'nullable|string|max:1000',
             // surat dokter wajib dilampirkan khusus alasan "sakit"
@@ -35,6 +44,8 @@ class LeaveRequestController extends Controller
                 'max:2048',
                 $request->reason_type === 'sakit' ? 'required' : 'nullable',
             ],
+        ], [
+            'date.unique' => 'Kamu sudah pernah mengajukan izin untuk tanggal ini',
         ]);
 
         if ($validator->fails()) {
@@ -45,7 +56,7 @@ class LeaveRequestController extends Controller
         }
 
         $data = [
-            'user_id' => $request->user()->id,
+            'user_id' => $userId,
             'date' => $request->date,
             'reason_type' => $request->reason_type,
             'note' => $request->note,
@@ -62,6 +73,74 @@ class LeaveRequestController extends Controller
             'data' => $leaveRequest,
             'message' => 'Pengajuan izin berhasil dikirim',
         ], 201);
+    }
+
+    // POST /leave-requests/{leaveRequest} (dengan _method=PUT) -> user edit izin miliknya sendiri
+    // Hanya bisa selama status masih "pending" (belum direview admin).
+    public function update(Request $request, LeaveRequest $leaveRequest)
+    {
+        $userId = $request->user()->id;
+
+        if ($leaveRequest->user_id !== $userId) {
+            return response()->json(['message' => 'Tidak diizinkan'], 403);
+        }
+
+        if ($leaveRequest->status !== 'pending') {
+            return response()->json([
+                'message' => 'Izin yang sudah direview tidak bisa diedit lagi',
+            ], 422);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'date' => [
+                'required',
+                'date',
+                // Cegah spam, tapi abaikan record ini sendiri saat cek duplikat
+                Rule::unique('leave_requests', 'date')
+                    ->where(fn ($query) => $query->where('user_id', $userId))
+                    ->ignore($leaveRequest->id),
+            ],
+            'reason_type' => 'required|in:tanpa_keterangan,sakit,acara_keluarga',
+            'note' => 'nullable|string|max:1000',
+            'attachment' => [
+                'nullable',
+                'file',
+                'mimes:jpg,jpeg,png,pdf',
+                'max:2048',
+                // Wajib upload ulang HANYA kalau alasan "sakit" dan belum ada lampiran sama sekali
+                ($request->reason_type === 'sakit' && !$leaveRequest->attachment) ? 'required' : 'nullable',
+            ],
+        ], [
+            'date.unique' => 'Kamu sudah pernah mengajukan izin untuk tanggal ini',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $data = [
+            'date' => $request->date,
+            'reason_type' => $request->reason_type,
+            'note' => $request->note,
+        ];
+
+        if ($request->hasFile('attachment')) {
+            // Hapus lampiran lama kalau ada, baru simpan yang baru
+            if ($leaveRequest->attachment) {
+                Storage::disk('public')->delete($leaveRequest->attachment);
+            }
+            $data['attachment'] = $request->file('attachment')->store('leave-requests', 'public');
+        }
+
+        $leaveRequest->update($data);
+
+        return response()->json([
+            'data' => $leaveRequest->fresh(),
+            'message' => 'Pengajuan izin berhasil diperbarui',
+        ]);
     }
 
     // GET /admin/leave-requests -> semua pengajuan izin (buat hr-admin)
