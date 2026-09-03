@@ -23,6 +23,8 @@ use App\Http\Controllers\Api\LandingTestimonialController;
 use App\Http\Controllers\Api\LandingMenuController;
 use App\Http\Controllers\Api\LandingFooterController;
 use App\Http\Controllers\Api\LandingContentPageController;
+use App\Http\Controllers\Api\AdminInternPeriodController;
+use App\Http\Controllers\Api\LeaveRequestController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -543,6 +545,26 @@ Route::middleware(['auth', 'json'])->group(function () {
 
 
     // ========================================================================
+    // INTERN PERIODS (Atur Periode Magang)
+    // ========================================================================
+
+    Route::prefix('admin/intern-periods')
+        ->middleware('role:hr-admin')
+        ->group(function () {
+
+            Route::get('', [
+                AdminInternPeriodController::class,
+                'index'
+            ]);
+
+            Route::put('{user}', [
+                AdminInternPeriodController::class,
+                'update'
+            ]);
+        });
+
+
+    // ========================================================================
     // TASKS
     // ========================================================================
 
@@ -624,6 +646,39 @@ Route::middleware(['auth', 'json'])->group(function () {
             'reject'
         ]);
     });
+
+
+    // ========================================================================
+    // LEAVE REQUESTS (Izin Tidak Masuk)
+    // ========================================================================
+
+    Route::prefix('leave-requests')->group(function () {
+
+        Route::get('', [
+            LeaveRequestController::class,
+            'index'
+        ]);
+
+        Route::post('', [
+            LeaveRequestController::class,
+            'store'
+        ]);
+    });
+
+    Route::prefix('admin/leave-requests')
+        ->middleware('role:hr-admin')
+        ->group(function () {
+
+            Route::get('', [
+                LeaveRequestController::class,
+                'adminIndex'
+            ]);
+
+            Route::patch('{leaveRequest}/status', [
+                LeaveRequestController::class,
+                'updateStatus'
+            ]);
+        });
 
 
     // ========================================================================
