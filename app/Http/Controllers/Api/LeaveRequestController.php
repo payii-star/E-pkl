@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Attendance;
 use App\Models\LeaveRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -170,6 +171,25 @@ class LeaveRequestController extends Controller
             'reviewed_by' => $request->user()->id,
             'reviewed_at' => now(),
         ]);
+
+        if ($request->status === 'approved') {
+            $today = now()->setTimezone(config('app.timezone', 'Asia/Jakarta'))->toDateString();
+            $dateColumn = Attendance::dateColumn();
+            $checkInTimeColumn = Attendance::checkInTimeColumn();
+            $checkOutTimeColumn = Attendance::checkOutTimeColumn();
+
+            $attendance = Attendance::where('user_id', $leaveRequest->user_id)
+                ->where($dateColumn, $today)
+                ->first();
+
+            if ($attendance && $attendance->{$checkInTimeColumn} && !$attendance->{$checkOutTimeColumn}) {
+                $attendance->update([
+                    $checkOutTimeColumn => now()
+                        ->setTimezone(config('app.timezone', 'Asia/Jakarta'))
+                        ->toTimeString(),
+                ]);
+            }
+        }
 
         return response()->json([
             'data' => $leaveRequest->load('user:id,name,email', 'reviewer:id,name'),

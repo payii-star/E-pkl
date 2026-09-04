@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
+use App\Models\LeaveRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -47,6 +48,12 @@ class AttendanceController extends Controller
     public function checkIn(Request $request)
     {
         $user = $request->user();
+
+        if ($this->hasApprovedLeaveToday($user->id)) {
+            return response()->json([
+                'message' => 'Kamu memiliki izin yang sudah disetujui untuk hari ini, sehingga tidak dapat absen masuk.',
+            ], 403);
+        }
 
         $validator = Validator::make($request->all(), [
             'photo' => 'required|image|max:1024',
@@ -92,6 +99,12 @@ class AttendanceController extends Controller
     {
         $user = $request->user();
 
+        if ($this->hasApprovedLeaveToday($user->id)) {
+            return response()->json([
+                'message' => 'Kamu memiliki izin yang sudah disetujui untuk hari ini, sehingga tidak dapat absen masuk.',
+            ], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'photo' => 'required|string',
         ]);
@@ -131,6 +144,12 @@ class AttendanceController extends Controller
     public function checkOut(Request $request)
     {
         $user = $request->user();
+
+        if ($this->hasApprovedLeaveToday($user->id)) {
+            return response()->json([
+                'message' => 'Kamu memiliki izin yang sudah disetujui untuk hari ini, sehingga sudah dianggap pulang.',
+            ], 403);
+        }
 
         $validator = Validator::make($request->all(), [
             'photo' => 'required|string',
@@ -173,6 +192,12 @@ class AttendanceController extends Controller
     {
         $user = $request->user();
 
+        if ($this->hasApprovedLeaveToday($user->id)) {
+            return response()->json([
+                'message' => 'Kamu memiliki izin yang sudah disetujui untuk hari ini, sehingga sudah dianggap pulang.',
+            ], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'photo' => 'required|string',
             'location' => 'nullable|string',
@@ -206,6 +231,16 @@ class AttendanceController extends Controller
         ]);
 
         return response()->json(['data' => $attendance, 'message' => 'Absen pulang berhasil'], 200);
+    }
+
+    private function hasApprovedLeaveToday(int $userId): bool
+    {
+        $today = now()->setTimezone(config('app.timezone', 'Asia/Jakarta'))->toDateString();
+
+        return LeaveRequest::where('user_id', $userId)
+            ->whereDate('date', $today)
+            ->where('status', 'approved')
+            ->exists();
     }
 
     private function saveBase64Photo(string $base64, int $userId): ?string

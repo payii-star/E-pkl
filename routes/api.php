@@ -138,7 +138,7 @@ Route::middleware(['auth', 'json'])->group(function () {
     // PROFILE
     // ------------------------------------------------------------------------
 
-    Route::post('/profile', [
+    Route::match(['post', 'put', 'patch'], '/profile', [
         UserController::class,
         'updateProfile'
     ]);

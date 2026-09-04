@@ -14,3 +14,4 @@ class LandingTestimonial extends Model
         'is_active' => 'boolean',
     ];
 }
+
