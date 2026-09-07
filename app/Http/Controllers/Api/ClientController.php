@@ -35,6 +35,10 @@ class ClientController extends Controller
             ->orderBy('id')
             ->get(['id', 'name', 'short', 'logo']);
 
+        $clients->each(function ($client) {
+            $client->setAttribute('url', $client->url);
+        });
+
         return response()->json([
             'success' => true,
             'data' => $clients,
