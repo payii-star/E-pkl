@@ -128,7 +128,10 @@ class LeaveRequestController extends Controller
             'note' => $request->note,
         ];
 
-        if ($request->hasFile('attachment')) {
+        if ($request->reason_type !== 'sakit' && $leaveRequest->attachment) {
+            Storage::disk('public')->delete($leaveRequest->attachment);
+            $data['attachment'] = null;
+        } elseif ($request->hasFile('attachment')) {
             // Hapus lampiran lama kalau ada, baru simpan yang baru
             if ($leaveRequest->attachment) {
                 Storage::disk('public')->delete($leaveRequest->attachment);
