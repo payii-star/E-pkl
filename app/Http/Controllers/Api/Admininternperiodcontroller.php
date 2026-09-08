@@ -19,7 +19,7 @@ class AdminInternPeriodController extends Controller
     {
         $interns = User::query()
             ->whereDoesntHave('roles', function ($query) {
-                $query->whereIn('name', ['hr-admin', 'atasan']);
+                $query->whereIn('name', ['hr-admin', 'atasan', 'admin-landing']);
             })
             ->orderBy('name')
             ->get(['id', 'name', 'email', 'photo', 'tanggal_mulai', 'tanggal_selesai']);

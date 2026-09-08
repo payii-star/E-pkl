@@ -46,7 +46,7 @@ class AdminAttendanceController extends Controller
 
         $interns = User::query()
             ->whereDoesntHave('roles', function ($query) {
-                $query->whereIn('name', ['hr-admin', 'atasan']);
+                $query->whereIn('name', ['hr-admin', 'atasan', 'admin-landing']);
             })
             ->withCount(['attendances as total_hadir_periode' => function ($query) use ($start, $end) {
                 $query->whereBetween('date', [$start, $end])
