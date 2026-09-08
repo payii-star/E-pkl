@@ -200,13 +200,6 @@ const MainMenuConfig: Array<MenuItem> = [
                 permission: "landing-management",
             },
             {
-                heading: "Menu",
-                route: "/admin/landing/menu",
-                name: "landing-menu",
-                keenthemesIcon: "burger-menu",
-                permission: "landing-management",
-            },
-            {
                 heading: "Services",
                 route: "/admin/landing/services",
                 name: "landing-services",
