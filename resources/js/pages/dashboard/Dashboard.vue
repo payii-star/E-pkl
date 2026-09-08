@@ -17,7 +17,7 @@
             <div>Periode magang kamu belum diatur oleh admin.</div>
           </div>
 
-          <template v-else>
+          <div v-else>
             <div class="d-flex justify-content-between align-items-center mb-3">
               <span class="fw-semibold fs-6 text-gray-600">
                 Hari berjalan: <b>{{ estimation.days_passed }}</b> / {{ estimation.total_days }} hari
@@ -36,18 +36,18 @@
             <div class="d-flex align-items-center">
               <KTIcon icon-name="time" icon-class="fs-3 text-muted me-2" />
               <span class="text-muted fw-semibold fs-7">
-                <template v-if="estimation.status === 'not_started'">
-                  Magang belum dimulai — <b>{{ estimation.days_remaining }} hari lagi</b>
-                </template>
-                <template v-else-if="estimation.status === 'completed'">
-                  Magang sudah <b>selesai</b>
-                </template>
-                <template v-else>
-                  Sisa waktu magang: <b>{{ estimation.days_remaining }} hari</b>
-                </template>
+                  <span v-if="estimation.status === 'not_started'">
+                    Magang belum dimulai — <b>{{ estimation.days_remaining }} hari lagi</b>
+                  </span>
+                  <span v-else-if="estimation.status === 'completed'">
+                    Magang sudah <b>selesai</b>
+                  </span>
+                  <span v-else>
+                    Sisa waktu magang: <b>{{ estimation.days_remaining }} hari</b>
+                  </span>
               </span>
             </div>
-          </template>
+          </div>
         </div>
       </div>
     </div>
@@ -255,3 +255,4 @@ onMounted(() => {
 onUnmounted(() => {
   if (refreshInterval) clearInterval(refreshInterval);
 }); 
+</script>
