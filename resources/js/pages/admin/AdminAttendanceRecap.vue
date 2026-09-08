@@ -80,21 +80,13 @@
                             </select>
                         </div>
 
-                        <div class="flex-shrink-0">
-                            <label class="fs-8 text-muted mb-1 d-block">
-                                {{ period === 'week' ? 'Pilih Tanggal' : 'Pilih Bulan' }}
-                            </label>
+                        <!-- Mingguan: nggak ada input tanggal sama sekali, selalu otomatis minggu berjalan -->
+                        <div v-if="period === 'month'" class="flex-shrink-0">
+                            <label class="fs-8 text-muted mb-1 d-block">Pilih Bulan</label>
                             <input
-                                v-if="period === 'month'"
                                 type="month"
                                 class="form-control form-control-sm"
                                 v-model="selectedMonth"
-                            />
-                            <input
-                                v-else
-                                type="date"
-                                class="form-control form-control-sm"
-                                v-model="selectedWeekDate"
                             />
                         </div>
                     </div>
@@ -251,6 +243,8 @@ const loadingRecap = ref(false)
 
 const period = ref<'week' | 'month'>('month')
 const selectedMonth = ref(currentMonthValue())
+// Mingguan: nggak ada picker, selalu ikut tanggal hari ini (di-refresh
+// tiap kali mode diganti ke "week", biar selalu nunjukin minggu berjalan).
 const selectedWeekDate = ref(currentDateValue())
 
 // Preview foto absen
@@ -337,12 +331,18 @@ function selectIntern(intern: any) {
 }
 
 function onPeriodChange() {
+    // Setiap kali pindah ke mode "Mingguan", selalu refresh ke tanggal
+    // hari ini — jadi nggak pernah "nyangkut" ke minggu yang lama.
+    if (period.value === 'week') {
+        selectedWeekDate.value = currentDateValue()
+    }
     loadInterns()
     if (selected.value) loadRecap()
 }
 
-// Reload saat bulan/tanggal-minggu diganti
-watch([selectedMonth, selectedWeekDate], () => {
+// Reload cuma perlu didengerin buat mode Bulanan (mode Mingguan udah nggak
+// punya input yang bisa diubah user, jadi nggak perlu watch selectedWeekDate).
+watch(selectedMonth, () => {
     if (selected.value) loadRecap()
     loadInterns()
 })
