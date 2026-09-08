@@ -254,5 +254,4 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (refreshInterval) clearInterval(refreshInterval);
-});
-</script>
+}); 

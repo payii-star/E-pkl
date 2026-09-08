@@ -228,13 +228,6 @@ const MainMenuConfig: Array<MenuItem> = [
                 permission: "landing-management",
             },
             {
-                heading: "Footer",
-                route: "/admin/landing/footer",
-                name: "landing-footer",
-                keenthemesIcon: "row-horizontal",
-                permission: "landing-management",
-            },
-            {
                 heading: "Landing Content",
                 route: "/admin/landing/content",
                 name: "landing-content",
