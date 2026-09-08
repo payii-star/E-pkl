@@ -61,7 +61,7 @@
           <h3 class="card-title align-items-start flex-column">
             <span class="card-label fw-bold fs-3 mb-1">Tugas dari Admin</span>
             <span class="text-muted fw-semibold fs-7">Daftar tugas yang perlu dikerjakan</span>
-          </h3>
+            </h3>
         </div>
         <div class="card-body pt-0">
           <div v-if="tasks.length === 0" class="text-center text-muted py-10">
