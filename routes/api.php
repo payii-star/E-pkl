@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\LandingFooterController;
 use App\Http\Controllers\Api\LandingContentPageController;
 use App\Http\Controllers\Api\AdminInternPeriodController;
 use App\Http\Controllers\Api\LeaveRequestController;
+use App\Http\Controllers\Api\AdminAssessmentController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -686,6 +687,48 @@ Route::middleware(['auth', 'json'])->group(function () {
             Route::patch('{leaveRequest}/status', [
                 LeaveRequestController::class,
                 'updateStatus'
+            ]);
+        });
+
+
+    // ========================================================================
+    // PENILAIAN & REKAP SISWA MAGANG (Admin)
+    // ========================================================================
+
+    Route::prefix('admin/assessments')
+        ->middleware('role:hr-admin')
+        ->group(function () {
+
+            // Ringkasan semua peserta magang dalam 1 periode (?start=&end=)
+            Route::get('', [
+                AdminAssessmentController::class,
+                'index'
+            ]);
+
+            // Detail rekap + penilaian 1 peserta magang dalam 1 periode
+            Route::get('{user}', [
+                AdminAssessmentController::class,
+                'show'
+            ]);
+
+            // Tambah catatan rekap harian (telat, pulang cepat, dst) untuk 1 peserta magang
+            Route::post('{user}/records', [
+                AdminAssessmentController::class,
+                'storeRecord'
+            ]);
+
+            // Edit / hapus catatan rekap. Ditaruh di bawah path literal "records"
+            // (bukan di bawah {user}) supaya tidak pernah tabrakan dengan
+            // GET /admin/assessments/{user} di atas — {user} expect 1 segment
+            // path, sedangkan ini 2 segment ("records/{record}").
+            Route::put('records/{record}', [
+                AdminAssessmentController::class,
+                'updateRecord'
+            ]);
+
+            Route::delete('records/{record}', [
+                AdminAssessmentController::class,
+                'destroyRecord'
             ]);
         });
 

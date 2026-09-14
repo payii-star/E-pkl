@@ -96,6 +96,17 @@ const routes: Array<RouteRecordRaw> = [
                     },
                 },
 
+            {
+                path: "/admin/assessments",
+                name: "admin-assessments",
+                component: () => import("@/pages/admin/AdminAssessments.vue"),
+                meta: {
+                    pageTitle: "Penilaian Magang",
+                    breadcrumbs: ["Admin", "Penilaian Magang"],
+                    permission: "admin-dashboard",
+                },
+            },
+
             // KELOLA LANDING (dipindahkan dari dashboard Landing)
             {
                 path: "/admin/landing/projects",

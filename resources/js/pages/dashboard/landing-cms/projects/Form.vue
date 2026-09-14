@@ -284,7 +284,9 @@ watch(
                             "
                         >
                         </file-upload>
-
+			<div class="form-text text-muted fs-7 mt-1">
+    				Format yang didukung: JPG, JPEG, PNG, WEBP. Ukuran maksimal 2MB.
+			</div>
                         <button
                             v-if="thumbnail.length"
                             type="button"

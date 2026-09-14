@@ -53,6 +53,13 @@ const MainMenuConfig: Array<MenuItem> = [
                     permission: "admin-dashboard",
                 },
             {
+                heading: "Penilaian Magang",
+                route: "/admin/assessments",
+                name: "admin-assessments",
+                keenthemesIcon: "medal-star",
+                permission: "admin-dashboard",
+            },
+            {
                 heading: "Approval Jurnal",
                 route: "/journal/approval",
                 name: "journal-approval",

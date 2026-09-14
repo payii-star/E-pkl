@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import ClientLogosManager from "./ClientLogosManager.vue";
 import { onMounted, ref } from "vue";
 import * as Yup from "yup";
 import axios from "@/libs/axios";
@@ -62,8 +61,12 @@ const fileTypes = ref(["image/jpeg", "image/png", "image/jpg", "image/webp"]);
 const logoFile = ref<any>([]);
 const ceoPhotoFile = ref<any>([]);
 
+// TODO: sesuaikan angka ini kalau ternyata beda dengan validasi
+// backend (cek FormRequest / controller untuk field ceo_photo & logo).
+const MAX_SIZE_MB = 2;
+
 const formSchema = Yup.object().shape({
-    app_name: Yup.string().required("Nama aplikasi harus diisi"),
+    app_name: Yup.string().nullable(),
     description: Yup.string().nullable(),
     email: Yup.string().email("Email harus valid").nullable(),
     whatsapp: Yup.string().nullable(),
@@ -154,112 +157,6 @@ onMounted(fetchContent);
         id="form-landing-content"
         ref="formRef"
     >
-        <!--begin::Info Umum-->
-        <div class="card mb-10">
-            <div class="card-header align-items-center">
-                <h2 class="mb-0">Landing Content - Info Umum</h2>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="fv-row mb-7">
-                            <label class="form-label fw-bold fs-6 required">Nama Aplikasi</label>
-                            <Field
-                                class="form-control form-control-lg form-control-solid"
-                                type="text"
-                                name="app_name"
-                                v-model="content.app_name"
-                            />
-                            <div class="fv-plugins-message-container">
-                                <div class="fv-help-block"><ErrorMessage name="app_name" /></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="fv-row mb-7">
-                            <label class="form-label fw-bold fs-6">Logo</label>
-                            <file-upload
-                                :files="logoFile"
-                                :accepted-file-types="fileTypes"
-                                v-on:updatefiles="(file) => (logoFile = file)"
-                            ></file-upload>
-                            <img
-                                v-if="currentLogo && !logoFile.length"
-                                :src="currentLogo"
-                                alt="Logo saat ini"
-                                style="height: 40px; margin-top: 8px;"
-                            />
-                        </div>
-                    </div>
-                    <div class="col-md-12">
-                        <div class="fv-row mb-7">
-                            <label class="form-label fw-bold fs-6">Deskripsi Perusahaan</label>
-                            <Field
-                                as="textarea"
-                                class="form-control form-control-lg form-control-solid"
-                                name="description"
-                                rows="3"
-                                v-model="content.description"
-                            />
-                            <div class="fv-plugins-message-container">
-                                <div class="fv-help-block"><ErrorMessage name="description" /></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="fv-row mb-7">
-                            <label class="form-label fw-bold fs-6">Email</label>
-                            <Field
-                                class="form-control form-control-lg form-control-solid"
-                                type="text"
-                                name="email"
-                                v-model="content.email"
-                            />
-                            <div class="fv-plugins-message-container">
-                                <div class="fv-help-block"><ErrorMessage name="email" /></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="fv-row mb-7">
-                            <label class="form-label fw-bold fs-6">WhatsApp</label>
-                            <Field
-                                class="form-control form-control-lg form-control-solid"
-                                type="text"
-                                name="whatsapp"
-                                v-model="content.whatsapp"
-                                placeholder="62xxxxxxxxxx"
-                            />
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="fv-row mb-7">
-                            <label class="form-label fw-bold fs-6">Telepon</label>
-                            <Field
-                                class="form-control form-control-lg form-control-solid"
-                                type="text"
-                                name="phone"
-                                v-model="content.phone"
-                            />
-                        </div>
-                    </div>
-                    <div class="col-md-12">
-                        <div class="fv-row mb-7">
-                            <label class="form-label fw-bold fs-6">Alamat</label>
-                            <Field
-                                as="textarea"
-                                class="form-control form-control-lg form-control-solid"
-                                name="address"
-                                rows="2"
-                                v-model="content.address"
-                            />
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!--end::Info Umum-->
-
         <!--begin::Hero Section-->
         <div class="card mb-10">
             <div class="card-header align-items-center">
@@ -352,52 +249,6 @@ onMounted(fetchContent);
         </div>
         <!--end::Hero Section-->
 
-        <!--begin::Contact Page-->
-        <div class="card mb-10">
-            <div class="card-header align-items-center">
-                <h2 class="mb-0">Landing Content - Halaman Kontak</h2>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="fv-row mb-7">
-                            <label class="form-label fw-bold fs-6">Judul Hero Kontak</label>
-                            <Field
-                                class="form-control form-control-lg form-control-solid"
-                                type="text"
-                                name="contact_hero_title"
-                                v-model="content.contact_hero_title"
-                            />
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="fv-row mb-7">
-                            <label class="form-label fw-bold fs-6">Maps URL</label>
-                            <Field
-                                class="form-control form-control-lg form-control-solid"
-                                type="text"
-                                name="contact_maps_url"
-                                v-model="content.contact_maps_url"
-                            />
-                        </div>
-                    </div>
-                    <div class="col-md-12">
-                        <div class="fv-row mb-7">
-                            <label class="form-label fw-bold fs-6">Subjudul Hero Kontak</label>
-                            <Field
-                                as="textarea"
-                                class="form-control form-control-lg form-control-solid"
-                                name="contact_hero_subtitle"
-                                rows="2"
-                                v-model="content.contact_hero_subtitle"
-                            />
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!--end::Contact Page-->
-
         <!--begin::Komentar CEO-->
 <div class="card mb-10">
     <div class="card-header align-items-center">
@@ -448,6 +299,9 @@ onMounted(fetchContent);
                         :accepted-file-types="fileTypes"
                         v-on:updatefiles="(file) => (ceoPhotoFile = file)"
                     ></file-upload>
+                    <div class="form-text text-muted mt-2">
+                        Format yang didukung: JPG, JPEG, PNG, WEBP. Ukuran maksimal {{ MAX_SIZE_MB }}MB.
+                    </div>
                     <img
                         v-if="currentCeoPhoto && !ceoPhotoFile.length"
                         :src="currentCeoPhoto"
@@ -461,52 +315,6 @@ onMounted(fetchContent);
 </div>
 <!--end::Komentar CEO-->
 
-        <!--begin::Projects Page-->
-        <div class="card mb-10">
-            <div class="card-header align-items-center">
-                <h2 class="mb-0">Landing Content - Halaman Projects</h2>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="fv-row mb-7">
-                            <label class="form-label fw-bold fs-6">Label</label>
-                            <Field
-                                class="form-control form-control-lg form-control-solid"
-                                type="text"
-                                name="projects_page_label"
-                                v-model="content.projects_page_label"
-                            />
-                        </div>
-                    </div>
-                    <div class="col-md-8">
-                        <div class="fv-row mb-7">
-                            <label class="form-label fw-bold fs-6">Judul</label>
-                            <Field
-                                class="form-control form-control-lg form-control-solid"
-                                type="text"
-                                name="projects_page_title"
-                                v-model="content.projects_page_title"
-                            />
-                        </div>
-                    </div>
-                    <div class="col-md-12">
-                        <div class="fv-row mb-7">
-                            <label class="form-label fw-bold fs-6">Subjudul</label>
-                            <Field
-                                as="textarea"
-                                class="form-control form-control-lg form-control-solid"
-                                name="projects_page_subtitle"
-                                rows="2"
-                                v-model="content.projects_page_subtitle"
-                            />
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!--end::Projects Page-->
-
         <div class="card">
             <div class="card-footer d-flex">
                 <button type="submit" class="btn btn-primary btn-sm ms-auto">
@@ -515,5 +323,4 @@ onMounted(fetchContent);
             </div>
         </div>
     </VForm>
-    <ClientLogosManager />
 </template>
