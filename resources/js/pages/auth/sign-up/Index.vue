@@ -5,14 +5,13 @@
             <div class="signup__header">
                 <h2>Buat Akun Baru</h2>
                 <p>
-                    Isi data di bawah, lalu lanjutkan ke
-                    pendaftaran wajah.
+                    Isi data di bawah untuk membuat akun baru.
                 </p>
             </div>
 
             <form
                 class="auth-form"
-                @submit.prevent="goToFaceStep"
+                @submit.prevent="submitRegistration"
             >
                 <!-- NAMA LENGKAP -->
                 <div class="auth-field">
@@ -333,7 +332,7 @@
                     type="submit"
                     class="auth-submit w-100"
                 >
-                    Lanjut ke Pendaftaran Wajah
+                    Buat Akun
                 </button>
             </form>
 
@@ -347,207 +346,6 @@
             </div>
         </template>
 
-        <!-- STEP 2: FACE -->
-        <template v-else-if="step === 'face'">
-            <div class="signup__header">
-                <h2>Daftarkan Wajah Kamu</h2>
-
-                <p>
-                    Diamkan wajah menghadap kamera.
-                    Sistem akan mengambil
-                    {{ SAMPLE_TARGET }} sample otomatis.
-                </p>
-            </div>
-
-            <div
-                class="signup__cam"
-                :class="`signup__cam--${camStatus}`"
-            >
-                <video
-                    ref="videoEl"
-                    autoplay
-                    muted
-                    playsinline
-                ></video>
-
-                <canvas ref="canvasEl"></canvas>
-
-                <div
-                    v-if="
-                        camStatus ===
-                        'loading_models'
-                    "
-                    class="signup__overlay"
-                >
-                    <span
-                        class="spinner-border spinner-border-sm me-2"
-                    ></span>
-
-                    {{
-                        modelProgress ||
-                        "Menyiapkan kamera..."
-                    }}
-                </div>
-
-                <div
-                    v-else-if="
-                        camStatus ===
-                        'camera_error'
-                    "
-                    class="signup__overlay signup__overlay--err"
-                >
-                    Tidak bisa mengakses kamera.
-                    Pastikan izin kamera diaktifkan.
-                </div>
-            </div>
-
-            <div class="signup__status">
-                <template
-                    v-if="
-                        camStatus ===
-                        'no_face'
-                    "
-                >
-                    <span
-                        class="signup__dot signup__dot--warn"
-                    ></span>
-
-                    Arahkan wajah ke kamera
-                </template>
-
-                <template
-                    v-else-if="
-                        camStatus ===
-                        'sampling'
-                    "
-                >
-                    <span
-                        class="signup__dot signup__dot--warn"
-                    ></span>
-
-                    Mengambil sample wajah...
-
-                    {{ collectedSamples.length }}/{{
-                        SAMPLE_TARGET
-                    }}
-                </template>
-
-                <template
-                    v-else-if="
-                        camStatus === 'ready'
-                    "
-                >
-                    <span
-                        class="signup__dot signup__dot--ok"
-                    ></span>
-
-                    {{ collectedSamples.length }}/{{
-                        SAMPLE_TARGET
-                    }}
-
-                    sample terkumpul,
-                    siap didaftarkan
-                </template>
-
-                <template
-                    v-else-if="
-                        camStatus === 'capturing'
-                    "
-                >
-                    <span
-                        class="signup__dot signup__dot--warn"
-                    ></span>
-
-                    Membuat akun dan
-                    menyimpan data wajah...
-                </template>
-
-                <template
-                    v-else-if="
-                        camStatus === 'success'
-                    "
-                >
-                    <span
-                        class="signup__dot signup__dot--ok"
-                    ></span>
-
-                    Akun berhasil didaftarkan!
-                </template>
-            </div>
-
-            <div
-                v-if="
-                    camStatus === 'sampling' ||
-                    camStatus === 'ready'
-                "
-                class="signup__progress"
-            >
-                <div
-                    class="signup__progress-bar"
-                    :style="{
-                        width:
-                            Math.min(
-                                collectedSamples.length,
-                                SAMPLE_TARGET
-                            ) /
-                                SAMPLE_TARGET *
-                                100 +
-                            '%',
-                    }"
-                ></div>
-            </div>
-
-            <div
-                v-if="faceError"
-                class="alert alert-danger py-2 fs-7"
-            >
-                {{ faceError }}
-            </div>
-
-            <div
-                class="d-flex flex-column gap-2"
-            >
-                <button
-                    class="auth-submit w-100"
-                    :disabled="
-                        camStatus !== 'ready' ||
-                        registering
-                    "
-                    @click="finishRegistration"
-                >
-                    <span
-                        v-if="registering"
-                        class="spinner-border spinner-border-sm me-2"
-                    ></span>
-
-                    Buat Akun & Daftarkan Wajah
-                </button>
-
-                <button
-                    v-if="
-                        camStatus === 'ready'
-                    "
-                    type="button"
-                    class="signup__retry"
-                    @click="resetSamples"
-                >
-                    Kurang pas? Ulangi
-                    pengambilan sample
-                </button>
-
-                <button
-                    type="button"
-                    class="signup__retry"
-                    @click="
-                        backToAccountStep
-                    "
-                >
-                    ← Kembali ubah data akun
-                </button>
-            </div>
-        </template>
-
-        <!-- STEP 3 -->
         <template v-else>
             <div
                 class="signup__header text-center"
@@ -555,8 +353,7 @@
                 <h2>Semua Siap!</h2>
 
                 <p>
-                    Akun kamu sudah dibuat dan
-                    wajah sudah terdaftar.
+                    Akun kamu sudah dibuat.
                 </p>
             </div>
 
@@ -571,12 +368,7 @@
 </template>
 
 <script setup lang="ts">
-import {
-    ref,
-    onBeforeUnmount,
-} from "vue";
-
-import * as faceapi from "face-api.js";
+import { ref } from "vue";
 import axios from "@/libs/axios";
 import { useRouter } from "vue-router";
 
@@ -589,7 +381,7 @@ const router = useRouter();
 */
 
 const step = ref<
-    "account" | "face" | "done"
+    "account" | "done"
 >("account");
 
 /*
@@ -645,141 +437,89 @@ function sanitizeNis(
 |--------------------------------------------------------------------------
 */
 
-function goToFaceStep() {
+async function submitRegistration() {
     accountError.value = "";
 
-    const name =
-        form.value.name.trim();
-
-    const email =
-        form.value.email.trim();
-
-    const nis =
-        form.value.nim_nis.trim();
-
-    const school =
-        form.value.asal_instansi.trim();
-
-    /*
-    |--------------------------------------------------------------------------
-    | NAMA
-    |--------------------------------------------------------------------------
-    */
+    const name = form.value.name.trim();
+    const email = form.value.email.trim();
+    const nis = form.value.nim_nis.trim();
+    const school = form.value.asal_instansi.trim();
 
     if (!name) {
-        accountError.value =
-            "Nama lengkap wajib diisi.";
-
+        accountError.value = "Nama lengkap wajib diisi.";
         return;
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | EMAIL
-    |--------------------------------------------------------------------------
-    */
 
     if (!email) {
-        accountError.value =
-            "Email wajib diisi.";
-
+        accountError.value = "Email wajib diisi.";
         return;
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | NIS
-    |--------------------------------------------------------------------------
-    */
-
     if (!nis) {
-        accountError.value =
-            "NIS wajib diisi.";
-
+        accountError.value = "NIS wajib diisi.";
         return;
     }
 
     if (!/^\d+$/.test(nis)) {
-        accountError.value =
-            "NIS hanya boleh berisi angka.";
-
+        accountError.value = "NIS hanya boleh berisi angka.";
         return;
     }
 
     if (nis.length < 5) {
-        accountError.value =
-            "NIS minimal 5 angka.";
-
+        accountError.value = "NIS minimal 5 angka.";
         return;
     }
 
     if (nis.length > 18) {
-        accountError.value =
-            "NIS maksimal 18 angka.";
-
+        accountError.value = "NIS maksimal 18 angka.";
         return;
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | SEKOLAH
-    |--------------------------------------------------------------------------
-    */
 
     if (!school) {
-        accountError.value =
-            "Asal sekolah wajib diisi.";
-
+        accountError.value = "Asal sekolah wajib diisi.";
         return;
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | PASSWORD
-    |--------------------------------------------------------------------------
-    */
 
     if (!form.value.password) {
-        accountError.value =
-            "Password wajib diisi.";
-
+        accountError.value = "Password wajib diisi.";
         return;
     }
 
-    if (
-        form.value.password.length < 8
-    ) {
-        accountError.value =
-            "Password minimal 8 karakter.";
-
+    if (form.value.password.length < 8) {
+        accountError.value = "Password minimal 8 karakter.";
         return;
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | KONFIRMASI PASSWORD
-    |--------------------------------------------------------------------------
-    */
-
-    if (
-        form.value.password !==
-        form.value.password_confirmation
-    ) {
-        accountError.value =
-            "Konfirmasi password tidak cocok.";
-
+    if (form.value.password !== form.value.password_confirmation) {
+        accountError.value = "Konfirmasi password tidak cocok.";
         return;
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | LANJUT KE FACE
-    |--------------------------------------------------------------------------
-    */
+    try {
+        const response = await axios.post("/auth/register", {
+            name,
+            email,
+            phone: form.value.phone.trim() || null,
+            nim_nis: nis,
+            asal_instansi: school,
+            password: form.value.password,
+            password_confirmation: form.value.password_confirmation,
+        });
 
-    step.value = "face";
+        if (response.data?.status !== false) {
+            step.value = "done";
+        }
+    } catch (error: any) {
+        const response = error?.response;
+        const errors = response?.data?.errors;
 
-    startFaceEnrollment();
+        if (errors) {
+            const firstError = Object.values(errors).flat().find(Boolean);
+            accountError.value = String(firstError || "Data pendaftaran tidak valid.");
+        } else {
+            accountError.value = response?.data?.message || "Pendaftaran gagal. Silakan coba lagi.";
+        }
+    }
 }
 
 /*
@@ -789,618 +529,7 @@ function goToFaceStep() {
 */
 
 function backToAccountStep() {
-    stopCamera();
-
-    collectedSamples.value = [];
-
-    faceError.value = "";
-
     step.value = "account";
-}
-
-/*
-|--------------------------------------------------------------------------
-| FACE CONFIG
-|--------------------------------------------------------------------------
-*/
-
-const MODEL_URL = "/models";
-
-const SAMPLE_TARGET = 5;
-
-const SAMPLE_INTERVAL_MS = 700;
-
-/*
-|--------------------------------------------------------------------------
-| ELEMENT
-|--------------------------------------------------------------------------
-*/
-
-const videoEl =
-    ref<HTMLVideoElement | null>(
-        null
-    );
-
-const canvasEl =
-    ref<HTMLCanvasElement | null>(
-        null
-    );
-
-/*
-|--------------------------------------------------------------------------
-| CAMERA STATUS
-|--------------------------------------------------------------------------
-*/
-
-const camStatus = ref<
-    | "loading_models"
-    | "camera_error"
-    | "no_face"
-    | "sampling"
-    | "ready"
-    | "capturing"
-    | "success"
->("loading_models");
-
-const modelProgress = ref("");
-
-const faceError = ref("");
-
-const registering = ref(false);
-
-/*
-|--------------------------------------------------------------------------
-| SAMPLE
-|--------------------------------------------------------------------------
-*/
-
-const collectedSamples =
-    ref<number[][]>([]);
-
-/*
-|--------------------------------------------------------------------------
-| CAMERA VARIABLES
-|--------------------------------------------------------------------------
-*/
-
-let stream: MediaStream | null =
-    null;
-
-let detectionTimer:
-    number | null = null;
-
-let samplingTimer:
-    number | null = null;
-
-let modelsLoaded = false;
-
-/*
-|--------------------------------------------------------------------------
-| LOAD MODEL
-|--------------------------------------------------------------------------
-*/
-
-async function loadFaceModels() {
-    if (modelsLoaded) {
-        return;
-    }
-
-    modelProgress.value =
-        "Memuat model face detection...";
-
-    await faceapi.nets.tinyFaceDetector.loadFromUri(
-        MODEL_URL
-    );
-
-    modelProgress.value =
-        "Memuat model face landmark...";
-
-    await faceapi.nets.faceLandmark68Net.loadFromUri(
-        MODEL_URL
-    );
-
-    modelProgress.value =
-        "Memuat model face recognition...";
-
-    await faceapi.nets.faceRecognitionNet.loadFromUri(
-        MODEL_URL
-    );
-
-    modelsLoaded = true;
-}
-
-/*
-|--------------------------------------------------------------------------
-| START CAMERA
-|--------------------------------------------------------------------------
-*/
-
-async function startCamera() {
-    if (!videoEl.value) {
-        return;
-    }
-
-    try {
-        stopCamera();
-
-        stream =
-            await navigator.mediaDevices.getUserMedia(
-                {
-                    video: {
-                        facingMode: "user",
-                        width: {
-                            ideal: 640,
-                        },
-                        height: {
-                            ideal: 480,
-                        },
-                    },
-                    audio: false,
-                }
-            );
-
-        videoEl.value.srcObject =
-            stream;
-
-        await videoEl.value.play();
-
-        camStatus.value =
-            "no_face";
-
-        startDetectionLoop();
-    } catch (error) {
-        console.error(
-            "Gagal mengakses kamera:",
-            error
-        );
-
-        camStatus.value =
-            "camera_error";
-
-        faceError.value =
-            "Kamera tidak dapat diakses. Pastikan browser memiliki izin kamera.";
-    }
-}
-
-/*
-|--------------------------------------------------------------------------
-| STOP CAMERA
-|--------------------------------------------------------------------------
-*/
-
-function stopCamera() {
-    if (
-        detectionTimer !== null
-    ) {
-        window.clearInterval(
-            detectionTimer
-        );
-
-        detectionTimer = null;
-    }
-
-    if (
-        samplingTimer !== null
-    ) {
-        window.clearTimeout(
-            samplingTimer
-        );
-
-        samplingTimer = null;
-    }
-
-    if (stream) {
-        stream
-            .getTracks()
-            .forEach((track) => {
-                track.stop();
-            });
-
-        stream = null;
-    }
-
-    if (videoEl.value) {
-        videoEl.value.srcObject =
-            null;
-    }
-}
-
-/*
-|--------------------------------------------------------------------------
-| DETECTION LOOP
-|--------------------------------------------------------------------------
-*/
-
-function startDetectionLoop() {
-    if (!videoEl.value) {
-        return;
-    }
-
-    if (
-        detectionTimer !== null
-    ) {
-        window.clearInterval(
-            detectionTimer
-        );
-    }
-
-    detectionTimer =
-        window.setInterval(
-            async () => {
-                await detectFace();
-            },
-            250
-        );
-}
-
-/*
-|--------------------------------------------------------------------------
-| DETECT FACE
-|--------------------------------------------------------------------------
-*/
-
-async function detectFace() {
-    if (
-        !videoEl.value ||
-        videoEl.value.readyState < 2 ||
-        registering.value ||
-        step.value !== "face"
-    ) {
-        return;
-    }
-
-    try {
-        const detection =
-            await faceapi
-                .detectSingleFace(
-                    videoEl.value,
-                    new faceapi.TinyFaceDetectorOptions(
-                        {
-                            inputSize: 320,
-                            scoreThreshold: 0.5,
-                        }
-                    )
-                )
-                .withFaceLandmarks()
-                .withFaceDescriptor();
-
-        if (!detection) {
-            camStatus.value =
-                collectedSamples.value
-                    .length >=
-                SAMPLE_TARGET
-                    ? "ready"
-                    : "no_face";
-
-            return;
-        }
-
-        if (
-            collectedSamples.value
-                .length >=
-            SAMPLE_TARGET
-        ) {
-            camStatus.value =
-                "ready";
-
-            return;
-        }
-
-        camStatus.value =
-            "sampling";
-
-        scheduleSample(
-            Array.from(
-                detection.descriptor
-            )
-        );
-    } catch (error) {
-        console.error(
-            "Face detection error:",
-            error
-        );
-    }
-}
-
-/*
-|--------------------------------------------------------------------------
-| SAMPLE
-|--------------------------------------------------------------------------
-*/
-
-function scheduleSample(
-    descriptor: number[]
-) {
-    if (
-        samplingTimer !== null
-    ) {
-        return;
-    }
-
-    samplingTimer =
-        window.setTimeout(() => {
-            samplingTimer = null;
-
-            if (
-                collectedSamples.value
-                    .length >=
-                SAMPLE_TARGET
-            ) {
-                camStatus.value =
-                    "ready";
-
-                return;
-            }
-
-            /*
-             * Pastikan descriptor benar-benar
-             * memiliki 128 angka.
-             */
-
-            if (
-                descriptor.length !==
-                128
-            ) {
-                faceError.value =
-                    "Descriptor wajah tidak valid.";
-
-                return;
-            }
-
-            collectedSamples.value.push(
-                descriptor
-            );
-
-            if (
-                collectedSamples.value
-                    .length >=
-                SAMPLE_TARGET
-            ) {
-                camStatus.value =
-                    "ready";
-            }
-        }, SAMPLE_INTERVAL_MS);
-}
-
-/*
-|--------------------------------------------------------------------------
-| RESET SAMPLE
-|--------------------------------------------------------------------------
-*/
-
-function resetSamples() {
-    collectedSamples.value = [];
-
-    faceError.value = "";
-
-    camStatus.value =
-        "no_face";
-
-    if (
-        samplingTimer !== null
-    ) {
-        window.clearTimeout(
-            samplingTimer
-        );
-
-        samplingTimer = null;
-    }
-}
-
-/*
-|--------------------------------------------------------------------------
-| CAPTURE PHOTO (snapshot untuk disimpan sebagai foto profil wajah)
-|--------------------------------------------------------------------------
-*/
-
-function capturePhotoSnapshot(): string | null {
-    if (!videoEl.value) {
-        return null;
-    }
-
-    try {
-        const canvas = document.createElement("canvas");
-        canvas.width = videoEl.value.videoWidth || 480;
-        canvas.height = videoEl.value.videoHeight || 360;
-
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-            return null;
-        }
-
-        // Video di-mirror secara visual lewat CSS (scaleX(-1)), tapi canvas
-        // menggambar apa adanya dari video, jadi kita ikut mirror di sini
-        // biar foto yang tersimpan orientasinya sama seperti yang user lihat.
-        ctx.translate(canvas.width, 0);
-        ctx.scale(-1, 1);
-        ctx.drawImage(videoEl.value, 0, 0, canvas.width, canvas.height);
-
-        return canvas.toDataURL("image/jpeg", 0.85);
-    } catch (error) {
-        console.error(
-            "Gagal mengambil snapshot foto:",
-            error
-        );
-
-        return null;
-    }
-}
-
-/*
-|--------------------------------------------------------------------------
-| REGISTRATION
-|--------------------------------------------------------------------------
-*/
-
-async function finishRegistration() {
-    faceError.value = "";
-
-    if (
-        collectedSamples.value.length <
-        SAMPLE_TARGET
-    ) {
-        faceError.value =
-            "Sample wajah belum mencukupi.";
-
-        return;
-    }
-
-    /*
-     * Pastikan semua descriptor
-     * berjumlah 128 angka.
-     */
-
-    const invalidDescriptor =
-        collectedSamples.value.some(
-            (descriptor) =>
-                !Array.isArray(
-                    descriptor
-                ) ||
-                descriptor.length !==
-                    128
-        );
-
-    if (invalidDescriptor) {
-        faceError.value =
-            "Data descriptor wajah tidak valid. Silakan ulangi pengambilan sample.";
-
-        resetSamples();
-
-        return;
-    }
-
-    if (registering.value) {
-        return;
-    }
-
-    registering.value = true;
-
-    camStatus.value =
-        "capturing";
-
-    try {
-        const payload = {
-            name:
-                form.value.name.trim(),
-
-            email:
-                form.value.email.trim(),
-
-            phone:
-                form.value.phone.trim() ||
-                null,
-
-            nim_nis:
-                form.value.nim_nis.trim(),
-
-            asal_instansi:
-                form.value.asal_instansi.trim(),
-
-            password:
-                form.value.password,
-
-            password_confirmation:
-                form.value
-                    .password_confirmation,
-
-            /*
-             * PENTING:
-             * Backend meminta "descriptors",
-             * bukan "descriptor".
-             */
-            descriptors:
-                collectedSamples.value,
-
-            /*
-             * BARU: snapshot foto wajah, dikirim sebagai base64 data URL.
-             * Tanpa ini, face_profiles.photo selalu kosong dan halaman
-             * Face Management admin tidak bisa nampilin foto user.
-             */
-            photo:
-                capturePhotoSnapshot(),
-        };
-
-        const response =
-            await axios.post(
-                "/auth/register-with-face",
-                payload
-            );
-
-        console.log(
-            "Registration success:",
-            response.data
-        );
-
-        camStatus.value =
-            "success";
-
-        stopCamera();
-
-        step.value = "done";
-    } catch (error: any) {
-        console.error(
-            "Registration error:",
-            error
-        );
-
-        const response =
-            error?.response;
-
-        const errors =
-            response?.data?.errors;
-
-        if (errors) {
-            const firstError =
-                Object.values(errors)
-                    .flat()
-                    .find(Boolean);
-
-            faceError.value =
-                String(
-                    firstError ||
-                        "Data pendaftaran tidak valid."
-                );
-        } else {
-            faceError.value =
-                response?.data?.message ||
-                "Pendaftaran gagal. Silakan coba lagi.";
-        }
-
-        camStatus.value =
-            "ready";
-    } finally {
-        registering.value = false;
-    }
-}
-
-/*
-|--------------------------------------------------------------------------
-| START FACE ENROLLMENT
-|--------------------------------------------------------------------------
-*/
-
-async function startFaceEnrollment() {
-    faceError.value = "";
-
-    camStatus.value =
-        "loading_models";
-
-    try {
-        await loadFaceModels();
-
-        await startCamera();
-    } catch (error) {
-        console.error(
-            "Face enrollment error:",
-            error
-        );
-
-        camStatus.value =
-            "camera_error";
-
-        faceError.value =
-            "Model face recognition gagal dimuat.";
-    }
 }
 
 /*
@@ -1415,15 +544,6 @@ function goToDashboard() {
     });
 }
 
-/*
-|--------------------------------------------------------------------------
-| CLEANUP
-|--------------------------------------------------------------------------
-*/
-
-onBeforeUnmount(() => {
-    stopCamera();
-});
 </script>
 
 <style scoped>

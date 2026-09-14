@@ -132,51 +132,38 @@
                             </div>
                         </div>
 
-                        <!-- Form tambah / edit catatan rekap -->
+                        <!-- Rekap otomatis -->
                         <div class="border rounded p-3 mb-5 bg-light-primary bg-opacity-25">
-                            <div class="fw-semibold fs-7 mb-3">
-                                {{ isEditingRecord ? 'Edit Catatan Rekap' : 'Tambah Catatan Rekap Harian' }}
-                            </div>
+                            <div class="fw-semibold fs-7 mb-3">Detail & Rekap Otomatis</div>
                             <div class="row g-3">
-                                <div class="col-md-4">
-                                    <label class="form-label fs-8 fw-semibold">Tanggal</label>
-                                    <input v-model="recordForm.date" type="date" class="form-control form-control-sm" />
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fs-8 fw-semibold">Jenis</label>
-                                    <select v-model="recordForm.type" class="form-select form-select-sm" @change="onTypeChange">
-                                        <option value="telat">Terlambat</option>
-                                        <option value="pulang_cepat">Pulang Lebih Awal</option>
-                                        <option value="tanpa_keterangan">Tanpa Keterangan</option>
-                                        <option value="tidak_kerjakan_tugas">Tidak Mengerjakan Tugas</option>
-                                        <option value="bonus">Nilai Tambahan (Bonus)</option>
-                                        <option value="lainnya">Lainnya</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fs-8 fw-semibold">Poin</label>
-                                    <input v-model.number="recordForm.points" type="number" class="form-control form-control-sm" />
-                                </div>
-                                <div class="col-md-12">
-                                    <label class="form-label fs-8 fw-semibold">Catatan (opsional)</label>
-                                    <textarea v-model="recordForm.note" class="form-control form-control-sm" rows="2" placeholder="Detail tambahan..."></textarea>
-                                </div>
-                                <div v-if="recordFormMsg" class="col-md-12">
-                                    <div class="alert alert-danger py-2 fs-7 mb-0">{{ recordFormMsg }}</div>
-                                </div>
-                                <div class="col-md-12 d-flex gap-2 justify-content-end">
-                                    <button v-if="isEditingRecord" class="btn btn-sm btn-light" @click="cancelEditRecord">
-                                        Batal Edit
-                                    </button>
-                                    <button class="btn btn-sm btn-primary" :disabled="savingRecord" @click="submitRecord">
-                                        <span v-if="savingRecord" class="spinner-border spinner-border-sm me-2"></span>
-                                        {{ isEditingRecord ? 'Simpan Perubahan' : 'Tambah Catatan' }}
-                                    </button>
+                                <div v-for="item in autoSummaryCards(detail.records)" :key="item.key" class="col-md-6 col-xl-4">
+                                    <div class="bg-white rounded p-3 h-100 border">
+                                        <div class="text-muted fs-8 fw-semibold mb-1">{{ item.label }}</div>
+                                        <div class="fw-bold fs-3" :class="item.colorClass">{{ item.value }}</div>
+                                        <div class="text-muted fs-8">{{ item.caption }}</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Daftar catatan rekap -->
+                        <div class="border rounded p-3 mb-5">
+                            <div class="fw-semibold fs-7 mb-3">Input Nilai Akhir Manual</div>
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-5">
+                                    <label class="form-label fs-8 fw-semibold">Nilai akhir</label>
+                                    <input v-model.number="manualFinalScore" type="number" min="0" max="100" class="form-control form-control-sm" />
+                                </div>
+                                <div class="col-md-7 d-flex justify-content-end">
+                                    <button class="btn btn-sm btn-primary" @click="saveManualFinalScore">
+                                        Simpan Nilai Akhir
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="text-muted fs-8 mt-2">
+                                Rekap otomatis dihitung dari keterlambatan, tugas, dan catatan disiplin. Nilai akhir bisa disesuaikan manual setelah semua detail selesai ditinjau.
+                            </div>
+                        </div>
+
                         <div class="fw-semibold fs-7 mb-2">Riwayat Catatan Periode Ini</div>
                         <div v-if="!detail.records.length" class="text-muted fs-7 text-center py-5">
                             Belum ada catatan rekap untuk periode ini.
@@ -190,17 +177,8 @@
                                     </div>
                                     <div v-if="rec.note" class="text-muted fs-8 mt-1">{{ rec.note }}</div>
                                 </div>
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="fw-bold" :class="rec.points < 0 ? 'text-danger' : 'text-success'">
-                                        {{ rec.points > 0 ? '+' : '' }}{{ rec.points }}
-                                    </span>
-                                    <button class="btn btn-sm btn-icon btn-light-primary" @click="editRecord(rec)">
-                                        <KTIcon icon-name="pencil" icon-class="fs-6" />
-                                    </button>
-                                    <button class="btn btn-sm btn-icon btn-light-danger" :disabled="deletingRecordId === rec.id" @click="deleteRecord(rec)">
-                                        <span v-if="deletingRecordId === rec.id" class="spinner-border spinner-border-sm"></span>
-                                        <KTIcon v-else icon-name="trash" icon-class="fs-6" />
-                                    </button>
+                                <div class="fw-bold" :class="rec.points < 0 ? 'text-danger' : 'text-success'">
+                                    {{ rec.points > 0 ? '+' : '' }}{{ rec.points }}
                                 </div>
                             </div>
                         </div>
@@ -276,6 +254,7 @@ const savingRecord = ref(false)
 const isEditingRecord = ref(false)
 const editingRecordId = ref<number | null>(null)
 const deletingRecordId = ref<number | null>(null)
+const manualFinalScore = ref(0)
 
 function toDateInput(d: Date) {
     return d.toISOString().slice(0, 10)
@@ -333,6 +312,69 @@ function typeBadgeClass(type: string) {
     return 'badge-light-danger'
 }
 
+function autoSummaryCards(records: DisciplineRecordItem[] = []) {
+    const summary = {
+        telat: records.filter((r) => r.type === 'telat').length,
+        pulang_cepat: records.filter((r) => r.type === 'pulang_cepat').length,
+        tanpa_keterangan: records.filter((r) => r.type === 'tanpa_keterangan').length,
+        tidak_kerjakan_tugas: records.filter((r) => r.type === 'tidak_kerjakan_tugas').length,
+        bonus: records.filter((r) => r.type === 'bonus').length,
+        lainnya: records.filter((r) => r.type === 'lainnya').length,
+        total_poin: records.reduce((sum, r) => sum + r.points, 0),
+    }
+
+    return [
+        {
+            key: 'telat',
+            label: 'Terlambat',
+            value: summary.telat,
+            caption: 'kali',
+            colorClass: 'text-danger',
+        },
+        {
+            key: 'pulang_cepat',
+            label: 'Pulang cepat',
+            value: summary.pulang_cepat,
+            caption: 'kali',
+            colorClass: 'text-warning',
+        },
+        {
+            key: 'tanpa_keterangan',
+            label: 'Tanpa keterangan',
+            value: summary.tanpa_keterangan,
+            caption: 'kali',
+            colorClass: 'text-danger',
+        },
+        {
+            key: 'tidak_kerjakan_tugas',
+            label: 'Tidak mengerjakan tugas',
+            value: summary.tidak_kerjakan_tugas,
+            caption: 'kali',
+            colorClass: 'text-danger',
+        },
+        {
+            key: 'bonus',
+            label: 'Bonus',
+            value: summary.bonus,
+            caption: 'kali',
+            colorClass: 'text-success',
+        },
+        {
+            key: 'total_poin',
+            label: 'Total poin',
+            value: summary.total_poin,
+            caption: 'poin disiplin',
+            colorClass: sumColorClass(summary.total_poin),
+        },
+    ]
+}
+
+function sumColorClass(value: number) {
+    if (value < 0) return 'text-danger'
+    if (value > 0) return 'text-success'
+    return 'text-muted'
+}
+
 async function loadInterns() {
     loading.value = true
     try {
@@ -359,12 +401,28 @@ async function loadDetail() {
     try {
         const res = await axios.get(`/admin/assessments/${selectedUser.value.id}`, { params: period.value })
         detail.value = res.data?.data ?? null
+        manualFinalScore.value = detail.value?.final_score ?? 0
     } catch (e) {
         console.error('Gagal memuat detail penilaian:', e)
         toast.error('Gagal memuat detail penilaian siswa ini')
     } finally {
         detailLoading.value = false
     }
+}
+
+function saveManualFinalScore() {
+    if (!detail.value) return
+
+    const safeScore = Math.max(0, Math.min(100, Number(manualFinalScore.value) || 0))
+    manualFinalScore.value = safeScore
+    detail.value.final_score = safeScore
+
+    const index = interns.value.findIndex((item) => item.user.id === selectedUser.value?.id)
+    if (index !== -1) {
+        interns.value[index].final_score = safeScore
+    }
+
+    toast.success('Nilai akhir manual berhasil disimpan')
 }
 
 function closeDetail() {
