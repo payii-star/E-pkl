@@ -334,6 +334,17 @@ const routes: Array<RouteRecordRaw> = [
                     permission: "journal-approval",
                 },
             },
+
+            // NILAI SAYA (siswa)
+            {
+                path: "/assessment/my",
+                name: "assessment-my",
+                component: () => import("@/pages/assessment/MyAssessment.vue"),
+                meta: {
+                    pageTitle: "Nilai Saya",
+                    breadcrumbs: ["Nilai", "Nilai Saya"],
+                },
+            },
         ],
     },
     {

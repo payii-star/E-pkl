@@ -158,6 +158,22 @@ const MainMenuConfig: Array<MenuItem> = [
     },
 
 
+    // NILAI SAYA
+    {
+        heading: "Nilai",
+        route: "/assessment",
+        pages: [
+            {
+                heading: "Nilai Saya",
+                route: "/assessment/my",
+                name: "assessment-my",
+                keenthemesIcon: "medal-star",
+                hideForAdmin: true,
+            },
+        ],
+    },
+
+
     // MASTER (user & role management)
     {
         heading: "Master",
@@ -265,4 +281,4 @@ const MainMenuConfig: Array<MenuItem> = [
     },
 ];
 
-export default MainMenuConfig;
+export default MainMenuConfig;  

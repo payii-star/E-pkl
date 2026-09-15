@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\LandingContentPageController;
 use App\Http\Controllers\Api\AdminInternPeriodController;
 use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\Api\AdminAssessmentController;
+use App\Http\Controllers\Api\AssessmentController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -692,6 +693,16 @@ Route::middleware(['auth', 'json'])->group(function () {
 
 
     // ========================================================================
+    // NILAI SAYA (Siswa melihat nilai & rekap dirinya sendiri)
+    // ========================================================================
+
+    Route::get('assessments/me', [
+        AssessmentController::class,
+        'me'
+    ]);
+
+
+    // ========================================================================
     // PENILAIAN & REKAP SISWA MAGANG (Admin)
     // ========================================================================
 
@@ -705,30 +716,18 @@ Route::middleware(['auth', 'json'])->group(function () {
                 'index'
             ]);
 
-            // Detail rekap + penilaian 1 peserta magang dalam 1 periode
+            // Detail rekap otomatis (telat, pulang cepat, tanpa keterangan,
+            // tidak mengerjakan tugas) untuk 1 peserta magang dalam 1 periode
             Route::get('{user}', [
                 AdminAssessmentController::class,
                 'show'
             ]);
 
-            // Tambah catatan rekap harian (telat, pulang cepat, dst) untuk 1 peserta magang
-            Route::post('{user}/records', [
+            // Admin input/ubah nilai akhir MANUAL untuk 1 peserta magang,
+            // pada periode yang sama dengan query ?start=&end= di atas
+            Route::post('{user}/score', [
                 AdminAssessmentController::class,
-                'storeRecord'
-            ]);
-
-            // Edit / hapus catatan rekap. Ditaruh di bawah path literal "records"
-            // (bukan di bawah {user}) supaya tidak pernah tabrakan dengan
-            // GET /admin/assessments/{user} di atas — {user} expect 1 segment
-            // path, sedangkan ini 2 segment ("records/{record}").
-            Route::put('records/{record}', [
-                AdminAssessmentController::class,
-                'updateRecord'
-            ]);
-
-            Route::delete('records/{record}', [
-                AdminAssessmentController::class,
-                'destroyRecord'
+                'storeScore'
             ]);
         });
 
