@@ -38,14 +38,28 @@
                     <tbody>
                         <tr v-for="row in filteredRows" :key="row.id">
                             <td>{{ formatDate(row.date) }}</td>
-                            <td>{{ row.check_in_time ?? '-' }}</td>
+                            <td>
+                                <div class="d-flex flex-column align-items-start gap-1">
+                                    <span>{{ row.check_in_time ?? '-' }}</span>
+                                    <span v-if="row.check_in_time && lateMinutes(row.check_in_time) > 0" class="badge badge-light-warning fs-8">
+                                        Telat {{ formatDurationMinutes(lateMinutes(row.check_in_time)) }}
+                                    </span>
+                                </div>
+                            </td>
                             <td>
                                 <a v-if="photoUrl(row.check_in_photo)" :href="photoUrl(row.check_in_photo)!" target="_blank">
                                     <img :src="photoUrl(row.check_in_photo)!" class="rounded" style="width:40px;height:40px;object-fit:cover;" />
                                 </a>
                                 <span v-else class="text-muted fs-8">-</span>
                             </td>
-                            <td>{{ row.check_out_time ?? '-' }}</td>
+                            <td>
+                                <div class="d-flex flex-column align-items-start gap-1">
+                                    <span>{{ row.check_out_time ?? '-' }}</span>
+                                    <span v-if="row.check_out_time && earlyLeaveMinutes(row.check_out_time) > 0" class="badge badge-light-warning fs-8">
+                                        Pulang cepat {{ formatDurationMinutes(earlyLeaveMinutes(row.check_out_time)) }}
+                                    </span>
+                                </div>
+                            </td>
                             <td>
                                 <a v-if="photoUrl(row.check_out_photo)" :href="photoUrl(row.check_out_photo)!" target="_blank">
                                     <img :src="photoUrl(row.check_out_photo)!" class="rounded" style="width:40px;height:40px;object-fit:cover;" />
@@ -116,18 +130,63 @@ function formatDate(dateStr: string) {
     });
 }
 
+function normalizeTimeString(time: string) {
+    if (!time) return "00:00:00";
+    if (time.split(":").length === 2) return `${time}:00`;
+    return time;
+}
+
+function formatDurationMinutes(totalMinutes: number) {
+    const safeMinutes = Math.max(0, totalMinutes);
+    const hours = Math.floor(safeMinutes / 60);
+    const minutes = safeMinutes % 60;
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+function calculateMinutesDifference(start: string, end: string) {
+    const startDate = new Date(`2000-01-01T${normalizeTimeString(start)}`);
+    const endDate = new Date(`2000-01-01T${normalizeTimeString(end)}`);
+    return Math.round((endDate.getTime() - startDate.getTime()) / 60000);
+}
+
+function lateMinutes(checkInTime: string | null) {
+    if (!checkInTime) return 0;
+    const diff = calculateMinutesDifference("08:00", checkInTime);
+    return diff > 0 ? diff : 0;
+}
+
+function earlyLeaveMinutes(checkOutTime: string | null) {
+    if (!checkOutTime) return 0;
+    const diff = calculateMinutesDifference(checkOutTime, "16:00");
+    return diff > 0 ? diff : 0;
+}
+
 function statusLabel(row: AttendanceRow) {
-    if (row.check_in_time && !row.check_out_time) return "Belum Checkout";
-    if (row.check_in_time && row.check_out_time) return "Hadir";
-    if (row.status === "izin") return "Izin";
-    if (row.status === "sakit") return "Sakit";
-    return "Tidak Hadir";
+    if (!row.check_in_time && !row.check_out_time) {
+        if (row.status === "izin") return "Izin";
+        if (row.status === "sakit") return "Sakit";
+        return row.status ?? "Tidak Hadir";
+    }
+
+    if (row.check_in_time && row.check_out_time) {
+        return row.status ?? "Hadir";
+    }
+
+    if (row.check_in_time && !row.check_out_time) return row.status ?? "Hadir";
+    return row.status ?? "Tidak Hadir";
 }
 
 function statusBadge(row: AttendanceRow) {
-    if (row.check_in_time && !row.check_out_time) return "badge-light-warning";
-    if (row.check_in_time && row.check_out_time) return "badge-light-success";
-    if (row.status === "izin" || row.status === "sakit") return "badge-light-info";
+    if (!row.check_in_time && !row.check_out_time) {
+        if (row.status === "izin" || row.status === "sakit") return "badge-light-info";
+        return "badge-light-danger";
+    }
+
+    if (row.check_in_time && row.check_out_time) {
+        return "badge-light-success";
+    }
+
+    if (row.check_in_time && !row.check_out_time) return "badge-light-success";
     return "badge-light-danger";
 }
 

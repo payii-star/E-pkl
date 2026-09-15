@@ -86,6 +86,22 @@
                             </button>
                         </div>
 
+                        <!-- Konfirmasi pulang lebih awal -->
+                        <div v-else-if="isEarlyLeave && !earlyLeaveConfirmed" class="w-100 mb-3">
+                            <div class="alert alert-warning py-3 fs-7 mb-3 text-start">
+                                <div class="fw-bold mb-1">Apakah Anda yakin pulang saat ini?</div>
+                                <div>Jam pulang resmi adalah 16:00. Saat ini Anda pulang lebih awal <span class="fw-bold">{{ earlyLeaveDisplay }}</span> jam.</div>
+                            </div>
+                            <div class="d-flex gap-2 justify-content-center">
+                                <button class="btn btn-warning" :disabled="submitting" @click="confirmEarlyLeave">
+                                    Yakin Pulang Saat Ini
+                                </button>
+                                <button class="btn btn-light" :disabled="submitting" @click="cancelEarlyLeave">
+                                    Batal
+                                </button>
+                            </div>
+                        </div>
+
                         <!-- Tombol konfirmasi / ambil ulang -->
                         <div v-else class="d-flex gap-2 mb-3">
                             <button class="btn btn-success" :disabled="submitting" @click="submitCheckOut">
@@ -128,11 +144,12 @@ const FLIP_CAPTURE = true
 const videoEl  = ref<HTMLVideoElement | null>(null)
 const canvasEl = ref<HTMLCanvasElement | null>(null)
 
-const cameraOpen      = ref(false)
-const capturedPhoto   = ref<string | null>(null)
-const submitting      = ref(false)
-const errMsg          = ref('')
-const todayAttendance = ref<any>(null)
+const cameraOpen         = ref(false)
+const capturedPhoto      = ref<string | null>(null)
+const submitting         = ref(false)
+const errMsg             = ref('')
+const todayAttendance    = ref<any>(null)
+const earlyLeaveConfirmed = ref(false)
 
 let _stream: MediaStream | null = null
 
@@ -153,6 +170,28 @@ const statusBadgeClass = computed(() => {
     return 'badge-light-success'
 })
 
+const isEarlyLeave = computed(() => {
+    const now = new Date()
+    const official = new Date(now)
+    official.setHours(16, 0, 0, 0)
+    return now.getTime() < official.getTime()
+})
+
+const earlyLeaveMinutes = computed(() => {
+    if (!isEarlyLeave.value) return 0
+    const now = new Date()
+    const official = new Date(now)
+    official.setHours(16, 0, 0, 0)
+    return Math.max(0, Math.round((official.getTime() - now.getTime()) / 60000))
+})
+
+const earlyLeaveDisplay = computed(() => {
+    const total = earlyLeaveMinutes.value
+    const hours = Math.floor(total / 60)
+    const minutes = total % 60
+    return `-${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+})
+
 // ─── Data loading ─────────────────────────────────────────────────────────────
 async function fetchToday() {
     try {
@@ -167,6 +206,7 @@ async function fetchToday() {
 async function openCamera() {
     errMsg.value = ''
     capturedPhoto.value = null
+    earlyLeaveConfirmed.value = false
     try {
         _stream = await navigator.mediaDevices.getUserMedia({
             video: { width: 480, height: 360, facingMode: 'user' },
@@ -192,6 +232,7 @@ function closeCamera() {
     stopCamera()
     cameraOpen.value = false
     capturedPhoto.value = null
+    earlyLeaveConfirmed.value = false
     errMsg.value = ''
 }
 
@@ -213,11 +254,28 @@ function takePhoto() {
 
 function retakePhoto() {
     capturedPhoto.value = null
+    earlyLeaveConfirmed.value = false
+    errMsg.value = ''
+}
+
+function confirmEarlyLeave() {
+    earlyLeaveConfirmed.value = true
+    errMsg.value = ''
+}
+
+function cancelEarlyLeave() {
+    earlyLeaveConfirmed.value = false
+    errMsg.value = ''
 }
 
 // ─── Check-out ────────────────────────────────────────────────────────────────
 async function submitCheckOut() {
     if (!capturedPhoto.value || submitting.value) return
+    if (isEarlyLeave.value && !earlyLeaveConfirmed.value) {
+        errMsg.value = 'Anda pulang lebih awal dari jam resmi 16:00. Silakan konfirmasi dulu untuk melanjutkan.'
+        return
+    }
+
     submitting.value = true
     errMsg.value = ''
     try {
@@ -225,6 +283,7 @@ async function submitCheckOut() {
         stopCamera()
         cameraOpen.value = false
         capturedPhoto.value = null
+        earlyLeaveConfirmed.value = false
         await fetchToday()
     } catch (e: any) {
         errMsg.value = e.response?.data?.message ?? e.message ?? 'Gagal mencatat absen pulang'
