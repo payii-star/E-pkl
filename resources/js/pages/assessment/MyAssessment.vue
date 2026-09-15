@@ -103,21 +103,12 @@
                         </div>
                     </div>
 
-                    <!-- Nilai -->
-                    <div class="row g-3 mb-6">
-                        <div class="col-6">
-                            <div class="rounded p-4 text-center bg-light">
-                                <div class="text-muted fs-8 fw-semibold mb-1">NILAI SISTEM (OTOMATIS)</div>
-                                <div class="fw-bold fs-2x">{{ data.has_period ? data.system_score : '-' }}</div>
-                                <div v-if="!data.has_period" class="text-muted fs-8">Periode magang belum diatur</div>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="rounded p-4 text-center" :class="scoreBgClass(data.assessment.score)">
-                                <div class="text-muted fs-8 fw-semibold mb-1">NILAI AKHIR (ADMIN)</div>
-                                <div class="fw-bold fs-2x">{{ data.assessment.score }}</div>
-                                <div v-if="data.assessment.note" class="fs-8 fst-italic mt-1">"{{ data.assessment.note }}"</div>
-                            </div>
+                    <!-- Nilai akhir -->
+                    <div class="mb-6">
+                        <div class="rounded p-4 text-center" :class="scoreBgClass(data.assessment.score)">
+                            <div class="text-muted fs-8 fw-semibold mb-1">NILAI AKHIR</div>
+                            <div class="fw-bold fs-2x">{{ data.assessment.score }}</div>
+                            <div v-if="data.assessment.note" class="fs-8 fst-italic mt-1">"{{ data.assessment.note }}"</div>
                         </div>
                     </div>
 
