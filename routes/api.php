@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\AdminInternPeriodController;
 use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\Api\AdminAssessmentController;
 use App\Http\Controllers\Api\AssessmentController;
+use App\Http\Controllers\Api\AdminWorkScheduleController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -562,6 +563,39 @@ Route::middleware(['auth', 'json'])->group(function () {
             Route::put('{user}', [
                 AdminInternPeriodController::class,
                 'update'
+            ]);
+        });
+
+
+    // ========================================================================
+    // JAM & HARI KERJA (Admin)
+    // ========================================================================
+
+    Route::prefix('admin/work-schedule')
+        ->middleware('role:hr-admin')
+        ->group(function () {
+
+            // Jadwal mingguan (Senin-Minggu) + daftar tanggal merah
+            Route::get('', [
+                AdminWorkScheduleController::class,
+                'index'
+            ]);
+
+            // Update jadwal 1 hari (day = monday, tuesday, dst)
+            Route::put('{day}', [
+                AdminWorkScheduleController::class,
+                'update'
+            ]);
+
+            // Tambah / hapus tanggal merah (hari libur khusus)
+            Route::post('holidays', [
+                AdminWorkScheduleController::class,
+                'storeHoliday'
+            ]);
+
+            Route::delete('holidays/{holiday}', [
+                AdminWorkScheduleController::class,
+                'destroyHoliday'
             ]);
         });
 

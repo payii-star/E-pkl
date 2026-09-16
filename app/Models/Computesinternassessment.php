@@ -15,21 +15,13 @@ use Carbon\CarbonPeriod;
  * admin) dan AssessmentController (sisi siswa sendiri), supaya angka yang
  * ditampilkan ke admin dan ke siswa selalu konsisten / sama persis.
  *
- * Lihat komentar di AdminAssessmentController untuk penjelasan lengkap
- * aturan perhitungan nilai sistem dan asumsi kolom yang dipakai.
+ * Jam kerja & status hari kerja/libur SEKARANG diambil dinamis dari
+ * WorkScheduleResolver (tabel work_schedules + public_holidays), bukan
+ * hardcode lagi — jadi kalau admin ubah jadwal di halaman "Jam Kerja",
+ * nilai sistem otomatis ikut menyesuaikan.
  */
 trait ComputesInternAssessment
 {
-    protected function workStartTime(): string
-    {
-        return '08:00:00';
-    }
-
-    protected function workEndTime(): string
-    {
-        return '16:00:00';
-    }
-
     protected function lateGraceMinutes(): int
     {
         return 5;
@@ -59,7 +51,7 @@ trait ComputesInternAssessment
             ->whereDate('date', $date->toDateString())
             ->first();
 
-        $attendanceInfo = $this->buildAttendanceInfo($attendanceToday);
+        $attendanceInfo = $this->buildAttendanceInfo($attendanceToday, $date);
 
         $allTasks = Task::where('user_id', $intern->id)->get();
         $tasksAssignedToDate = $allTasks->filter(
@@ -119,7 +111,11 @@ trait ComputesInternAssessment
         ];
     }
 
-    protected function buildAttendanceInfo(?Attendance $att): array
+    /**
+     * @param Carbon|null $fallbackDate dipakai kalau $att null (nggak ada absensi),
+     *                                  buat tau jam kerja resmi hari itu tetap bisa dihitung
+     */
+    protected function buildAttendanceInfo(?Attendance $att, ?Carbon $fallbackDate = null): array
     {
         if (!$att) {
             return [
@@ -132,14 +128,17 @@ trait ComputesInternAssessment
             ];
         }
 
+        $refDate = $fallbackDate ?? Carbon::parse($att->date);
+        $hours = WorkScheduleResolver::hoursFor($refDate);
+
         $lateMinutes = 0;
         $isLate = false;
         if ($att->check_in_time) {
             $checkIn = Carbon::parse($att->check_in_time);
-            $workStart = Carbon::parse($checkIn->toDateString() . ' ' . $this->workStartTime());
+            $workStart = Carbon::parse($checkIn->toDateString() . ' ' . $hours['start']);
             if ($checkIn->gt($workStart)) {
                 $lateMinutes = $workStart->diffInMinutes($checkIn);
-                $isLate = true;
+                $isLate = true; // tetap ditandai telat walau potongannya 0 (< 5 menit)
             }
         }
 
@@ -147,7 +146,7 @@ trait ComputesInternAssessment
         $isEarlyLeave = false;
         if ($att->check_out_time) {
             $checkOut = Carbon::parse($att->check_out_time);
-            $workEnd = Carbon::parse($checkOut->toDateString() . ' ' . $this->workEndTime());
+            $workEnd = Carbon::parse($checkOut->toDateString() . ' ' . $hours['end']);
             if ($checkOut->lt($workEnd)) {
                 $earlyMinutes = $checkOut->diffInMinutes($workEnd);
                 $isEarlyLeave = true;
@@ -198,13 +197,18 @@ trait ComputesInternAssessment
 
         $attendances = Attendance::where('user_id', $intern->id)
             ->whereBetween('date', [$periodStart->toDateString(), $effectiveDate->toDateString()])
-            ->get();
+            ->get()
+            ->keyBy(fn ($a) => Carbon::parse($a->date)->toDateString());
 
         $lateDeduction = 0;
         $earlyDeduction = 0;
 
-        foreach ($attendances as $att) {
-            $info = $this->buildAttendanceInfo($att);
+        foreach (CarbonPeriod::create($periodStart, $effectiveDate) as $day) {
+            $att = $attendances->get($day->toDateString());
+            if (!$att) {
+                continue;
+            }
+            $info = $this->buildAttendanceInfo($att, $day);
             if ($info['late_minutes'] > 0) {
                 $lateDeduction += floor($info['late_minutes'] / $this->lateGraceMinutes()) * $this->latePointPerStep();
             }
@@ -255,7 +259,7 @@ trait ComputesInternAssessment
 
         $count = 0;
         foreach (CarbonPeriod::create($start, $end) as $day) {
-            if ($day->isWeekend()) {
+            if (!WorkScheduleResolver::isWorkingDay($day)) {
                 continue;
             }
             $dateStr = $day->toDateString();
@@ -271,10 +275,6 @@ trait ComputesInternAssessment
         return $count;
     }
 
-    /**
-     * Rekap izin (sakit / acara keluarga) yang disetujui, plus jumlah
-     * tanpa keterangan yang sudah dihitung sebelumnya (countUnexcusedDays).
-     */
     protected function computeLeaveSummary(User $intern, Carbon $start, Carbon $end, int $unexcusedCount): array
     {
         if ($start->gt($end)) {
@@ -319,7 +319,7 @@ trait ComputesInternAssessment
         foreach (CarbonPeriod::create($periodStart, $effectiveEnd) as $day) {
             $dateStr = $day->toDateString();
             $att = $attendances->get($dateStr);
-            $attInfo = $this->buildAttendanceInfo($att);
+            $attInfo = $this->buildAttendanceInfo($att, $day);
 
             $tasksDueToday = $allTasks->filter(
                 fn ($t) => $t->due_date && Carbon::parse($t->due_date)->isSameDay($day)
@@ -335,6 +335,7 @@ trait ComputesInternAssessment
                 'late_minutes' => $attInfo['late_minutes'],
                 'is_early_leave' => $attInfo['is_early_leave'],
                 'early_minutes' => $attInfo['early_minutes'],
+                'is_working_day' => WorkScheduleResolver::isWorkingDay($day),
                 'tasks_due' => $tasksDueToday->map(fn ($t) => [
                     'title' => $t->title,
                     'status' => $t->status,

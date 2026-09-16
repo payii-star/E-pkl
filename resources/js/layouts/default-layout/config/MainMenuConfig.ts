@@ -67,7 +67,7 @@ const MainMenuConfig: Array<MenuItem> = [
                 permission: "journal-approval",
             },
             {
-                heading: "workflow",
+                heading: "Workflow",
                 name: "admin-work-schedule",
                 route: "/admin/work-schedule",
                 keenthemesIcon: "time",
