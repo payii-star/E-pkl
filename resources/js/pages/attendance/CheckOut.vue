@@ -12,8 +12,14 @@
                 </div>
                 <div class="card-body pt-2 d-flex flex-column align-items-center">
 
+                    <!-- Masih memuat status hari ini -->
+                    <div v-if="loading" class="w-100 text-center py-10">
+                        <span class="spinner-border text-primary"></span>
+                        <div class="text-muted fs-7 mt-3">Memuat status absensi...</div>
+                    </div>
+
                     <!-- Sudah selesai absen hari ini -->
-                    <div v-if="alreadyDone" class="w-100 text-center py-10">
+                    <div v-else-if="alreadyDone" class="w-100 text-center py-10">
                         <div class="symbol symbol-60px mb-3 mx-auto">
                             <span class="symbol-label bg-light-success">
                                 <KTIcon icon-name="check-circle" icon-class="fs-1 text-success" />
@@ -27,6 +33,21 @@
                         </div>
                     </div>
 
+                    <!-- Hari libur DAN belum ada absen masuk: tidak ada yang perlu ditutup -->
+                    <div v-else-if="!isWorkingDay && !hasCheckedIn" class="w-100 text-center py-10">
+                        <div class="symbol symbol-60px mb-3 mx-auto">
+                            <span class="symbol-label bg-light-danger">
+                                <KTIcon icon-name="calendar-remove" icon-class="fs-1 text-danger" />
+                            </span>
+                        </div>
+                        <div class="fw-bold fs-5 text-gray-800 mb-1">
+                            {{ isHoliday ? 'Hari ini tanggal merah' : 'Hari ini bukan hari kerja' }}
+                        </div>
+                        <div v-if="holidayLabel" class="text-danger fw-semibold fs-6 mb-2">{{ holidayLabel }}</div>
+                        <div class="text-muted fs-7">{{ offReason ?? 'Absensi tidak tersedia pada hari libur.' }}</div>
+                        <div class="text-muted fs-8 mt-4">Silakan kembali pada hari kerja berikutnya sesuai jadwalmu.</div>
+                    </div>
+
                     <!-- Kamera belum dibuka: tampilkan tombol -->
                     <div v-else-if="!cameraOpen" class="w-100 text-center py-10">
                         <div class="symbol symbol-60px mb-3 mx-auto">
@@ -36,6 +57,13 @@
                         </div>
                         <div class="fw-bold fs-5 text-gray-800 mb-1">Siap absen pulang?</div>
                         <div class="text-muted fs-7 mb-2">Kamera akan menyala setelah kamu menekan tombol di bawah</div>
+
+                        <!-- Kasus khusus: tanggal merah ditandai admin SETELAH peserta absen masuk.
+                             Dia tetap diizinkan menutup absensinya (backend juga mengizinkan). -->
+                        <div v-if="!isWorkingDay" class="alert alert-warning py-2 fs-8 mx-auto mb-3" style="max-width: 420px">
+                            Hari ini ditandai libur, tapi kamu sudah tercatat absen masuk — kamu tetap bisa absen pulang untuk menutup absensi hari ini.
+                        </div>
+
                         <div v-if="todayAttendance?.check_in_time" class="text-muted fs-7 mb-5">
                             Absen masuk tercatat jam <span class="fw-semibold text-gray-700">{{ todayAttendance.check_in_time }}</span>
                         </div>
@@ -90,7 +118,7 @@
                         <div v-else-if="isEarlyLeave && !earlyLeaveConfirmed" class="w-100 mb-3">
                             <div class="alert alert-warning py-3 fs-7 mb-3 text-start">
                                 <div class="fw-bold mb-1">Apakah Anda yakin pulang saat ini?</div>
-                                <div>Jam pulang resmi adalah 16:00. Saat ini Anda pulang lebih awal <span class="fw-bold">{{ earlyLeaveDisplay }}</span> jam.</div>
+                                <div>Jam pulang resmi adalah {{ officialEndDisplay }}. Saat ini Anda pulang lebih awal <span class="fw-bold">{{ earlyLeaveDisplay }}</span> jam.</div>
                             </div>
                             <div class="d-flex gap-2 justify-content-center">
                                 <button class="btn btn-warning" :disabled="submitting" @click="confirmEarlyLeave">
@@ -140,16 +168,28 @@ import axios from '@/libs/axios'
 // SETELAH ini, tinggal ubah true jadi false.
 const FLIP_CAPTURE = true
 
+// Dipakai hanya kalau backend belum mengirim jam kerja (mis. jadwal belum diisi).
+const FALLBACK_END_TIME = '16:00:00'
+
 // ─── Refs ─────────────────────────────────────────────────────────────────────
 const videoEl  = ref<HTMLVideoElement | null>(null)
 const canvasEl = ref<HTMLCanvasElement | null>(null)
 
-const cameraOpen         = ref(false)
-const capturedPhoto      = ref<string | null>(null)
-const submitting         = ref(false)
-const errMsg             = ref('')
-const todayAttendance    = ref<any>(null)
+const cameraOpen          = ref(false)
+const capturedPhoto       = ref<string | null>(null)
+const submitting          = ref(false)
+const loading             = ref(true)
+const errMsg              = ref('')
+const todayAttendance     = ref<any>(null)
 const earlyLeaveConfirmed = ref(false)
+
+// Status hari kerja dari GET /attendances/today. Default true supaya halaman
+// tidak salah menampilkan "libur" kalau request gagal — backend tetap penjaga akhir.
+const isWorkingDay = ref(true)
+const isHoliday    = ref(false)
+const holidayLabel = ref<string | null>(null)
+const offReason    = ref<string | null>(null)
+const workHours    = ref<{ start: string; end: string } | null>(null)
 
 let _stream: MediaStream | null = null
 
@@ -158,31 +198,43 @@ const alreadyDone = computed(() =>
     !!todayAttendance.value?.check_in_time && !!todayAttendance.value?.check_out_time
 )
 
+const hasCheckedIn = computed(() => !!todayAttendance.value?.check_in_time)
+
 const statusLabel = computed(() => {
+    if (!isWorkingDay.value && !hasCheckedIn.value) return 'Libur'
     if (!todayAttendance.value) return 'Belum Absen'
     if (!todayAttendance.value.check_out_time) return 'Sudah Masuk'
     return 'Selesai'
 })
 
 const statusBadgeClass = computed(() => {
+    if (!isWorkingDay.value && !hasCheckedIn.value) return 'badge-light-danger'
     if (!todayAttendance.value) return 'badge-light-warning'
     if (!todayAttendance.value.check_out_time) return 'badge-light-primary'
     return 'badge-light-success'
 })
 
+// Jam pulang resmi diambil dari jadwal kerja user (bukan hardcode 16:00 lagi).
+const officialEndTime = computed(() => workHours.value?.end ?? FALLBACK_END_TIME)
+
+const officialEndDisplay = computed(() => officialEndTime.value.slice(0, 5))
+
+function officialEndDate(): Date {
+    const [h, m] = officialEndTime.value.split(':').map((v) => parseInt(v, 10))
+    const d = new Date()
+    d.setHours(isNaN(h) ? 16 : h, isNaN(m) ? 0 : m, 0, 0)
+    return d
+}
+
 const isEarlyLeave = computed(() => {
-    const now = new Date()
-    const official = new Date(now)
-    official.setHours(16, 0, 0, 0)
-    return now.getTime() < official.getTime()
+    // workHours ikut dibaca supaya computed ini ter-recompute setelah fetchToday.
+    void workHours.value
+    return Date.now() < officialEndDate().getTime()
 })
 
 const earlyLeaveMinutes = computed(() => {
     if (!isEarlyLeave.value) return 0
-    const now = new Date()
-    const official = new Date(now)
-    official.setHours(16, 0, 0, 0)
-    return Math.max(0, Math.round((official.getTime() - now.getTime()) / 60000))
+    return Math.max(0, Math.round((officialEndDate().getTime() - Date.now()) / 60000))
 })
 
 const earlyLeaveDisplay = computed(() => {
@@ -197,8 +249,15 @@ async function fetchToday() {
     try {
         const res = await axios.get('/attendances/today')
         todayAttendance.value = res.data.data ?? null
+        isWorkingDay.value = res.data.is_working_day ?? true
+        isHoliday.value = res.data.is_holiday ?? false
+        holidayLabel.value = res.data.holiday_label ?? null
+        offReason.value = res.data.off_reason ?? null
+        workHours.value = res.data.work_hours ?? null
     } catch (e) {
         console.error('Gagal ambil data absensi hari ini:', e)
+    } finally {
+        loading.value = false
     }
 }
 
@@ -272,7 +331,7 @@ function cancelEarlyLeave() {
 async function submitCheckOut() {
     if (!capturedPhoto.value || submitting.value) return
     if (isEarlyLeave.value && !earlyLeaveConfirmed.value) {
-        errMsg.value = 'Anda pulang lebih awal dari jam resmi 16:00. Silakan konfirmasi dulu untuk melanjutkan.'
+        errMsg.value = `Anda pulang lebih awal dari jam resmi ${officialEndDisplay.value}. Silakan konfirmasi dulu untuk melanjutkan.`
         return
     }
 
@@ -287,6 +346,14 @@ async function submitCheckOut() {
         await fetchToday()
     } catch (e: any) {
         errMsg.value = e.response?.data?.message ?? e.message ?? 'Gagal mencatat absen pulang'
+        // Ditolak backend karena hari libur -> tutup kamera & refresh status.
+        if (e.response?.status === 403) {
+            stopCamera()
+            cameraOpen.value = false
+            capturedPhoto.value = null
+            earlyLeaveConfirmed.value = false
+            await fetchToday()
+        }
     } finally {
         submitting.value = false
     }

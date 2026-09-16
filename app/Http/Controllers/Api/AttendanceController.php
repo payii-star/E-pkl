@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\LeaveRequest;
+use App\Support\WorkScheduleResolver;
+use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -29,17 +32,31 @@ class AttendanceController extends Controller
     // (pakai timezone Asia/Jakarta dari config), bukan dicocokkan manual di
     // frontend — karena cast 'date' di model bisa bergeser kalau frontend
     // memakai timezone browser yang berbeda.
+    //
+    // Selain data absensi, response juga membawa status hari kerja
+    // (is_working_day / off_reason / work_hours) supaya halaman Absen Masuk
+    // & Absen Pulang bisa menampilkan pesan libur TANPA perlu membuka kamera
+    // dulu. Backend tetap jadi sumber kebenaran: pengecekan yang sama juga
+    // dijalankan ulang di endpoint check-in/check-out di bawah.
     public function today(Request $request)
     {
         $user = $request->user();
         $dateColumn = Attendance::dateColumn();
-        $today = now()->setTimezone(config('app.timezone', 'Asia/Jakarta'))->toDateString();
+        $now = $this->now();
+        $today = $now->toDateString();
 
         $attendance = Attendance::where('user_id', $user->id)
             ->where($dateColumn, $today)
             ->first();
 
-        return response()->json(['data' => $attendance]);
+        return response()->json([
+            'data' => $attendance,
+            'is_working_day' => WorkScheduleResolver::isWorkingDay($now, $user->id),
+            'is_holiday' => WorkScheduleResolver::isHoliday($now),
+            'holiday_label' => WorkScheduleResolver::holidayLabel($now),
+            'off_reason' => WorkScheduleResolver::reasonNotWorking($now, $user->id),
+            'work_hours' => WorkScheduleResolver::hoursFor($now, $user->id),
+        ]);
     }
 
     // POST /attendances/check-in
@@ -48,6 +65,10 @@ class AttendanceController extends Controller
     public function checkIn(Request $request)
     {
         $user = $request->user();
+
+        if ($blocked = $this->blockIfNotWorkingDay($user->id)) {
+            return $blocked;
+        }
 
         if ($this->hasApprovedLeaveToday($user->id)) {
             return response()->json([
@@ -64,7 +85,7 @@ class AttendanceController extends Controller
             return response()->json(['message' => $validator->errors()->first()], 422);
         }
 
-        $today = now()->setTimezone(config('app.timezone', 'Asia/Jakarta'))->toDateString();
+        $today = $this->now()->toDateString();
         $dateColumn = Attendance::dateColumn();
         $checkInTimeColumn = Attendance::checkInTimeColumn();
         $checkInPhotoColumn = Attendance::checkInPhotoColumn();
@@ -99,6 +120,10 @@ class AttendanceController extends Controller
     {
         $user = $request->user();
 
+        if ($blocked = $this->blockIfNotWorkingDay($user->id)) {
+            return $blocked;
+        }
+
         if ($this->hasApprovedLeaveToday($user->id)) {
             return response()->json([
                 'message' => 'Kamu memiliki izin yang sudah disetujui untuk hari ini, sehingga tidak dapat absen masuk.',
@@ -113,7 +138,10 @@ class AttendanceController extends Controller
             return response()->json(['message' => $validator->errors()->first()], 422);
         }
 
-        $today = now()->toDateString();
+        // Sebelumnya di sini pakai now()->toDateString() tanpa timezone,
+        // beda sendiri dibanding method lain. Disamakan supaya baris
+        // absensi hari ini nggak kepecah jadi 2 tanggal berbeda.
+        $today = $this->now()->toDateString();
         $dateColumn = Attendance::dateColumn();
         $checkInTimeColumn = Attendance::checkInTimeColumn();
         $checkInPhotoColumn = Attendance::checkInPhotoColumn();
@@ -128,7 +156,7 @@ class AttendanceController extends Controller
         $attendance = Attendance::updateOrCreate(
             ['user_id' => $user->id, $dateColumn => $today],
             [
-                $checkInTimeColumn => now()->setTimezone(config('app.timezone', 'Asia/Jakarta'))->toTimeString(),
+                $checkInTimeColumn => $this->now()->toTimeString(),
                 $checkInPhotoColumn => $photoPath,
                 'location' => $request->location,
                 'status' => 'hadir',
@@ -145,6 +173,10 @@ class AttendanceController extends Controller
     {
         $user = $request->user();
 
+        if ($blocked = $this->blockIfNotWorkingDay($user->id, false)) {
+            return $blocked;
+        }
+
         if ($this->hasApprovedLeaveToday($user->id)) {
             return response()->json([
                 'message' => 'Kamu memiliki izin yang sudah disetujui untuk hari ini, sehingga sudah dianggap pulang.',
@@ -160,7 +192,7 @@ class AttendanceController extends Controller
             return response()->json(['message' => $validator->errors()->first()], 422);
         }
 
-        $today = now()->setTimezone(config('app.timezone', 'Asia/Jakarta'))->toDateString();
+        $today = $this->now()->toDateString();
         $dateColumn = Attendance::dateColumn();
         $checkInTimeColumn = Attendance::checkInTimeColumn();
         $checkOutTimeColumn = Attendance::checkOutTimeColumn();
@@ -178,7 +210,7 @@ class AttendanceController extends Controller
         $photoPath = $this->saveBase64Photo($request->photo, $user->id);
 
         $attendance->update([
-            $checkOutTimeColumn => now()->setTimezone(config('app.timezone', 'Asia/Jakarta'))->toTimeString(),
+            $checkOutTimeColumn => $this->now()->toTimeString(),
             $checkOutPhotoColumn => $photoPath,
             'location' => $request->location ?? $attendance->location,
         ]);
@@ -192,6 +224,10 @@ class AttendanceController extends Controller
     {
         $user = $request->user();
 
+        if ($blocked = $this->blockIfNotWorkingDay($user->id, false)) {
+            return $blocked;
+        }
+
         if ($this->hasApprovedLeaveToday($user->id)) {
             return response()->json([
                 'message' => 'Kamu memiliki izin yang sudah disetujui untuk hari ini, sehingga sudah dianggap pulang.',
@@ -207,7 +243,7 @@ class AttendanceController extends Controller
             return response()->json(['message' => $validator->errors()->first()], 422);
         }
 
-        $today = now()->setTimezone(config('app.timezone', 'Asia/Jakarta'))->toDateString();
+        $today = $this->now()->toDateString();
         $dateColumn = Attendance::dateColumn();
         $checkInTimeColumn = Attendance::checkInTimeColumn();
         $checkOutTimeColumn = Attendance::checkOutTimeColumn();
@@ -225,7 +261,7 @@ class AttendanceController extends Controller
         $photoPath = $this->saveBase64Photo($request->photo, $user->id);
 
         $attendance->update([
-            $checkOutTimeColumn => now()->setTimezone(config('app.timezone', 'Asia/Jakarta'))->toTimeString(),
+            $checkOutTimeColumn => $this->now()->toTimeString(),
             $checkOutPhotoColumn => $photoPath,
             'location' => $request->location ?? $attendance->location,
         ]);
@@ -233,9 +269,56 @@ class AttendanceController extends Controller
         return response()->json(['data' => $attendance, 'message' => 'Absen pulang berhasil'], 200);
     }
 
+    /**
+     * Waktu sekarang dalam timezone aplikasi (default Asia/Jakarta).
+     */
+    private function now(): Carbon
+    {
+        return Carbon::now(config('app.timezone', 'Asia/Jakarta'));
+    }
+
+    /**
+     * Blokir aksi absensi kalau hari ini bukan hari kerja (tanggal merah
+     * atau hari libur sesuai jadwal mingguan peserta). Ini dipasang di
+     * SEMUA endpoint check-in/check-out supaya nggak bisa dibypass lewat
+     * pemanggilan API langsung — frontend cuma bertugas menampilkan pesan.
+     *
+     * @param bool $strictForCheckOut  Untuk check-out dipakai false: kalau
+     *        user terlanjur punya absen masuk di tanggal itu (misalnya admin
+     *        baru menandai tanggal merah setelah dia check-in), dia tetap
+     *        boleh menutup absensinya. Selebihnya tetap diblokir.
+     */
+    private function blockIfNotWorkingDay(int $userId, bool $strictForCheckOut = true): ?JsonResponse
+    {
+        $now = $this->now();
+
+        $reason = WorkScheduleResolver::reasonNotWorking($now, $userId);
+
+        if (!$reason) {
+            return null;
+        }
+
+        if (!$strictForCheckOut && $this->hasCheckedInToday($userId)) {
+            return null;
+        }
+
+        return response()->json(['message' => $reason], 403);
+    }
+
+    private function hasCheckedInToday(int $userId): bool
+    {
+        $dateColumn = Attendance::dateColumn();
+        $checkInTimeColumn = Attendance::checkInTimeColumn();
+
+        return Attendance::where('user_id', $userId)
+            ->where($dateColumn, $this->now()->toDateString())
+            ->whereNotNull($checkInTimeColumn)
+            ->exists();
+    }
+
     private function hasApprovedLeaveToday(int $userId): bool
     {
-        $today = now()->setTimezone(config('app.timezone', 'Asia/Jakarta'))->toDateString();
+        $today = $this->now()->toDateString();
 
         return LeaveRequest::where('user_id', $userId)
             ->whereDate('date', $today)

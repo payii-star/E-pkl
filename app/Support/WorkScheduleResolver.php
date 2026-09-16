@@ -8,17 +8,25 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * Menjawab pertanyaan "apakah tanggal X hari kerja?" dan "jam berapa jam
- * kerja resmi di tanggal X?", berdasarkan tabel work_schedules (jadwal
- * mingguan per hari) dan public_holidays (tanggal merah, override jadi
- * libur apa pun hari kerjanya).
+ * Menjawab pertanyaan "apakah tanggal X hari kerja untuk user Y?" dan
+ * "jam berapa jam kerja resmi di tanggal X untuk user Y?", berdasarkan
+ * tabel work_schedules (jadwal mingguan per hari, bisa per user) dan
+ * public_holidays (tanggal merah, override jadi libur apa pun harinya).
  *
- * Dipakai oleh AttendanceController (kalau perlu validasi jam check-in/
- * check-out) dan oleh trait ComputesInternAssessment (fitur Nilai Sistem),
- * supaya keduanya konsisten pakai jadwal yang sama, bukan hardcode.
+ * Urutan prioritas penentuan jadwal:
+ *   1. Tanggal merah di public_holidays  -> langsung libur
+ *   2. Jadwal milik user itu sendiri     -> work_schedules.user_id = $userId
+ *   3. Jadwal default                    -> work_schedules.user_id = null
+ *   4. Fallback terakhir                 -> Sabtu/Minggu libur, sisanya kerja
+ *
+ * Dipakai oleh AttendanceController (blokir check-in/check-out saat libur)
+ * dan oleh trait ComputesInternAssessment (fitur Nilai Sistem), supaya
+ * keduanya konsisten pakai jadwal yang sama, bukan hardcode.
  *
  * Query di-cache secara static per request (bukan lintas request) biar
- * nggak query berkali-kali dalam 1 request yang sama.
+ * nggak query berkali-kali dalam 1 request yang sama. Admin yang mengubah
+ * jadwal wajib memanggil clearCache() (sudah dilakukan oleh
+ * AdminWorkScheduleController).
  */
 class WorkScheduleResolver
 {
@@ -35,13 +43,16 @@ class WorkScheduleResolver
         6 => 'saturday',
     ];
 
-    public static function isWorkingDay(Carbon $date): bool
+    /**
+     * @param int|null $userId null = pakai jadwal default (global)
+     */
+    public static function isWorkingDay(Carbon $date, ?int $userId = null): bool
     {
         if (self::isHoliday($date)) {
             return false;
         }
 
-        $schedule = self::scheduleFor($date);
+        $schedule = self::scheduleFor($date, $userId);
 
         return $schedule ? (bool) $schedule->is_working_day : !$date->isWeekend();
     }
@@ -54,15 +65,53 @@ class WorkScheduleResolver
     }
 
     /**
-     * @return array{start: string, end: string} format "H:i:s"
+     * Label tanggal merah (kolom public_holidays.label), buat ditampilkan
+     * di pesan error. Return null kalau tanggal itu bukan tanggal merah.
      */
-    public static function hoursFor(Carbon $date): array
+    public static function holidayLabel(Carbon $date): ?string
     {
-        $schedule = self::scheduleFor($date);
+        $holiday = self::holidays()->first(
+            fn ($h) => Carbon::parse($h->date)->isSameDay($date)
+        );
+
+        return $holiday?->label;
+    }
+
+    /**
+     * Alasan kenapa tanggal ini bukan hari kerja, siap dipakai langsung
+     * sebagai pesan API. Return null kalau tanggal itu memang hari kerja.
+     */
+    public static function reasonNotWorking(Carbon $date, ?int $userId = null): ?string
+    {
+        if (self::isHoliday($date)) {
+            $label = self::holidayLabel($date);
+
+            return $label
+                ? "Hari ini libur ({$label}), absensi tidak tersedia."
+                : 'Hari ini tanggal merah, absensi tidak tersedia.';
+        }
+
+        if (!self::isWorkingDay($date, $userId)) {
+            return 'Hari ini bukan hari kerja sesuai jadwal kamu, absensi tidak tersedia.';
+        }
+
+        return null;
+    }
+
+    /**
+     * Jam kerja resmi pada tanggal tsb.
+     *
+     * @return array{start: string, end: string, min_check_in: string, max_check_out: string}
+     */
+    public static function hoursFor(Carbon $date, ?int $userId = null): array
+    {
+        $schedule = self::scheduleFor($date, $userId);
 
         return [
             'start' => $schedule->start_time ?? '08:00:00',
             'end' => $schedule->end_time ?? '16:00:00',
+            'min_check_in' => $schedule->min_check_in_time ?? '06:00:00',
+            'max_check_out' => $schedule->max_check_out_time ?? '21:00:00',
         ];
     }
 
@@ -76,16 +125,29 @@ class WorkScheduleResolver
         self::$holidayCache = null;
     }
 
-    private static function scheduleFor(Carbon $date): ?WorkSchedule
+    private static function scheduleFor(Carbon $date, ?int $userId = null): ?WorkSchedule
     {
         $day = self::DAY_MAP[$date->dayOfWeek];
+        $schedules = self::schedules();
 
-        return self::schedules()->get($day);
+        if ($userId !== null) {
+            $own = $schedules->first(
+                fn ($s) => $s->day === $day && (int) $s->user_id === (int) $userId
+            );
+
+            if ($own) {
+                return $own;
+            }
+        }
+
+        return $schedules->first(
+            fn ($s) => $s->day === $day && $s->user_id === null
+        );
     }
 
     private static function schedules(): Collection
     {
-        return self::$scheduleCache ??= WorkSchedule::all()->keyBy('day');
+        return self::$scheduleCache ??= WorkSchedule::all();
     }
 
     private static function holidays(): Collection

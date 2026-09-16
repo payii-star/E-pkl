@@ -12,8 +12,14 @@
                 </div>
                 <div class="card-body pt-2 d-flex flex-column align-items-center">
 
+                    <!-- Masih memuat status hari ini -->
+                    <div v-if="loading" class="w-100 text-center py-10">
+                        <span class="spinner-border text-primary"></span>
+                        <div class="text-muted fs-7 mt-3">Memuat status absensi...</div>
+                    </div>
+
                     <!-- Sudah absen masuk hari ini -->
-                    <div v-if="alreadyDone" class="w-100 text-center py-10">
+                    <div v-else-if="alreadyDone" class="w-100 text-center py-10">
                         <div class="symbol symbol-60px mb-3 mx-auto">
                             <span class="symbol-label bg-light-success">
                                 <KTIcon icon-name="check-circle" icon-class="fs-1 text-success" />
@@ -26,6 +32,21 @@
                         </div>
                     </div>
 
+                    <!-- Hari ini libur: kamera tidak perlu dibuka sama sekali -->
+                    <div v-else-if="!isWorkingDay" class="w-100 text-center py-10">
+                        <div class="symbol symbol-60px mb-3 mx-auto">
+                            <span class="symbol-label bg-light-danger">
+                                <KTIcon icon-name="calendar-remove" icon-class="fs-1 text-danger" />
+                            </span>
+                        </div>
+                        <div class="fw-bold fs-5 text-gray-800 mb-1">
+                            {{ isHoliday ? 'Hari ini tanggal merah' : 'Hari ini bukan hari kerja' }}
+                        </div>
+                        <div v-if="holidayLabel" class="text-danger fw-semibold fs-6 mb-2">{{ holidayLabel }}</div>
+                        <div class="text-muted fs-7">{{ offReason ?? 'Absensi tidak tersedia pada hari libur.' }}</div>
+                        <div class="text-muted fs-8 mt-4">Silakan kembali pada hari kerja berikutnya sesuai jadwalmu.</div>
+                    </div>
+
                     <!-- Kamera belum dibuka: tampilkan tombol -->
                     <div v-else-if="!cameraOpen" class="w-100 text-center py-10">
                         <div class="symbol symbol-60px mb-3 mx-auto">
@@ -34,7 +55,12 @@
                             </span>
                         </div>
                         <div class="fw-bold fs-5 text-gray-800 mb-1">Siap absen masuk?</div>
-                        <div class="text-muted fs-7 mb-5">Kamera akan menyala setelah kamu menekan tombol di bawah</div>
+                        <div class="text-muted fs-7 mb-2">Kamera akan menyala setelah kamu menekan tombol di bawah</div>
+                        <div v-if="workHours" class="text-muted fs-8 mb-5">
+                            Jam kerja hari ini
+                            <span class="fw-semibold text-gray-700">{{ shortTime(workHours.start) }} - {{ shortTime(workHours.end) }}</span>
+                        </div>
+                        <div v-else class="mb-5"></div>
                         <button class="btn btn-primary" @click="openCamera">
                             <KTIcon icon-name="camera" icon-class="fs-4 me-2" />
                             Buka Kamera
@@ -112,8 +138,18 @@ const canvasEl = ref<HTMLCanvasElement | null>(null)
 const cameraOpen      = ref(false)
 const capturedPhoto   = ref<string | null>(null)
 const submitting      = ref(false)
+const loading         = ref(true)
 const errMsg          = ref('')
 const todayAttendance = ref<any>(null)
+
+// Status hari kerja — dikirim backend lewat GET /attendances/today.
+// Default true supaya kalau request gagal, halaman tidak salah menampilkan
+// "libur" padahal sebenarnya hari kerja (backend tetap jadi penjaga akhir).
+const isWorkingDay  = ref(true)
+const isHoliday     = ref(false)
+const holidayLabel  = ref<string | null>(null)
+const offReason     = ref<string | null>(null)
+const workHours     = ref<{ start: string; end: string } | null>(null)
 
 let _stream: MediaStream | null = null
 
@@ -123,22 +159,37 @@ const alreadyDone = computed(() =>
 )
 
 const statusLabel = computed(() => {
+    if (!isWorkingDay.value && !todayAttendance.value?.check_in_time) return 'Libur'
     if (!todayAttendance.value?.check_in_time) return 'Belum Absen'
     return 'Sudah Masuk'
 })
 
 const statusBadgeClass = computed(() => {
+    if (!isWorkingDay.value && !todayAttendance.value?.check_in_time) return 'badge-light-danger'
     if (!todayAttendance.value?.check_in_time) return 'badge-light-warning'
     return 'badge-light-success'
 })
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function shortTime(value?: string | null) {
+    if (!value) return '-'
+    return value.slice(0, 5) // "08:00:00" -> "08:00"
+}
 
 // ─── Data loading ─────────────────────────────────────────────────────────────
 async function fetchToday() {
     try {
         const res = await axios.get('/attendances/today')
         todayAttendance.value = res.data.data ?? null
+        isWorkingDay.value = res.data.is_working_day ?? true
+        isHoliday.value = res.data.is_holiday ?? false
+        holidayLabel.value = res.data.holiday_label ?? null
+        offReason.value = res.data.off_reason ?? null
+        workHours.value = res.data.work_hours ?? null
     } catch (e) {
         console.error('Gagal ambil data absensi hari ini:', e)
+    } finally {
+        loading.value = false
     }
 }
 
@@ -207,6 +258,14 @@ async function submitCheckIn() {
         await fetchToday()
     } catch (e: any) {
         errMsg.value = e.response?.data?.message ?? e.message ?? 'Gagal mencatat absen masuk'
+        // Kalau ditolak karena hari libur (403 dari backend), tutup kamera dan
+        // refresh status supaya halaman langsung pindah ke tampilan libur.
+        if (e.response?.status === 403) {
+            stopCamera()
+            cameraOpen.value = false
+            capturedPhoto.value = null
+            await fetchToday()
+        }
     } finally {
         submitting.value = false
     }
