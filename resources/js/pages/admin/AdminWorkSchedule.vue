@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import axios from "@/libs/axios";
 import { toast } from "vue3-toastify";
 
 interface DaySchedule {
     id?: number;
+    date?: string | null;
     day: string;
     is_working_day: boolean;
     start_time: string;
     end_time: string;
     min_check_in_time: string;
-    max_check_out_time: string;
 }
 
 const dayLabels: Record<string, string> = {
@@ -36,13 +36,14 @@ const selectedWeekDate = ref(currentDateValue());
 // ─── Modal edit jadwal harian ──────────────────────────────────────────────
 const showEditModal = ref(false);
 const editingDay = ref<string>("");
+const editingDate = ref<string>("");
 const editForm = ref({
     is_working_day: true,
     start_time: "08:00",
     end_time: "16:00",
     min_check_in_time: "00:00",
-    max_check_out_time: "23:59",
 });
+const applyToSameWeekday = ref(false);
 const savingSchedule = ref(false);
 const editErrorMsg = ref("");
 
@@ -78,10 +79,20 @@ function dateForDay(day: string) {
     });
 }
 
+function dateKeyForDay(day: string) {
+    const selectedDate = new Date(`${selectedWeekDate.value}T00:00:00`);
+    const mondayOffset = selectedDate.getDay() === 0 ? -6 : 1 - selectedDate.getDay();
+    const dayIndex = Object.keys(dayLabels).indexOf(day);
+    selectedDate.setDate(selectedDate.getDate() + mondayOffset + dayIndex);
+
+    return `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
+}
+
 const tableRows = computed(() => {
     if (period.value === "week") {
-        return schedules.value.map((schedule) => ({
+        return schedules.value.filter((schedule) => !schedule.date).map((schedule) => ({
             date: dateForDay(schedule.day),
+            dateKey: dateKeyForDay(schedule.day),
             day: dayLabels[schedule.day],
             schedule,
         }));
@@ -96,13 +107,15 @@ const tableRows = computed(() => {
         const dayKey = dayKeys[date.getDay() === 0 ? 6 : date.getDay() - 1];
 
         return {
+            dateKey: `${year}-${String(month).padStart(2, "0")}-${String(index + 1).padStart(2, "0")}`,
             date: date.toLocaleDateString("id-ID", {
                 day: "2-digit",
                 month: "short",
                 year: "numeric",
             }),
             day: dayLabels[dayKey],
-            schedule: schedules.value.find((schedule) => schedule.day === dayKey),
+            schedule: schedules.value.find((schedule) => scheduleDateKey(schedule.date) === `${year}-${String(month).padStart(2, "0")}-${String(index + 1).padStart(2, "0")}`)
+                ?? schedules.value.find((schedule) => !schedule.date && schedule.day === dayKey),
         };
     }).filter((row) => row.schedule);
 });
@@ -110,6 +123,10 @@ const tableRows = computed(() => {
 function toHM(time: string) {
     // Backend kirim "08:00:00", input type=time butuh "08:00"
     return time ? time.slice(0, 5) : "";
+}
+
+function scheduleDateKey(date: string | null | undefined) {
+    return date ? String(date).slice(0, 10) : null;
 }
 
 async function loadInterns() {
@@ -128,7 +145,7 @@ async function loadSchedule() {
     if (!selected.value) return;
     loading.value = true;
     try {
-        const res = await axios.get(`/admin/work-schedule/${selected.value.id}`);
+        const res = await axios.get(`/admin/work-schedule/${selected.value.id}?month=${selectedMonth.value}`);
         schedules.value = res.data?.data ?? [];
     } catch (e: any) {
         toast.error(e?.response?.data?.message || "Gagal memuat jadwal kerja.");
@@ -142,15 +159,16 @@ function selectIntern(intern: any) {
     loadSchedule();
 }
 
-function openEdit(schedule: DaySchedule) {
+function openEdit(schedule: DaySchedule, date: string) {
     editingDay.value = schedule.day;
+    editingDate.value = date;
     editForm.value = {
         is_working_day: schedule.is_working_day,
         start_time: toHM(schedule.start_time),
         end_time: toHM(schedule.end_time),
         min_check_in_time: toHM(schedule.min_check_in_time),
-        max_check_out_time: toHM(schedule.max_check_out_time),
     };
+    applyToSameWeekday.value = false;
     editErrorMsg.value = "";
     showEditModal.value = true;
 }
@@ -163,7 +181,10 @@ async function saveSchedule() {
     savingSchedule.value = true;
     editErrorMsg.value = "";
     try {
-        await axios.put(`/admin/work-schedule/${selected.value.id}/${editingDay.value}`, editForm.value);
+        await axios.put(`/admin/work-schedule/${selected.value.id}/${editingDate.value}`, {
+            ...editForm.value,
+            apply_to_same_weekday: applyToSameWeekday.value,
+        });
         toast.success("Jadwal berhasil disimpan");
         showEditModal.value = false;
         await loadSchedule();
@@ -175,6 +196,7 @@ async function saveSchedule() {
 }
 
 onMounted(loadInterns);
+watch(selectedMonth, loadSchedule);
 </script>
 
 <template>
@@ -256,26 +278,24 @@ onMounted(loadInterns);
                                     <th>Masuk</th>
                                     <th>Pulang</th>
                                     <th>Toleransi Terlambat</th>
-                                    <th>Max. Pulang</th>
                                     <th>Status</th>
                                     <th class="text-end">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="row in tableRows" :key="`${row.date}-${row.day}`">
+                                <tr v-for="row in tableRows" :key="`${row.dateKey}-${row.day}`">
                                     <td>{{ row.date }}</td>
                                     <td class="fw-bold text-uppercase">{{ row.day }}</td>
                                     <td>{{ toHM(row.schedule?.start_time ?? "") }}</td>
                                     <td>{{ toHM(row.schedule?.end_time ?? "") }}</td>
                                     <td class="fst-italic text-muted">{{ toHM(row.schedule?.min_check_in_time ?? "") }}</td>
-                                    <td>{{ toHM(row.schedule?.max_check_out_time ?? "") }}</td>
                                     <td>
                                         <span class="badge" :class="row.schedule?.is_working_day ? 'badge-light-success' : 'badge-light-danger'">
                                             {{ row.schedule?.is_working_day ? "HARI KERJA" : "LIBUR" }}
                                         </span>
                                     </td>
                                     <td class="text-end">
-                                        <button class="btn btn-sm btn-icon btn-light-warning" @click="openEdit(row.schedule!)">
+                                        <button class="btn btn-sm btn-icon btn-light-warning" @click="openEdit(row.schedule!, row.dateKey)">
                                             <i class="bi bi-pencil-fill fs-6"></i>
                                         </button>
                                     </td>
@@ -293,7 +313,7 @@ onMounted(loadInterns);
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold">Edit Jam Kerja: {{ dayLabels[editingDay] }}</h5>
+                    <h5 class="modal-title fw-bold">Edit Jam Kerja: {{ dayLabels[editingDay] }} ({{ editingDate }})</h5>
                     <button class="btn btn-sm btn-icon btn-light" @click="closeEdit">✕</button>
                 </div>
                 <div class="modal-body">
@@ -315,11 +335,12 @@ onMounted(loadInterns);
                             <label class="form-label fw-semibold">Toleransi Terlambat</label>
                             <input v-model="editForm.min_check_in_time" type="time" class="form-control" />
                         </div>
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Maksimal Jam Pulang</label>
-                            <input v-model="editForm.max_check_out_time" type="time" class="form-control" />
-                        </div>
                     </div>
+
+                    <label class="form-check form-switch mb-4">
+                        <input v-model="applyToSameWeekday" class="form-check-input" type="checkbox" />
+                        <span class="form-check-label fw-semibold">Terapkan ke semua tanggal {{ dayLabels[editingDay] }}</span>
+                    </label>
 
                     <div class="mb-2">
                         <label class="form-label fw-semibold d-block">Status Hari</label>

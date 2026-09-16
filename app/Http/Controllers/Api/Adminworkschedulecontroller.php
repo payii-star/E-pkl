@@ -7,6 +7,7 @@ use App\Models\PublicHoliday;
 use App\Models\WorkSchedule;
 use App\Models\User;
 use App\Support\WorkScheduleResolver;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -14,10 +15,14 @@ class AdminWorkScheduleController extends Controller
 {
     private const DAY_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
-    // GET /admin/work-schedule/{user} -> jadwal mingguan peserta terpilih
-    public function index(User $user)
+    // GET /admin/work-schedule/{user}?month=YYYY-MM -> jadwal mingguan + override tanggal
+    public function index(Request $request, User $user)
     {
-        $schedules = WorkSchedule::where('user_id', $user->id)->get()->keyBy('day');
+        $month = $request->query('month');
+        $schedules = WorkSchedule::where('user_id', $user->id)
+            ->whereNull('date')
+            ->get()
+            ->keyBy('day');
         $defaults = WorkSchedule::whereNull('user_id')->get()->keyBy('day');
 
         $ordered = collect(self::DAY_ORDER)
@@ -25,17 +30,28 @@ class AdminWorkScheduleController extends Controller
             ->filter()
             ->values();
 
+        $dated = WorkSchedule::where('user_id', $user->id)
+            ->whereNotNull('date')
+            ->when($month, function ($query) use ($month) {
+                $start = Carbon::createFromFormat('Y-m', $month)->startOfMonth();
+                $query->whereBetween('date', [$start->toDateString(), $start->copy()->endOfMonth()->toDateString()]);
+            })
+            ->orderBy('date')
+            ->get();
+
         return response()->json([
-            'data' => $ordered,
+            'data' => $ordered->concat($dated)->values(),
             'user' => $user->only(['id', 'name', 'email', 'photo']),
         ]);
     }
 
-    // PUT /admin/work-schedule/{user}/{day} -> update jadwal 1 hari peserta
-    public function update(Request $request, User $user, string $day)
+    // PUT /admin/work-schedule/{user}/{date} -> update jadwal pada tanggal tertentu
+    public function update(Request $request, User $user, string $date)
     {
-        if (!in_array($day, self::DAY_ORDER, true)) {
-            return response()->json(['message' => 'Hari tidak valid'], 422);
+        try {
+            $dateValue = Carbon::createFromFormat('Y-m-d', $date);
+        } catch (\Throwable) {
+            return response()->json(['message' => 'Tanggal tidak valid'], 422);
         }
 
         $validator = Validator::make($request->all(), [
@@ -43,16 +59,43 @@ class AdminWorkScheduleController extends Controller
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i',
             'min_check_in_time' => 'required|date_format:H:i',
-            'max_check_out_time' => 'required|date_format:H:i',
+            'apply_to_same_weekday' => 'sometimes|boolean',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['message' => $validator->errors()->first()], 422);
         }
 
-        $schedule = WorkSchedule::firstOrNew(['user_id' => $user->id, 'day' => $day]);
-        $schedule->fill($validator->validated());
-        $schedule->save();
+        $validated = $validator->validated();
+        $day = strtolower($dateValue->englishDayOfWeek);
+        $values = [
+            'is_working_day' => $validated['is_working_day'],
+            'start_time' => $validated['start_time'],
+            'end_time' => $validated['end_time'],
+            'min_check_in_time' => $validated['min_check_in_time'],
+        ];
+
+        if ($validated['apply_to_same_weekday'] ?? false) {
+            $schedule = WorkSchedule::firstOrNew([
+                'user_id' => $user->id,
+                'date' => null,
+                'day' => $day,
+            ]);
+            $schedule->fill($values);
+            $schedule->save();
+
+            WorkSchedule::where('user_id', $user->id)
+                ->where('day', $day)
+                ->whereNotNull('date')
+                ->update($values);
+        } else {
+            $schedule = WorkSchedule::firstOrNew([
+                'user_id' => $user->id,
+                'date' => $dateValue->toDateString(),
+            ]);
+            $schedule->fill([...$values, 'day' => $day]);
+            $schedule->save();
+        }
 
         WorkScheduleResolver::clearCache();
 

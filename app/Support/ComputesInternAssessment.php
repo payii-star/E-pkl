@@ -59,7 +59,7 @@ trait ComputesInternAssessment
             ->whereDate('date', $date->toDateString())
             ->first();
 
-        $attendanceInfo = $this->buildAttendanceInfo($attendanceToday);
+        $attendanceInfo = $this->buildAttendanceInfo($attendanceToday, $intern);
 
         $allTasks = Task::where('user_id', $intern->id)->get();
         $tasksAssignedToDate = $allTasks->filter(
@@ -119,7 +119,7 @@ trait ComputesInternAssessment
         ];
     }
 
-    protected function buildAttendanceInfo(?Attendance $att): array
+    protected function buildAttendanceInfo(?Attendance $att, ?User $intern = null): array
     {
         if (!$att) {
             return [
@@ -132,34 +132,21 @@ trait ComputesInternAssessment
             ];
         }
 
-        $lateMinutes = 0;
-        $isLate = false;
-        if ($att->check_in_time) {
-            $checkIn = Carbon::parse($att->check_in_time);
-            $workStart = Carbon::parse($checkIn->toDateString() . ' ' . $this->workStartTime());
-            if ($checkIn->gt($workStart)) {
-                $lateMinutes = $workStart->diffInMinutes($checkIn);
-                $isLate = true;
-            }
-        }
-
-        $earlyMinutes = 0;
-        $isEarlyLeave = false;
-        if ($att->check_out_time) {
-            $checkOut = Carbon::parse($att->check_out_time);
-            $workEnd = Carbon::parse($checkOut->toDateString() . ' ' . $this->workEndTime());
-            if ($checkOut->lt($workEnd)) {
-                $earlyMinutes = $checkOut->diffInMinutes($workEnd);
-                $isEarlyLeave = true;
-            }
-        }
+        $metrics = WorkScheduleResolver::attendanceMetrics(
+            $att->check_in_time,
+            $att->check_out_time,
+            Carbon::parse($att->date),
+            $intern?->id
+        );
+        $lateMinutes = $metrics['late_minutes'];
+        $earlyMinutes = $metrics['early_leave_minutes'];
 
         return [
             'check_in_time' => $att->check_in_time ? Carbon::parse($att->check_in_time)->format('H:i') : null,
             'check_out_time' => $att->check_out_time ? Carbon::parse($att->check_out_time)->format('H:i') : null,
-            'is_late' => $isLate,
+            'is_late' => $lateMinutes > 0,
             'late_minutes' => $lateMinutes,
-            'is_early_leave' => $isEarlyLeave,
+            'is_early_leave' => $earlyMinutes > 0,
             'early_minutes' => $earlyMinutes,
         ];
     }
@@ -204,7 +191,7 @@ trait ComputesInternAssessment
         $earlyDeduction = 0;
 
         foreach ($attendances as $att) {
-            $info = $this->buildAttendanceInfo($att);
+            $info = $this->buildAttendanceInfo($att, $intern);
             if ($info['late_minutes'] > 0) {
                 $lateDeduction += floor($info['late_minutes'] / $this->lateGraceMinutes()) * $this->latePointPerStep();
             }
@@ -319,7 +306,7 @@ trait ComputesInternAssessment
         foreach (CarbonPeriod::create($periodStart, $effectiveEnd) as $day) {
             $dateStr = $day->toDateString();
             $att = $attendances->get($dateStr);
-            $attInfo = $this->buildAttendanceInfo($att);
+            $attInfo = $this->buildAttendanceInfo($att, $intern);
 
             $tasksDueToday = $allTasks->filter(
                 fn ($t) => $t->due_date && Carbon::parse($t->due_date)->isSameDay($day)

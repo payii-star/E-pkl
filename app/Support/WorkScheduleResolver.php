@@ -101,7 +101,7 @@ class WorkScheduleResolver
     /**
      * Jam kerja resmi pada tanggal tsb.
      *
-     * @return array{start: string, end: string, min_check_in: string, max_check_out: string}
+    * @return array{start: string, end: string, min_check_in: string}
      */
     public static function hoursFor(Carbon $date, ?int $userId = null): array
     {
@@ -110,8 +110,38 @@ class WorkScheduleResolver
         return [
             'start' => $schedule->start_time ?? '08:00:00',
             'end' => $schedule->end_time ?? '16:00:00',
-            'min_check_in' => $schedule->min_check_in_time ?? '06:00:00',
-            'max_check_out' => $schedule->max_check_out_time ?? '21:00:00',
+            'min_check_in' => $schedule->min_check_in_time ?? '00:00:00',
+        ];
+    }
+
+    /**
+     * Hitung telat dan pulang cepat berdasarkan jadwal pada tanggal tertentu.
+     * min_check_in_time disimpan sebagai durasi toleransi dalam format HH:MM.
+     */
+    public static function attendanceMetrics(
+        ?string $checkInTime,
+        ?string $checkOutTime,
+        Carbon $date,
+        ?int $userId = null
+    ): array {
+        $hours = self::hoursFor($date, $userId);
+        $workStart = self::minutesFromTime($hours['start']);
+        $workEnd = self::minutesFromTime($hours['end']);
+        $tolerance = self::minutesFromTime($hours['min_check_in']);
+
+        $lateMinutes = 0;
+        if ($checkInTime) {
+            $lateMinutes = max(0, self::minutesFromTime($checkInTime) - $workStart - $tolerance);
+        }
+
+        $earlyLeaveMinutes = 0;
+        if ($checkOutTime) {
+            $earlyLeaveMinutes = max(0, $workEnd - self::minutesFromTime($checkOutTime));
+        }
+
+        return [
+            'late_minutes' => $lateMinutes,
+            'early_leave_minutes' => $earlyLeaveMinutes,
         ];
     }
 
@@ -131,8 +161,20 @@ class WorkScheduleResolver
         $schedules = self::schedules();
 
         if ($userId !== null) {
+            $dated = $schedules->first(
+                fn ($s) => (int) $s->user_id === (int) $userId
+                    && $s->date
+                    && Carbon::parse($s->date)->isSameDay($date)
+            );
+
+            if ($dated) {
+                return $dated;
+            }
+
             $own = $schedules->first(
-                fn ($s) => $s->day === $day && (int) $s->user_id === (int) $userId
+                fn ($s) => $s->day === $day
+                    && !$s->date
+                    && (int) $s->user_id === (int) $userId
             );
 
             if ($own) {
@@ -141,7 +183,7 @@ class WorkScheduleResolver
         }
 
         return $schedules->first(
-            fn ($s) => $s->day === $day && $s->user_id === null
+            fn ($s) => $s->day === $day && !$s->date && $s->user_id === null
         );
     }
 
@@ -153,5 +195,12 @@ class WorkScheduleResolver
     private static function holidays(): Collection
     {
         return self::$holidayCache ??= PublicHoliday::all();
+    }
+
+    private static function minutesFromTime(string $time): int
+    {
+        [$hours, $minutes] = array_pad(array_map('intval', explode(':', $time)), 2, 0);
+
+        return ($hours * 60) + $minutes;
     }
 }

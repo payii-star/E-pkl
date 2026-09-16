@@ -11,15 +11,16 @@ class WorkSchedule extends Model
 
     protected $fillable = [
         'user_id',
+        'date',
         'day',
         'is_working_day',
         'start_time',
         'end_time',
         'min_check_in_time',
-        'max_check_out_time',
     ];
 
     protected $casts = [
+        'date' => 'date:Y-m-d',
         'is_working_day' => 'boolean',
     ];
 

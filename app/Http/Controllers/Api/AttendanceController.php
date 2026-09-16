@@ -24,6 +24,18 @@ class AttendanceController extends Controller
             ->latest($dateColumn)
             ->get();
 
+        $attendances->each(function (Attendance $attendance) use ($user, $dateColumn) {
+            $metrics = WorkScheduleResolver::attendanceMetrics(
+                $attendance->{Attendance::checkInTimeColumn()},
+                $attendance->{Attendance::checkOutTimeColumn()},
+                Carbon::parse($attendance->{$dateColumn}),
+                $user->id
+            );
+
+            $attendance->setAttribute('late_minutes', $metrics['late_minutes']);
+            $attendance->setAttribute('early_leave_minutes', $metrics['early_leave_minutes']);
+        });
+
         return response()->json(['data' => $attendances]);
     }
 

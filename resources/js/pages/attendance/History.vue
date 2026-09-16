@@ -41,8 +41,8 @@
                             <td>
                                 <div class="d-flex flex-column align-items-start gap-1">
                                     <span>{{ row.check_in_time ?? '-' }}</span>
-                                    <span v-if="row.check_in_time && lateMinutes(row.check_in_time) > 0" class="badge badge-light-warning fs-8">
-                                        Telat {{ formatDurationMinutes(lateMinutes(row.check_in_time)) }}
+                                    <span v-if="lateMinutes(row) > 0" class="badge badge-light-warning fs-8">
+                                        Telat {{ formatDurationMinutes(lateMinutes(row)) }}
                                     </span>
                                 </div>
                             </td>
@@ -55,8 +55,8 @@
                             <td>
                                 <div class="d-flex flex-column align-items-start gap-1">
                                     <span>{{ row.check_out_time ?? '-' }}</span>
-                                    <span v-if="row.check_out_time && earlyLeaveMinutes(row.check_out_time) > 0" class="badge badge-light-warning fs-8">
-                                        Pulang cepat {{ formatDurationMinutes(earlyLeaveMinutes(row.check_out_time)) }}
+                                    <span v-if="earlyLeaveMinutes(row) > 0" class="badge badge-light-warning fs-8">
+                                        Pulang cepat {{ formatDurationMinutes(earlyLeaveMinutes(row)) }}
                                     </span>
                                 </div>
                             </td>
@@ -91,6 +91,8 @@ interface AttendanceRow {
     check_in_photo: string | null;
     check_out_photo: string | null;
     status: string | null;
+    late_minutes: number;
+    early_leave_minutes: number;
 }
 
 function photoUrl(path: string | null) {
@@ -130,12 +132,6 @@ function formatDate(dateStr: string) {
     });
 }
 
-function normalizeTimeString(time: string) {
-    if (!time) return "00:00:00";
-    if (time.split(":").length === 2) return `${time}:00`;
-    return time;
-}
-
 function formatDurationMinutes(totalMinutes: number) {
     const safeMinutes = Math.max(0, totalMinutes);
     const hours = Math.floor(safeMinutes / 60);
@@ -143,22 +139,12 @@ function formatDurationMinutes(totalMinutes: number) {
     return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }
 
-function calculateMinutesDifference(start: string, end: string) {
-    const startDate = new Date(`2000-01-01T${normalizeTimeString(start)}`);
-    const endDate = new Date(`2000-01-01T${normalizeTimeString(end)}`);
-    return Math.round((endDate.getTime() - startDate.getTime()) / 60000);
+function lateMinutes(row: AttendanceRow) {
+    return row.late_minutes ?? 0;
 }
 
-function lateMinutes(checkInTime: string | null) {
-    if (!checkInTime) return 0;
-    const diff = calculateMinutesDifference("08:00", checkInTime);
-    return diff > 0 ? diff : 0;
-}
-
-function earlyLeaveMinutes(checkOutTime: string | null) {
-    if (!checkOutTime) return 0;
-    const diff = calculateMinutesDifference(checkOutTime, "16:00");
-    return diff > 0 ? diff : 0;
+function earlyLeaveMinutes(row: AttendanceRow) {
+    return row.early_leave_minutes ?? 0;
 }
 
 function statusLabel(row: AttendanceRow) {
@@ -172,7 +158,7 @@ function statusLabel(row: AttendanceRow) {
         return row.status ?? "Hadir";
     }
 
-    if (row.check_in_time && !row.check_out_time) return row.status ?? "Hadir";
+    if (row.check_in_time && !row.check_out_time) return "Belum Absen Pulang";
     return row.status ?? "Tidak Hadir";
 }
 
@@ -186,7 +172,7 @@ function statusBadge(row: AttendanceRow) {
         return "badge-light-success";
     }
 
-    if (row.check_in_time && !row.check_out_time) return "badge-light-success";
+    if (row.check_in_time && !row.check_out_time) return "badge-light-warning";
     return "badge-light-danger";
 }
 
