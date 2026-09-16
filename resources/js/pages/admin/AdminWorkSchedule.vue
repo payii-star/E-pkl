@@ -274,7 +274,7 @@ onMounted(loadSchedule);
                     <button class="btn btn-sm btn-icon btn-light" @click="closeEdit">✕</button>
                 </div>
                 <div class="modal-body">
-                    <div class="border border-danger rounded p-3 mb-4">
+                    <div class="border rounded p-3 mb-4">
                         <div class="row g-3">
                             <div class="col-6">
                                 <label class="form-label fw-semibold">Jam Masuk</label>
