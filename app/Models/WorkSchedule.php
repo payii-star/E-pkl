@@ -10,6 +10,7 @@ class WorkSchedule extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'day',
         'is_working_day',
         'start_time',
@@ -21,4 +22,9 @@ class WorkSchedule extends Model
     protected $casts = [
         'is_working_day' => 'boolean',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

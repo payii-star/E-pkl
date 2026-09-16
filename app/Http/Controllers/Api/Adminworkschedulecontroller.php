@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\PublicHoliday;
 use App\Models\WorkSchedule;
+use App\Models\User;
 use App\Support\WorkScheduleResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -13,26 +14,25 @@ class AdminWorkScheduleController extends Controller
 {
     private const DAY_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
-    // GET /admin/work-schedule -> jadwal mingguan (urut Senin-Minggu) + daftar tanggal merah
-    public function index()
+    // GET /admin/work-schedule/{user} -> jadwal mingguan peserta terpilih
+    public function index(User $user)
     {
-        $schedules = WorkSchedule::all()->keyBy('day');
+        $schedules = WorkSchedule::where('user_id', $user->id)->get()->keyBy('day');
+        $defaults = WorkSchedule::whereNull('user_id')->get()->keyBy('day');
 
         $ordered = collect(self::DAY_ORDER)
-            ->map(fn ($day) => $schedules->get($day))
+            ->map(fn ($day) => $schedules->get($day) ?? $defaults->get($day))
             ->filter()
             ->values();
 
-        $holidays = PublicHoliday::orderBy('date')->get();
-
         return response()->json([
             'data' => $ordered,
-            'holidays' => $holidays,
+            'user' => $user->only(['id', 'name', 'email', 'photo']),
         ]);
     }
 
-    // PUT /admin/work-schedule/{day} -> update jadwal 1 hari
-    public function update(Request $request, string $day)
+    // PUT /admin/work-schedule/{user}/{day} -> update jadwal 1 hari peserta
+    public function update(Request $request, User $user, string $day)
     {
         if (!in_array($day, self::DAY_ORDER, true)) {
             return response()->json(['message' => 'Hari tidak valid'], 422);
@@ -50,7 +50,7 @@ class AdminWorkScheduleController extends Controller
             return response()->json(['message' => $validator->errors()->first()], 422);
         }
 
-        $schedule = WorkSchedule::firstOrNew(['day' => $day]);
+        $schedule = WorkSchedule::firstOrNew(['user_id' => $user->id, 'day' => $day]);
         $schedule->fill($validator->validated());
         $schedule->save();
 

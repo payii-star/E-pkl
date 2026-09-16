@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import axios from "@/libs/axios";
 import { toast } from "vue3-toastify";
 
@@ -13,12 +13,6 @@ interface DaySchedule {
     max_check_out_time: string;
 }
 
-interface Holiday {
-    id: number;
-    date: string;
-    label: string;
-}
-
 const dayLabels: Record<string, string> = {
     monday: "Senin",
     tuesday: "Selasa",
@@ -30,8 +24,14 @@ const dayLabels: Record<string, string> = {
 };
 
 const schedules = ref<DaySchedule[]>([]);
-const holidays = ref<Holiday[]>([]);
+const interns = ref<any[]>([]);
+const selected = ref<any>(null);
+const search = ref("");
 const loading = ref(false);
+const loadingInterns = ref(false);
+const period = ref<"week" | "month">("month");
+const selectedMonth = ref(currentMonthValue());
+const selectedWeekDate = ref(currentDateValue());
 
 // ─── Modal edit jadwal harian ──────────────────────────────────────────────
 const showEditModal = ref(false);
@@ -46,28 +46,100 @@ const editForm = ref({
 const savingSchedule = ref(false);
 const editErrorMsg = ref("");
 
-// ─── Form tambah tanggal merah ─────────────────────────────────────────────
-const holidayForm = ref({ date: "", label: "" });
-const savingHoliday = ref(false);
-const holidayErrorMsg = ref("");
-const deletingHolidayId = ref<number | null>(null);
+const filteredInterns = computed(() => interns.value.filter((intern) =>
+    intern.name?.toLowerCase().includes(search.value.toLowerCase()) ||
+    intern.email?.toLowerCase().includes(search.value.toLowerCase())
+));
+
+function currentMonthValue() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function currentDateValue() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+function onPeriodChange() {
+    if (period.value === "week") selectedWeekDate.value = currentDateValue();
+}
+
+function dateForDay(day: string) {
+    const selectedDate = new Date(`${selectedWeekDate.value}T00:00:00`);
+    const mondayOffset = selectedDate.getDay() === 0 ? -6 : 1 - selectedDate.getDay();
+    const dayIndex = Object.keys(dayLabels).indexOf(day);
+    selectedDate.setDate(selectedDate.getDate() + mondayOffset + dayIndex);
+
+    return selectedDate.toLocaleDateString("id-ID", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+    });
+}
+
+const tableRows = computed(() => {
+    if (period.value === "week") {
+        return schedules.value.map((schedule) => ({
+            date: dateForDay(schedule.day),
+            day: dayLabels[schedule.day],
+            schedule,
+        }));
+    }
+
+    const [year, month] = selectedMonth.value.split("-").map(Number);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const dayKeys = Object.keys(dayLabels);
+
+    return Array.from({ length: daysInMonth }, (_, index) => {
+        const date = new Date(year, month - 1, index + 1);
+        const dayKey = dayKeys[date.getDay() === 0 ? 6 : date.getDay() - 1];
+
+        return {
+            date: date.toLocaleDateString("id-ID", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+            }),
+            day: dayLabels[dayKey],
+            schedule: schedules.value.find((schedule) => schedule.day === dayKey),
+        };
+    }).filter((row) => row.schedule);
+});
 
 function toHM(time: string) {
     // Backend kirim "08:00:00", input type=time butuh "08:00"
     return time ? time.slice(0, 5) : "";
 }
 
+async function loadInterns() {
+    loadingInterns.value = true;
+    try {
+        const res = await axios.get("/admin/intern-periods");
+        interns.value = res.data?.data ?? [];
+    } catch (e: any) {
+        toast.error(e?.response?.data?.message || "Gagal memuat peserta magang.");
+    } finally {
+        loadingInterns.value = false;
+    }
+}
+
 async function loadSchedule() {
+    if (!selected.value) return;
     loading.value = true;
     try {
-        const res = await axios.get("/admin/work-schedule");
+        const res = await axios.get(`/admin/work-schedule/${selected.value.id}`);
         schedules.value = res.data?.data ?? [];
-        holidays.value = res.data?.holidays ?? [];
     } catch (e: any) {
         toast.error(e?.response?.data?.message || "Gagal memuat jadwal kerja.");
     } finally {
         loading.value = false;
     }
+}
+
+function selectIntern(intern: any) {
+    selected.value = intern;
+    loadSchedule();
 }
 
 function openEdit(schedule: DaySchedule) {
@@ -91,7 +163,7 @@ async function saveSchedule() {
     savingSchedule.value = true;
     editErrorMsg.value = "";
     try {
-        await axios.put(`/admin/work-schedule/${editingDay.value}`, editForm.value);
+        await axios.put(`/admin/work-schedule/${selected.value.id}/${editingDay.value}`, editForm.value);
         toast.success("Jadwal berhasil disimpan");
         showEditModal.value = false;
         await loadSchedule();
@@ -102,167 +174,118 @@ async function saveSchedule() {
     }
 }
 
-async function submitHoliday() {
-    if (!holidayForm.value.date || !holidayForm.value.label.trim()) {
-        holidayErrorMsg.value = "Tanggal dan nama libur wajib diisi";
-        return;
-    }
-    savingHoliday.value = true;
-    holidayErrorMsg.value = "";
-    try {
-        await axios.post("/admin/work-schedule/holidays", holidayForm.value);
-        toast.success("Tanggal merah berhasil ditambahkan");
-        holidayForm.value = { date: "", label: "" };
-        await loadSchedule();
-    } catch (e: any) {
-        holidayErrorMsg.value = e?.response?.data?.message || "Gagal menambahkan tanggal merah.";
-    } finally {
-        savingHoliday.value = false;
-    }
-}
-
-async function deleteHoliday(holiday: Holiday) {
-    if (!confirm(`Hapus tanggal merah "${holiday.label}"?`)) return;
-    deletingHolidayId.value = holiday.id;
-    try {
-        await axios.delete(`/admin/work-schedule/holidays/${holiday.id}`);
-        toast.success("Tanggal merah berhasil dihapus");
-        await loadSchedule();
-    } catch (e: any) {
-        toast.error(e?.response?.data?.message || "Gagal menghapus tanggal merah.");
-    } finally {
-        deletingHolidayId.value = null;
-    }
-}
-
-function formatDate(dateStr: string) {
-    if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" });
-}
-
-onMounted(loadSchedule);
+onMounted(loadInterns);
 </script>
 
 <template>
-    <div class="row g-5">
-        <div class="col-12">
-            <!-- ══ JADWAL MINGGUAN ══ -->
-            <div class="card mb-5">
-                <div class="card-header border-0 pt-6">
-                    <div class="card-title">
-                        <h2>Pengaturan Hari & Jam Kerja</h2>
+    <div class="d-flex flex-column gap-5">
+        <div class="card">
+            <div class="card-header border-0 pt-6">
+                <div class="card-title"><h2 class="fw-bold">Daftar Peserta Magang</h2></div>
+                <div class="card-toolbar">
+                    <input v-model="search" type="text" class="form-control form-control-sm w-200px" placeholder="Cari nama..." />
+                </div>
+            </div>
+            <div class="card-body pt-2">
+                <div v-if="loadingInterns" class="text-center py-10"><span class="spinner-border text-primary"></span></div>
+                <div v-else-if="!filteredInterns.length" class="text-center text-muted py-10">Belum ada peserta magang.</div>
+                <div v-else class="intern-strip">
+                    <div v-for="intern in filteredInterns" :key="intern.id"
+                        class="intern-chip d-flex flex-column align-items-center gap-2 p-3 rounded cursor-pointer flex-shrink-0"
+                        :class="{ 'intern-chip--active': selected?.id === intern.id }" @click="selectIntern(intern)">
+                        <div class="symbol symbol-50px">
+                            <img v-if="intern.photo" :src="intern.photo" alt="foto" class="rounded" />
+                            <span v-else class="symbol-label bg-light-primary text-primary fw-bold fs-5">{{ intern.name?.charAt(0)?.toUpperCase() }}</span>
+                        </div>
+                        <div class="fw-bold text-gray-800 text-truncate fs-8" style="width: 100px; text-align: center">{{ intern.name }}</div>
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <div class="card-body pt-0">
-                    <div v-if="loading" class="d-flex justify-content-center py-10">
-                        <span class="spinner-border text-primary"></span>
+        <div v-if="!selected" class="card">
+            <div class="card-body text-center text-muted py-15">
+                <div class="fs-5 fw-semibold">Pilih peserta magang</div>
+                <div class="fs-7 mt-1">Klik salah satu nama di atas untuk mengatur jam kerja</div>
+            </div>
+        </div>
+
+        <template v-else>
+        <div class="card">
+            <div class="card-body py-5">
+                <div class="d-flex align-items-center gap-4 flex-wrap">
+                    <div class="symbol symbol-55px">
+                        <img v-if="selected.photo" :src="selected.photo" alt="foto" class="rounded" />
+                        <span v-else class="symbol-label bg-light-primary text-primary fw-bold fs-3">
+                            {{ selected.name?.charAt(0)?.toUpperCase() }}
+                        </span>
                     </div>
+                    <div class="flex-fill min-w-150px">
+                        <div class="fw-bold fs-4 text-gray-800">{{ selected.name }}</div>
+                        <div class="text-muted fs-7">{{ selected.email ?? "-" }}</div>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <label class="fs-8 text-muted mb-1 d-block">Tampilan</label>
+                        <select class="form-select form-select-sm" v-model="period" @change="onPeriodChange">
+                            <option value="week">Mingguan</option>
+                            <option value="month">Bulanan</option>
+                        </select>
+                    </div>
+                    <div v-if="period === 'month'" class="flex-shrink-0">
+                        <label class="fs-8 text-muted mb-1 d-block">Pilih Bulan</label>
+                        <input v-model="selectedMonth" type="month" class="form-control form-control-sm" />
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                    <div v-else class="table-responsive">
+        <div class="card">
+            <div class="card-header border-0 pt-6">
+                <div class="card-title">
+                    <h2 class="fw-bold mb-0">Pengaturan Hari & Jam Kerja</h2>
+                </div>
+            </div>
+            <div class="card-body pt-0">
+                <div v-if="loading" class="d-flex justify-content-center py-10"><span class="spinner-border text-primary"></span></div>
+                <div v-else class="table-responsive">
                         <table class="table align-middle table-row-dashed fs-6 gy-4">
                             <thead>
                                 <tr class="text-start text-muted fw-bold fs-7 text-uppercase gs-0">
+                                    <th>Tanggal</th>
                                     <th>Hari</th>
                                     <th>Masuk</th>
                                     <th>Pulang</th>
-                                    <th>Min. Masuk</th>
+                                    <th>Toleransi Terlambat</th>
                                     <th>Max. Pulang</th>
                                     <th>Status</th>
                                     <th class="text-end">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="schedule in schedules" :key="schedule.day">
-                                    <td class="fw-bold text-uppercase">{{ dayLabels[schedule.day] }}</td>
-                                    <td>{{ toHM(schedule.start_time) }}</td>
-                                    <td>{{ toHM(schedule.end_time) }}</td>
-                                    <td class="fst-italic text-muted">{{ toHM(schedule.min_check_in_time) }}</td>
-                                    <td>{{ toHM(schedule.max_check_out_time) }}</td>
+                                <tr v-for="row in tableRows" :key="`${row.date}-${row.day}`">
+                                    <td>{{ row.date }}</td>
+                                    <td class="fw-bold text-uppercase">{{ row.day }}</td>
+                                    <td>{{ toHM(row.schedule?.start_time ?? "") }}</td>
+                                    <td>{{ toHM(row.schedule?.end_time ?? "") }}</td>
+                                    <td class="fst-italic text-muted">{{ toHM(row.schedule?.min_check_in_time ?? "") }}</td>
+                                    <td>{{ toHM(row.schedule?.max_check_out_time ?? "") }}</td>
                                     <td>
-                                        <span class="badge" :class="schedule.is_working_day ? 'badge-light-success' : 'badge-light-danger'">
-                                            {{ schedule.is_working_day ? "HARI KERJA" : "LIBUR" }}
+                                        <span class="badge" :class="row.schedule?.is_working_day ? 'badge-light-success' : 'badge-light-danger'">
+                                            {{ row.schedule?.is_working_day ? "HARI KERJA" : "LIBUR" }}
                                         </span>
                                     </td>
                                     <td class="text-end">
-                                        <button class="btn btn-sm btn-icon btn-light-warning" @click="openEdit(schedule)">
+                                        <button class="btn btn-sm btn-icon btn-light-warning" @click="openEdit(row.schedule!)">
                                             <i class="bi bi-pencil-fill fs-6"></i>
                                         </button>
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ══ TANGGAL MERAH / HARI LIBUR KHUSUS ══ -->
-            <div class="card">
-                <div class="card-header border-0 pt-6">
-                    <div class="card-title">
-                        <h2>Tanggal Merah / Hari Libur Khusus</h2>
-                    </div>
-                </div>
-
-                <div class="card-body pt-0">
-                    <div class="text-muted fs-8 mb-4">
-                        Tanggal yang ditambahkan di sini otomatis jadi hari libur, terlepas dari hari apa pun
-                        itu jatuhnya. Tanggal merah tetap (Tahun Baru, Kemerdekaan, dst) sudah otomatis
-                        tersedia — tambahkan sendiri tanggal merah yang geser tiap tahun (Lebaran, Nyepi,
-                        cuti bersama, dll).
-                    </div>
-
-                    <div class="row g-3 mb-6">
-                        <div class="col-md-4">
-                            <input v-model="holidayForm.date" type="date" class="form-control form-control-solid" />
-                        </div>
-                        <div class="col-md-5">
-                            <input v-model="holidayForm.label" type="text" class="form-control form-control-solid" placeholder="Nama hari libur (misal: Hari Raya Idul Fitri)" />
-                        </div>
-                        <div class="col-md-3">
-                            <button class="btn btn-primary w-100" :disabled="savingHoliday" @click="submitHoliday">
-                                <span v-if="savingHoliday" class="spinner-border spinner-border-sm me-2"></span>
-                                Tambah
-                            </button>
-                        </div>
-                        <div v-if="holidayErrorMsg" class="col-12">
-                            <div class="alert alert-danger py-2 fs-7 mb-0">{{ holidayErrorMsg }}</div>
-                        </div>
-                    </div>
-
-                    <div v-if="!holidays.length" class="text-muted fs-7 text-center py-5">
-                        Belum ada tanggal merah yang ditambahkan.
-                    </div>
-                    <div v-else class="table-responsive">
-                        <table class="table align-middle table-row-dashed fs-6 gy-3">
-                            <thead>
-                                <tr class="text-start text-muted fw-bold fs-7 text-uppercase gs-0">
-                                    <th>Tanggal</th>
-                                    <th>Keterangan</th>
-                                    <th class="text-end">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="h in holidays" :key="h.id">
-                                    <td>{{ formatDate(h.date) }}</td>
-                                    <td>{{ h.label }}</td>
-                                    <td class="text-end">
-                                        <button
-                                            class="btn btn-sm btn-icon btn-light-danger"
-                                            :disabled="deletingHolidayId === h.id"
-                                            @click="deleteHoliday(h)"
-                                        >
-                                            <span v-if="deletingHolidayId === h.id" class="spinner-border spinner-border-sm"></span>
-                                            <i v-else class="bi bi-trash-fill fs-6"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
                 </div>
             </div>
         </div>
+        </template>
     </div>
 
     <!-- ══ MODAL EDIT JAM KERJA ══ -->
@@ -289,7 +312,7 @@ onMounted(loadSchedule);
 
                     <div class="row g-3 mb-4">
                         <div class="col-6">
-                            <label class="form-label fw-semibold">Minimal Jam Masuk</label>
+                            <label class="form-label fw-semibold">Toleransi Terlambat</label>
                             <input v-model="editForm.min_check_in_time" type="time" class="form-control" />
                         </div>
                         <div class="col-6">
@@ -333,3 +356,28 @@ onMounted(loadSchedule);
         </div>
     </div>
 </template>
+
+<style scoped>
+.intern-strip {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.intern-chip {
+    border: 1.5px solid #f1f1f2;
+    min-width: 110px;
+    transition: all .15s;
+}
+
+.intern-chip:hover {
+    background: #f9f9f9;
+    border-color: #d9d9e0;
+}
+
+.intern-chip--active {
+    background: #eef6ff;
+    border-color: #009ef7 !important;
+}
+</style>

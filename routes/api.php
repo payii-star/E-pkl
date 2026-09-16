@@ -575,14 +575,14 @@ Route::middleware(['auth', 'json'])->group(function () {
         ->middleware('role:hr-admin')
         ->group(function () {
 
-            // Jadwal mingguan (Senin-Minggu) + daftar tanggal merah
-            Route::get('', [
+            // Jadwal mingguan peserta terpilih (Senin-Minggu)
+            Route::get('{user}', [
                 AdminWorkScheduleController::class,
                 'index'
             ]);
 
-            // Update jadwal 1 hari (day = monday, tuesday, dst)
-            Route::put('{day}', [
+            // Update jadwal 1 hari peserta (day = monday, tuesday, dst)
+            Route::put('{user}/{day}', [
                 AdminWorkScheduleController::class,
                 'update'
             ]);
