@@ -107,6 +107,17 @@ const routes: Array<RouteRecordRaw> = [
                 },
             },
 
+            {
+                path: "/admin/work-schedule",
+                name: "admin-work-schedule",
+                component: () => import("@/pages/admin/AdminWorkSchedule.vue"),
+                meta: {
+                    pageTitle: "Jam Kerja",
+                    breadcrumbs: ["Admin", "Jam Kerja"],
+                    permission: "admin-dashboard",
+                },
+            },
+
             // KELOLA LANDING (dipindahkan dari dashboard Landing)
             {
                 path: "/admin/landing/projects",

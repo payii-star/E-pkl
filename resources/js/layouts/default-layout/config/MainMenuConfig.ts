@@ -66,6 +66,13 @@ const MainMenuConfig: Array<MenuItem> = [
                 keenthemesIcon: "check-circle",
                 permission: "journal-approval",
             },
+            {
+                heading: "workflow",
+                name: "admin-work-schedule",
+                route: "/admin/work-schedule",
+                keenthemesIcon: "time",
+                permission: "admin-dashboard",
+            },
         ],
     },
 
