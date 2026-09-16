@@ -6,6 +6,8 @@ import axios from "@/libs/axios";
 import { toast } from "vue3-toastify";
 import type { Project } from "@/types";
 
+const MAX_GALLERY = 6;
+
 const props = defineProps({
     selected: {
         type: Number,
@@ -17,6 +19,7 @@ const emit = defineEmits(["close", "refresh"]);
 
 const project = ref<Project>({
     title: "",
+    client_name: "",
     description: "",
     url: "",
     category: "web",
@@ -27,10 +30,18 @@ const project = ref<Project>({
 const fileTypes = ref(["image/jpeg", "image/png", "image/jpg"]);
 const thumbnail = ref<any[]>([]);
 const hadInitialThumbnail = ref(false);
+
+// ── GALERI FOTO (maks 6) ─────────────────────────────────────────
+// Item bisa berupa:
+// - string "/storage/landing/projects/gallery/xxx.jpg" -> foto lama (sudah tersimpan)
+// - object dari FilePond yang punya properti .file -> foto baru yang mau diupload
+const galleryFiles = ref<any[]>([]);
+
 const formRef = ref();
 
 const formSchema = Yup.object().shape({
     title: Yup.string().required("Title harus diisi"),
+    client_name: Yup.string().nullable(),
     description: Yup.string().nullable(),
     url: Yup.string().url("URL harus valid").nullable(),
     category: Yup.string()
@@ -47,9 +58,11 @@ function getEdit() {
     axios
         .get(`/master/projects/${props.selected}`)
         .then(({ data }) => {
+            // PENTING: jangan timpa "url" dengan field yang tidak ada di
+            // response (misal "link_project"). Backend mengirim field
+            // "url" langsung -- cukup spread ...data.data saja.
             project.value = {
                 ...data.data,
-                url: data.data.link_project,
                 category: data.data.category ?? "web",
             };
 
@@ -57,6 +70,10 @@ function getEdit() {
 
             thumbnail.value = data.data.thumbnail
                 ? ["/storage/" + data.data.thumbnail]
+                : [];
+
+            galleryFiles.value = Array.isArray(data.data.gallery)
+                ? data.data.gallery.map((path: string) => "/storage/" + path)
                 : [];
         })
         .catch((err: any) => {
@@ -77,6 +94,10 @@ function submit() {
     const formData = new FormData();
 
     formData.append("title", project.value.title);
+    formData.append(
+        "client_name",
+        project.value.client_name ?? ""
+    );
     formData.append(
         "description",
         project.value.description ?? ""
@@ -105,6 +126,32 @@ function submit() {
         );
     } else if (hadInitialThumbnail.value && thumbnail.value.length === 0) {
         formData.append("remove_thumbnail", "1");
+    }
+
+    // ── GALERI: pisahkan foto lama yang dipertahankan vs file baru ──
+    if (props.selected) {
+        galleryFiles.value.forEach((item: any) => {
+            if (item?.file) {
+                formData.append("gallery_new[]", item.file);
+            } else if (typeof item === "string") {
+                formData.append(
+                    "gallery_existing[]",
+                    item.replace(/^\/storage\//, "")
+                );
+            } else if (item?.source && typeof item.source === "string") {
+                formData.append(
+                    "gallery_existing[]",
+                    item.source.replace(/^\/storage\//, "")
+                );
+            }
+        });
+    } else {
+        // Project baru -> semua item di galeri pasti file baru
+        galleryFiles.value.forEach((item: any) => {
+            if (item?.file) {
+                formData.append("gallery[]", item.file);
+            }
+        });
     }
 
     block(document.getElementById("form-project"));
@@ -237,6 +284,39 @@ watch(
                     </div>
                 </div>
 
+                <!-- Client / Instansi -->
+                <div class="col-md-12">
+                    <div class="fv-row mb-7">
+                        <label
+                            class="form-label fw-bold fs-6"
+                        >
+                            Client / Instansi
+                        </label>
+
+                        <Field
+                            class="form-control form-control-lg form-control-solid"
+                            type="text"
+                            name="client_name"
+                            autocomplete="off"
+                            v-model="project.client_name"
+                            placeholder="Contoh: Pemerintah Daerah Kabupaten Halmahera Timur"
+                        />
+
+                        <div class="form-text text-muted fs-7 mt-1">
+                            Teks singkat ini yang ditampilkan di kartu daftar project.
+                            Deskripsi lengkap di bawah hanya muncul di halaman detail.
+                        </div>
+
+                        <div
+                            class="fv-plugins-message-container"
+                        >
+                            <div class="fv-help-block">
+                                <ErrorMessage name="client_name" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Description -->
                 <div class="col-md-12">
                     <div class="fv-row mb-7">
@@ -302,6 +382,44 @@ watch(
                             <div class="fv-help-block">
                                 <ErrorMessage
                                     name="thumbnail"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Galeri Foto -->
+                <div class="col-md-6">
+                    <div class="fv-row mb-7">
+                        <label
+                            class="form-label fw-bold fs-6"
+                        >
+                            Galeri Foto (maks {{ MAX_GALLERY }})
+                        </label>
+
+                        <file-upload
+                            :files="galleryFiles"
+                            :accepted-file-types="fileTypes"
+                            :allow-multiple="true"
+                            :max-files="MAX_GALLERY"
+                            v-on:updatefiles="
+                                (files) => (galleryFiles = files)
+                            "
+                        >
+                        </file-upload>
+
+                        <div class="form-text text-muted fs-7 mt-1">
+                            Foto tambahan yang ditampilkan di halaman detail project.
+                            Format JPG, JPEG, PNG, WEBP. Maksimal {{ MAX_GALLERY }} foto,
+                            masing-masing maksimal 2MB.
+                        </div>
+
+                        <div
+                            class="fv-plugins-message-container"
+                        >
+                            <div class="fv-help-block">
+                                <ErrorMessage
+                                    name="gallery"
                                 />
                             </div>
                         </div>

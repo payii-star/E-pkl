@@ -16,14 +16,6 @@ return new class extends Migration
         }
 
         Schema::table('intern_assessments', function (Blueprint $table) {
-            $table->dropForeign(['user_id']);
-        });
-
-        Schema::table('intern_assessments', function (Blueprint $table) {
-            $table->dropUnique('intern_assessments_user_id_period_start_period_end_unique');
-        });
-
-        Schema::table('intern_assessments', function (Blueprint $table) {
             if (Schema::hasColumn('intern_assessments', 'period_start')) {
                 $table->dropColumn('period_start');
             }
@@ -32,12 +24,7 @@ return new class extends Migration
                 $table->dropColumn('period_end');
             }
         });
-
-        Schema::table('intern_assessments', function (Blueprint $table) {
-            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
-        });
     }
-
     /**
      * Reverse the migrations.
      */
