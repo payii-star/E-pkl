@@ -265,6 +265,13 @@ Route::middleware(['auth', 'json'])->group(function () {
                     'store'
                 ]);
 
+                // HARUS di atas route {project} di bawah, supaya
+                // "/reorder" tidak ketangkep sebagai {project} = "reorder".
+                Route::post('reorder', [
+                    LandingProjectController::class,
+                    'reorder'
+                ]);
+
                 Route::get('{project}', [
                     LandingProjectController::class,
                     'show'

@@ -106,6 +106,12 @@ class TaskController extends Controller
             return response()->json(['message' => 'Tugas ini sudah selesai, tidak bisa dikumpulkan lagi'], 422);
         }
 
+        if ($task->due_date && \Carbon\Carbon::parse($task->due_date)->endOfDay()->isPast()) {
+            return response()->json([
+                'message' => 'Deadline tugas sudah lewat, tidak bisa mengirim tugas lagi.',
+            ], 422);
+        }
+
         $validator = Validator::make($request->all(), [
             'submission_note' => 'nullable|string',
             'attachments' => 'required|array|min:1',

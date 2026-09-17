@@ -198,7 +198,6 @@
                                                 <th>Tanggal</th>
                                                 <th>Masuk</th>
                                                 <th>Pulang</th>
-                                                <th>Tugas Jatuh Tempo</th>
                                                 <th class="text-center">Nilai Kumulatif</th>
                                             </tr>
                                         </thead>
@@ -217,10 +216,6 @@
                                                         {{ h.check_out_time }}
                                                         <span v-if="h.is_early_leave" class="text-danger">(cepat)</span>
                                                     </span>
-                                                    <span v-else class="text-muted">-</span>
-                                                </td>
-                                                <td>
-                                                    <span v-if="h.tasks_due.length">{{ h.tasks_due.map(t => t.title).join(', ') }}</span>
                                                     <span v-else class="text-muted">-</span>
                                                 </td>
                                                 <td class="text-center fw-bold">{{ h.cumulative_score }}</td>

@@ -24,7 +24,6 @@ const project = ref<Project>({
     url: "",
     category: "web",
     is_featured: false,
-    urutan: 1,
 } as Project);
 
 const fileTypes = ref(["image/jpeg", "image/png", "image/jpg"]);
@@ -47,9 +46,6 @@ const formSchema = Yup.object().shape({
     category: Yup.string()
         .oneOf(["web", "mobile"], "Kategori tidak valid")
         .required("Kategori harus dipilih"),
-    urutan: Yup.number()
-        .typeError("Urutan harus angka")
-        .required("Urutan harus diisi"),
 });
 
 function getEdit() {
@@ -106,10 +102,6 @@ function submit() {
     formData.append(
         "category",
         project.value.category ?? "web"
-    );
-    formData.append(
-        "urutan",
-        String(project.value.urutan)
     );
     formData.append(
         "is_featured",
@@ -427,7 +419,7 @@ watch(
                 </div>
 
                 <!-- Category -->
-                <div class="col-md-3">
+                <div class="col-md-6">
                     <div class="fv-row mb-7">
                         <label
                             class="form-label fw-bold fs-6 required"
@@ -460,36 +452,8 @@ watch(
                     </div>
                 </div>
 
-                <!-- Urutan -->
-                <div class="col-md-3">
-                    <div class="fv-row mb-7">
-                        <label
-                            class="form-label fw-bold fs-6 required"
-                        >
-                            Urutan
-                        </label>
-
-                        <Field
-                            class="form-control form-control-lg form-control-solid"
-                            type="number"
-                            name="urutan"
-                            autocomplete="off"
-                            v-model="project.urutan"
-                            placeholder="1"
-                        />
-
-                        <div
-                            class="fv-plugins-message-container"
-                        >
-                            <div class="fv-help-block">
-                                <ErrorMessage name="urutan" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Featured -->
-                <div class="col-md-3">
+                <div class="col-md-6">
                     <div class="fv-row mb-7">
                         <label
                             class="form-label fw-bold fs-6"

@@ -204,4 +204,26 @@ class LandingProjectController extends Controller
 
         return $paths;
     }
+
+    // POST /master/projects/reorder
+    public function reorder(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'ids'   => 'required|array',
+            'ids.*' => 'integer|exists:landing_projects,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['message' => $validator->errors()->first()], 422);
+        }
+
+        foreach ($request->input('ids') as $index => $id) {
+            LandingProject::where('id', $id)->update(['urutan' => $index]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Urutan berhasil disimpan',
+        ]);
+    }
 }

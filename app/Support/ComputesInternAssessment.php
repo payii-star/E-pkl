@@ -166,10 +166,17 @@ trait ComputesInternAssessment
 
         $baseScore = min(100, ($elapsedDays / max(1, $totalDays)) * 100);
 
-        $tasksInPeriod = $allTasks->filter(function ($t) use ($periodStart, $periodEnd) {
+        $tasksInPeriod = $allTasks->filter(function ($t) use ($periodStart, $periodEnd, $effectiveDate) {
+            $createdAt = $t->created_at ? Carbon::parse($t->created_at) : null;
+
+            if ($createdAt && $createdAt->betweenIncluded($periodStart, $periodEnd)) {
+                return true;
+            }
+
             if (!$t->due_date) {
                 return false;
             }
+
             $due = Carbon::parse($t->due_date);
             return $due->gte($periodStart) && $due->lte($periodEnd);
         });
@@ -179,7 +186,13 @@ trait ComputesInternAssessment
 
         $incompleteTasksAsOf = $tasksInPeriod
             ->whereIn('status', $this->unfinishedTaskStatuses())
-            ->filter(fn ($t) => Carbon::parse($t->due_date)->endOfDay()->lte($effectiveDate->copy()->endOfDay()));
+            ->filter(function ($t) use ($effectiveDate) {
+                if (!$t->due_date) {
+                    return true;
+                }
+
+                return Carbon::parse($t->due_date)->endOfDay()->lte($effectiveDate->copy()->endOfDay());
+            });
 
         $taskDeduction = $incompleteTasksAsOf->count() * $weightPerTask;
 

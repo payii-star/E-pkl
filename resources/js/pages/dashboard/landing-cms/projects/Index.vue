@@ -10,6 +10,7 @@ const projects = ref<Project[]>([]);
 const loading = ref(false);
 const selected = ref<number | null>(null);
 const openForm = ref<boolean>(false);
+const dragIndex = ref<number | null>(null);
 
 function fetchProjects() {
     loading.value = true;
@@ -79,6 +80,37 @@ watch(openForm, (val) => {
     window.scrollTo(0, 0);
 });
 
+// ── Drag & drop reorder (native HTML5, sama pola dengan Client) ──
+function onDragStart(index: number) {
+    dragIndex.value = index;
+}
+
+function onDrop(index: number) {
+    if (dragIndex.value === null || dragIndex.value === index) return;
+
+    const moved = projects.value.splice(dragIndex.value, 1)[0];
+    projects.value.splice(index, 0, moved);
+    dragIndex.value = null;
+
+    saveOrder();
+}
+
+function saveOrder() {
+    axios
+        .post("/master/projects/reorder", {
+            ids: projects.value.map((p) => p.id),
+        })
+        .then(() => {
+            toast.success("Urutan berhasil disimpan");
+        })
+        .catch((err: any) => {
+            toast.error(
+                err.response?.data?.message ?? "Gagal menyimpan urutan"
+            );
+            fetchProjects(); // rollback tampilan kalau gagal disimpan
+        });
+}
+
 onMounted(fetchProjects);
 </script>
 
@@ -106,6 +138,10 @@ onMounted(fetchProjects);
         </div>
 
         <div class="card-body">
+            <p class="text-muted fs-7 mb-5">
+                Geser (drag) tiap baris untuk mengubah urutan tampil di halaman depan.
+            </p>
+
             <div class="table-responsive">
                 <table
                     class="table table-rounded table-hover table-striped border gy-7 gs-7"
@@ -114,12 +150,12 @@ onMounted(fetchProjects);
                         <tr
                             class="fw-bolder fs-6 text-gray-800 border-bottom border-gray-200"
                         >
+                            <th class="py-4" style="width: 40px"></th>
                             <th class="py-4">#</th>
                             <th class="py-4">Thumbnail</th>
                             <th class="py-4">Title</th>
                             <th class="py-4">Kategori</th>
                             <th class="py-4">Featured</th>
-                            <th class="py-4">Urutan</th>
                             <th class="py-4">Aksi</th>
                         </tr>
                     </thead>
@@ -140,7 +176,16 @@ onMounted(fetchProjects);
                             <tr
                                 v-for="(project, index) in projects"
                                 :key="project.id"
+                                draggable="true"
+                                @dragstart="onDragStart(index)"
+                                @dragover.prevent
+                                @drop="onDrop(index)"
+                                style="cursor: grab;"
                             >
+                                <td class="py-4">
+                                    <i class="la la-bars fs-2 text-muted"></i>
+                                </td>
+
                                 <td class="py-4">
                                     {{ index + 1 }}
                                 </td>
@@ -213,10 +258,6 @@ onMounted(fetchProjects);
                                                 : "Biasa"
                                         }}
                                     </span>
-                                </td>
-
-                                <td class="py-4">
-                                    {{ project.urutan }}
                                 </td>
 
                                 <td class="py-4">

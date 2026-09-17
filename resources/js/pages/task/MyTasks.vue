@@ -67,8 +67,34 @@ const fileAttachments = computed(() =>
     selectedTask.value?.attachments.filter((a) => !a.is_image) ?? []
 );
 
+function isTaskExpired(task: Task) {
+    if (!task.due_date) return false;
+
+    const doneStatuses = ["submitted", "selesai", "revisi", "ditolak"];
+    if (doneStatuses.includes(task.status)) return false;
+
+    const rawDate = task.due_date;
+    const due = new Date(rawDate);
+    const fallback = new Date(`${rawDate}T23:59:59`);
+    const effectiveDue = Number.isNaN(due.getTime()) ? fallback : due;
+    effectiveDue.setHours(23, 59, 59, 999);
+
+    return effectiveDue.getTime() < Date.now();
+}
+
 function canSubmit(task: Task) {
-    return ["belum", "sedang", "revisi", "ditolak"].includes(task.status);
+    return ["belum", "sedang", "revisi", "ditolak"].includes(task.status) && !isTaskExpired(task);
+}
+
+function canOpenTask(task: Task) {
+    return !isTaskExpired(task) || ["submitted", "selesai", "revisi", "ditolak"].includes(task.status);
+}
+
+function cardClass(task: Task) {
+    if (isTaskExpired(task)) {
+        return 'btn-light-secondary opacity-75';
+    }
+    return 'btn-light';
 }
 
 function formatDate(dateStr: string | null) {
@@ -108,6 +134,12 @@ function fetchTasks() {
 }
 
 function openDetail(task: Task) {
+    const expired = isTaskExpired(task);
+    if (expired) {
+        toast.warning("Tugas ini sudah melewati deadline dan tidak bisa dibuka lagi.");
+        return;
+    }
+
     selectedTask.value = task;
     submitFiles.value = [];
     submitNote.value = "";
@@ -243,12 +275,16 @@ onMounted(fetchTasks);
                     v-for="task in tasks"
                     :key="task.id"
                     type="button"
-                    class="btn btn-flex btn-light text-start justify-content-between align-items-center py-4"
+                    class="btn btn-flex text-start justify-content-between align-items-center py-4"
+                    :class="cardClass(task)"
+                    :style="isTaskExpired(task) ? 'pointer-events: none; cursor: not-allowed;' : ''"
+                    :disabled="isTaskExpired(task)"
                     @click="openDetail(task)"
                 >
                     <div>
                         <div class="fw-bold text-gray-800">{{ task.title }}</div>
                         <div v-if="task.due_date" class="text-muted fs-8">Deadline: {{ formatDate(task.due_date) }}</div>
+                        <div v-if="isTaskExpired(task) && !['submitted', 'selesai', 'revisi', 'ditolak'].includes(task.status)" class="text-muted fs-8 mt-1">Lewat deadline</div>
                     </div>
                     <span class="badge" :class="statusBadge[task.status]">
                         {{ statusLabel[task.status] }}
@@ -275,6 +311,10 @@ onMounted(fetchTasks);
                 </div>
 
                 <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                    <div v-if="isTaskExpired(selectedTask) && !['submitted', 'selesai', 'revisi', 'ditolak'].includes(selectedTask.status)" class="alert alert-danger py-3 fs-7 mb-4">
+                        <b>Deadline sudah lewat.</b> Tugas ini tidak bisa dibuka lagi untuk dikirimkan.
+                    </div>
+
                     <!-- Info dasar -->
                     <div v-if="selectedTask.due_date" class="text-muted fs-7 mb-2">
                         <b>Deadline:</b> {{ formatDate(selectedTask.due_date) }}
@@ -345,7 +385,7 @@ onMounted(fetchTasks);
                     </template>
 
                     <!-- Progress belum/sedang -->
-                    <template v-if="selectedTask.status === 'belum' || selectedTask.status === 'sedang'">
+                    <template v-if="(selectedTask.status === 'belum' || selectedTask.status === 'sedang') && !isTaskExpired(selectedTask)">
                         <div class="separator my-4"></div>
                         <div class="fw-semibold fs-7 mb-2">Progress</div>
                         <div class="d-flex gap-2 mb-2">

@@ -1,12 +1,87 @@
 <template>
     <div class="row g-5">
         <div class="col-12">
-            <div class="card">
+            <!-- ══ DAFTAR USER ══ -->
+            <div class="card mb-5">
                 <div class="card-header border-0 pt-6">
                     <div class="card-title">
-                        <h2 class="fw-bold">Kelola Tugas</h2>
+                        <h2 class="fw-bold">Kelola Tugas per User</h2>
                     </div>
                     <div class="card-toolbar">
+                        <div class="d-flex align-items-center gap-2 bg-light rounded px-3 py-2">
+                            <KTIcon icon-name="magnifier" icon-class="fs-6 text-muted" />
+                            <input
+                                v-model="searchQuery"
+                                type="text"
+                                class="form-control form-control-sm border-0 bg-transparent shadow-none"
+                                placeholder="Cari nama..."
+                                style="min-width: 200px;"
+                            />
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body pt-2">
+                    <div v-if="loading" class="text-center py-10">
+                        <div class="spinner-border text-primary"></div>
+                    </div>
+                    <div v-else-if="!filteredInterns.length" class="text-center text-muted py-10">
+                        Tidak ada user yang cocok dengan pencarian.
+                    </div>
+                    <div v-else class="d-flex flex-wrap gap-3">
+                        <div
+                            v-for="u in filteredInterns"
+                            :key="u.id"
+                            role="button"
+                            tabindex="0"
+                            class="border rounded p-4 text-center"
+                            :class="selectedUserId === u.id ? 'border-primary bg-light-primary' : ''"
+                            style="width: 140px; cursor: pointer;"
+                            @click="selectUser(u.id)"
+                        >
+                            <div class="symbol symbol-50px mb-2 mx-auto">
+                                <img v-if="u.photo" :src="resolvePhotoUrl(u.photo)" class="rounded" />
+                                <span v-else class="symbol-label bg-light-primary text-primary fw-bold">
+                                    {{ u.name?.charAt(0)?.toUpperCase() }}
+                                </span>
+                            </div>
+                            <div class="fw-semibold fs-8 text-truncate">{{ u.name }}</div>
+                            <span class="badge badge-light-success fs-9 mt-1">{{ taskCountFor(u.id) }}x</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══ PLACEHOLDER: BELUM PILIH USER ══ -->
+            <div v-if="!selectedUserId" class="card">
+                <div class="card-body text-center py-20 text-muted">
+                    <KTIcon icon-name="user" icon-class="fs-3x mb-3 d-block" />
+                    <div class="fs-5 fw-semibold mb-1">Pilih user</div>
+                    <div class="fs-7">Klik salah satu nama di atas untuk melihat & kelola tugasnya</div>
+                </div>
+            </div>
+
+            <!-- ══ DETAIL TUGAS USER TERPILIH ══ -->
+            <div v-else class="card">
+                <div class="card-header border-0 pt-6">
+                    <div class="card-title d-flex align-items-center gap-3">
+                        <div class="symbol symbol-45px">
+                            <img v-if="selectedUser?.photo" :src="resolvePhotoUrl(selectedUser.photo)" class="rounded" />
+                            <span v-else class="symbol-label bg-light-primary text-primary fw-bold">
+                                {{ selectedUser?.name?.charAt(0)?.toUpperCase() }}
+                            </span>
+                        </div>
+                        <div>
+                            <h2 class="fw-bold mb-0">{{ selectedUser?.name }}</h2>
+                            <div class="text-muted fs-8">{{ selectedUser?.email }}</div>
+                        </div>
+                    </div>
+                    <div class="card-toolbar d-flex gap-2 align-items-center flex-wrap">
+                        <select v-model="sortBy" class="form-select form-select-sm" style="width: 185px;">
+                            <option value="newest">Newest</option>
+                            <option value="oldest">Oldest</option>
+                            <option value="deadline_asc">Deadline terdekat</option>
+                            <option value="deadline_desc">Deadline terjauh</option>
+                        </select>
                         <button class="btn btn-primary btn-sm" @click="openCreate">
                             <KTIcon icon-name="plus" icon-class="fs-6 me-1" />
                             Beri Tugas
@@ -14,20 +89,14 @@
                     </div>
                 </div>
                 <div class="card-body pt-2">
-                    <div v-if="loading" class="text-center py-10">
-                        <div class="spinner-border text-primary"></div>
+                    <div v-if="userTasks.length === 0" class="text-center text-muted py-10">
+                        Belum ada tugas untuk user ini.
                     </div>
-                    <div v-else-if="tasks.length === 0" class="text-center text-muted py-10">
-                        Belum ada tugas yang diberikan.
-                    </div>
-                    <div v-else class="d-flex flex-column gap-4">
-                        <div v-for="task in tasks" :key="task.id" class="border rounded p-4">
+                    <div v-else class="d-flex flex-column gap-3">
+                        <div v-for="task in userTasks" :key="task.id" class="border rounded p-3">
                             <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
                                 <div>
                                     <div class="fw-bold text-gray-800">{{ task.title }}</div>
-                                    <div class="text-muted fs-8">
-                                        Untuk: <b>{{ task.user?.name ?? '-' }}</b> ({{ task.user?.email ?? '' }})
-                                    </div>
                                     <div v-if="task.due_date" class="text-muted fs-8">Deadline: {{ formatDate(task.due_date) }}</div>
                                 </div>
                                 <div class="d-flex align-items-center gap-2">
@@ -45,35 +114,15 @@
 
                             <p v-if="task.description" class="text-muted fs-7 mb-3">{{ task.description }}</p>
 
-                            <!-- Lampiran yang dikumpulkan intern -->
                             <div v-if="task.attachments && task.attachments.length" class="bg-light-secondary bg-opacity-25 rounded p-3 mb-3">
-                                <!-- Galeri gambar -->
-                                <div
-                                    v-if="imageAttachments(task).length"
-                                    class="mb-3"
-                                    :style="imageAttachments(task).length > 5
-                                        ? 'display:grid; grid-template-columns: repeat(auto-fill, minmax(90px, 110px)); gap:0.5rem;'
-                                        : 'display:grid; grid-template-columns: repeat(auto-fill, minmax(110px, 140px)); gap:0.5rem;'"
-                                >
-                                    <div
-                                        v-for="img in imageAttachments(task)"
-                                        :key="img.id"
-                                    >
-                                        <div
-                                            role="button"
-                                            tabindex="0"
-                                            class="card border-0 overflow-hidden shadow-sm h-100"
-                                            style="cursor:pointer; user-select:none;"
-                                            @click="openImagePreview(img.url)"
-                                            @keydown.enter.prevent="openImagePreview(img.url)"
-                                            @keydown.space.prevent="openImagePreview(img.url)"
-                                        >
+                                <div v-if="imageAttachments(task).length" class="mb-3" :style="imageAttachments(task).length > 5 ? 'display:grid; grid-template-columns: repeat(auto-fill, minmax(90px, 110px)); gap:0.5rem;' : 'display:grid; grid-template-columns: repeat(auto-fill, minmax(110px, 140px)); gap:0.5rem;'">
+                                    <div v-for="img in imageAttachments(task)" :key="img.id">
+                                        <div role="button" tabindex="0" class="card border-0 overflow-hidden shadow-sm h-100" style="cursor:pointer; user-select:none;" @click="openImagePreview(img.url)" @keydown.enter.prevent="openImagePreview(img.url)" @keydown.space.prevent="openImagePreview(img.url)">
                                             <img :src="img.url" class="w-100" style="aspect-ratio:1/1; object-fit:cover; display:block;" />
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- File non-gambar -->
                                 <div v-if="fileAttachments(task).length" class="mb-2">
                                     <div v-for="f in fileAttachments(task)" :key="f.id" class="d-flex align-items-center gap-2 fs-8 text-muted mb-1">
                                         <KTIcon icon-name="file" icon-class="fs-7" />
@@ -81,29 +130,20 @@
                                     </div>
                                 </div>
 
-                                <button
-                                    class="btn btn-sm btn-light-primary mb-2"
-                                    :disabled="downloadingZipId === task.id"
-                                    @click="downloadZip(task)"
-                                >
+                                <button class="btn btn-sm btn-light-primary mb-2" :disabled="downloadingZipId === task.id" @click="downloadZip(task)">
                                     <span v-if="downloadingZipId === task.id" class="spinner-border spinner-border-sm me-2"></span>
                                     <KTIcon v-else icon-name="folder-down" icon-class="fs-6 me-1" />
                                     Download Semua Lampiran (ZIP)
                                 </button>
 
-                                <div v-if="task.submission_note" class="text-muted fs-8">
-                                    Catatan intern: {{ task.submission_note }}
-                                </div>
-                                <div v-if="task.submitted_at" class="text-muted fs-8">
-                                    Dikumpulkan: {{ formatDateTime(task.submitted_at) }}
-                                </div>
+                                <div v-if="task.submission_note" class="text-muted fs-8">Catatan intern: {{ task.submission_note }}</div>
+                                <div v-if="task.submitted_at" class="text-muted fs-8">Dikumpulkan: {{ formatDateTime(task.submitted_at) }}</div>
                             </div>
 
                             <div v-if="task.admin_note && task.status !== 'submitted'" class="text-muted fs-8 mb-3">
                                 <b>Catatan review:</b> {{ task.admin_note }}
                             </div>
 
-                            <!-- Aksi review, cuma muncul kalau statusnya "submitted" -->
                             <div v-if="task.status === 'submitted'">
                                 <div v-if="reviewingId !== task.id" class="d-flex gap-2">
                                     <button class="btn btn-sm btn-success" @click="openReview(task, 'accept')">
@@ -121,12 +161,7 @@
                                 </div>
                                 <div v-else class="border rounded p-3 bg-light">
                                     <div class="fw-semibold fs-7 mb-2">{{ reviewActionLabel[reviewAction!] }}</div>
-                                    <textarea
-                                        v-model="reviewNote"
-                                        class="form-control form-control-sm mb-3"
-                                        rows="2"
-                                        :placeholder="reviewAction === 'accept' ? 'Catatan (opsional)' : 'Jelaskan alasannya ke intern...'"
-                                    ></textarea>
+                                    <textarea v-model="reviewNote" class="form-control form-control-sm mb-3" rows="2" :placeholder="reviewAction === 'accept' ? 'Catatan (opsional)' : 'Jelaskan alasannya ke intern...'"></textarea>
                                     <div v-if="reviewMsg" class="alert alert-danger py-2 fs-7 mb-3">{{ reviewMsg }}</div>
                                     <div class="d-flex gap-2">
                                         <button class="btn btn-sm btn-light" @click="closeReview">Batal</button>
@@ -156,12 +191,9 @@
                     <div class="modal-body">
                         <div class="mb-4">
                             <label class="form-label fw-semibold">Diberikan Kepada</label>
-                            <select v-model="form.user_id" class="form-select">
-                                <option :value="null" disabled>Pilih peserta magang...</option>
-                                <option v-for="u in interns" :key="u.id" :value="u.id">
-                                    {{ u.name }} ({{ u.email }})
-                                </option>
-                            </select>
+                            <div class="form-control form-control-solid bg-light-secondary">
+                                {{ selectedUser?.name }} ({{ selectedUser?.email }})
+                            </div>
                         </div>
                         <div class="mb-4">
                             <label class="form-label fw-semibold">Judul Tugas</label>
@@ -204,7 +236,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import axios from '@/libs/axios'
 import { toast } from 'vue3-toastify'
 
@@ -225,23 +257,34 @@ interface Task {
     submission_note: string | null
     admin_note: string | null
     submitted_at: string | null
+    created_at?: string
     user?: { id: number; name: string; email: string }
     creator?: { id: number; name: string }
 }
 
+interface Intern {
+    id: number
+    name: string
+    email: string
+    photo?: string | null
+}
+
 const tasks = ref<Task[]>([])
-const interns = ref<any[]>([])
+const interns = ref<Intern[]>([])
 const loading = ref(false)
 const deletingId = ref<number | null>(null)
 const downloadingZipId = ref<number | null>(null)
 const previewImageUrl = ref<string | null>(null)
+const searchQuery = ref('')
+const sortBy = ref<'newest' | 'oldest' | 'deadline_asc' | 'deadline_desc'>('newest')
+
+const selectedUserId = ref<number | null>(null)
 
 const showForm = ref(false)
 const saving = ref(false)
 const formMsg = ref('')
 
 const form = ref({
-    user_id: null as number | null,
     title: '',
     description: '',
     due_date: '',
@@ -275,6 +318,54 @@ const reviewActionLabel: Record<string, string> = {
     accept: 'Terima tugas ini?',
     reject: 'Tolak tugas ini — jelaskan alasannya',
     revise: 'Minta revisi — jelaskan apa yang perlu diperbaiki',
+}
+
+const filteredInterns = computed(() => {
+    const keyword = searchQuery.value.trim().toLowerCase()
+    if (!keyword) return interns.value
+    return interns.value.filter(
+        (u) => u.name?.toLowerCase().includes(keyword) || u.email?.toLowerCase().includes(keyword)
+    )
+})
+
+const selectedUser = computed(() => interns.value.find((u) => u.id === selectedUserId.value) ?? null)
+
+const userTasks = computed(() => {
+    if (!selectedUserId.value) return []
+
+    const list = tasks.value.filter((t) => t.user?.id === selectedUserId.value)
+
+    return [...list].sort((a, b) => {
+        if (sortBy.value === 'oldest') return new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime()
+        if (sortBy.value === 'deadline_asc') {
+            const da = a.due_date ? new Date(a.due_date).getTime() : Number.MAX_SAFE_INTEGER
+            const db = b.due_date ? new Date(b.due_date).getTime() : Number.MAX_SAFE_INTEGER
+            return da - db
+        }
+        if (sortBy.value === 'deadline_desc') {
+            const da = a.due_date ? new Date(a.due_date).getTime() : Number.MIN_SAFE_INTEGER
+            const db = b.due_date ? new Date(b.due_date).getTime() : Number.MIN_SAFE_INTEGER
+            return db - da
+        }
+        return new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime()
+    })
+})
+
+function taskCountFor(userId: number) {
+    return tasks.value.filter((t) => t.user?.id === userId).length
+}
+
+function selectUser(userId: number) {
+    selectedUserId.value = userId
+}
+
+function resolvePhotoUrl(path?: string | null): string {
+    if (!path) return ''
+    if (path.startsWith('http://') || path.startsWith('https://')) return path
+    const base = (import.meta as any).env?.VITE_API_URL ?? ''
+    const trimmed = path.replace(/^\/+/, '')
+    const cleanPath = trimmed.startsWith('storage/') ? `/${trimmed}` : `/storage/${trimmed}`
+    return `${base}${cleanPath}`
 }
 
 function imageAttachments(task: Task) {
@@ -317,7 +408,7 @@ async function loadInterns() {
 }
 
 function resetForm() {
-    form.value = { user_id: null, title: '', description: '', due_date: '' }
+    form.value = { title: '', description: '', due_date: '' }
     formMsg.value = ''
 }
 
@@ -339,7 +430,7 @@ function closeForm() {
 }
 
 async function submitForm() {
-    if (!form.value.user_id) {
+    if (!selectedUserId.value) {
         formMsg.value = 'Pilih peserta magang dulu'
         return
     }
@@ -351,7 +442,7 @@ async function submitForm() {
     saving.value = true
     formMsg.value = ''
     try {
-        await axios.post('/admin/tasks', form.value)
+        await axios.post('/admin/tasks', { ...form.value, user_id: selectedUserId.value })
         toast.success('Tugas berhasil diberikan')
         showForm.value = false
         await loadTasks()
