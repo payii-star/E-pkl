@@ -6,6 +6,7 @@ use App\Models\Task;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class TaskDeadlineSubmissionTest extends TestCase
@@ -35,6 +36,43 @@ class TaskDeadlineSubmissionTest extends TestCase
             ])
             ->assertStatus(422)
             ->assertJson(['message' => 'Deadline tugas sudah lewat, tidak bisa mengirim tugas lagi.']);
+    }
+
+    public function test_admin_assessment_list_excludes_landing_users(): void
+    {
+        Role::firstOrCreate(['name' => 'hr-admin', 'guard_name' => 'api']);
+        Role::firstOrCreate(['name' => 'admin-landing', 'guard_name' => 'api']);
+
+        $admin = User::create([
+            'name' => 'Admin HR',
+            'email' => 'admin.hr.' . uniqid() . '@test.com',
+            'password' => bcrypt('12345678'),
+            'status' => 'aktif',
+        ]);
+        $admin->assignRole('hr-admin');
+
+        $landing = User::create([
+            'name' => 'Admin Landing',
+            'email' => 'admin.landing.' . uniqid() . '@test.com',
+            'password' => bcrypt('12345678'),
+            'status' => 'aktif',
+        ]);
+        $landing->assignRole('admin-landing');
+
+        $intern = User::create([
+            'name' => 'Intern Satu',
+            'email' => 'intern.satu.' . uniqid() . '@test.com',
+            'password' => bcrypt('12345678'),
+            'status' => 'aktif',
+            'tanggal_mulai' => '2025-01-01',
+            'tanggal_selesai' => '2025-01-10',
+        ]);
+
+        $this->actingAs($admin)
+            ->getJson('/api/admin/assessments?date=2025-01-10')
+            ->assertOk()
+            ->assertJsonFragment(['email' => $intern->email])
+            ->assertJsonMissing(['email' => $landing->email]);
     }
 
     public function test_unfinished_deadline_or_no_deadline_task_reduces_score_and_reverts_when_done(): void

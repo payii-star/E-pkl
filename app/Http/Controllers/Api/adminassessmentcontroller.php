@@ -27,8 +27,10 @@ class AdminAssessmentController extends Controller
 
         $interns = User::query()
             ->whereDoesntHave('roles', function ($query) {
-                $query->whereIn('name', ['hr-admin', 'atasan']);
+                $query->whereIn('name', ['hr-admin', 'atasan', 'admin-landing']);
             })
+            ->where('name', 'not like', '%landing%')
+            ->where('email', 'not like', '%landing%')
             ->orderBy('name')
             ->get(['id', 'name', 'email', 'photo', 'nim_nis', 'asal_instansi', 'tanggal_mulai', 'tanggal_selesai']);
 
