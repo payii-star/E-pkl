@@ -594,6 +594,7 @@ const saveProfile = async () => {
                 phone: profile.value.phone,
                 nim_nis: profile.value.nim_nis,
                 asal_instansi: profile.value.asal_instansi,
+                photo: user.photo || null,
             });
         }
 
