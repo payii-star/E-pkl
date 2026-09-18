@@ -149,6 +149,59 @@
                     <div class="card-body">
                         <form @submit.prevent="saveProfile">
 
+                            <!-- FOTO PROFIL -->
+                            <div class="mb-5">
+                                <label class="form-label">Foto Profil</label>
+
+                                <div class="d-flex align-items-center gap-4">
+                                    <div class="symbol symbol-60px symbol-circle">
+                                        <img
+                                            v-if="photoPreview"
+                                            :src="photoPreview"
+                                            alt="Preview foto profil"
+                                        />
+
+                                        <div
+                                            v-else
+                                            class="symbol-label bg-light-primary text-primary fs-3 fw-bold"
+                                        >
+                                            {{ initials }}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <input
+                                            ref="photoInput"
+                                            type="file"
+                                            class="d-none"
+                                            accept="image/jpeg,image/png,image/jpg"
+                                            @change="selectPhoto"
+                                        />
+
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-light-primary"
+                                            @click="openPhotoPicker"
+                                        >
+                                            Ganti Foto
+                                        </button>
+
+                                        <button
+                                            v-if="photoPreview"
+                                            type="button"
+                                            class="btn btn-sm btn-light-danger ms-2"
+                                            @click="removePhoto"
+                                        >
+                                            Hapus Foto
+                                        </button>
+
+                                        <div class="form-text">
+                                            JPG atau PNG, maksimal 2MB.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- NAMA -->
                             <div class="mb-5">
                                 <label class="form-label required">
@@ -310,6 +363,10 @@ const editForm = ref<ProfileData>({
 const showModal = ref(false);
 const loading = ref(false);
 const errorMessage = ref("");
+const photoInput = ref<HTMLInputElement | null>(null);
+const selectedPhoto = ref<File | null>(null);
+const photoPreview = ref<string | null>(null);
+const removeSelectedPhoto = ref(false);
 
 /* =========================
    HELPERS
@@ -391,6 +448,12 @@ const loadProfile = async () => {
 
 const openEdit = () => {
     errorMessage.value = "";
+    selectedPhoto.value = null;
+    removeSelectedPhoto.value = false;
+    photoPreview.value = profile.value.photo || null;
+    if (photoInput.value) {
+        photoInput.value.value = "";
+    }
 
     editForm.value = {
         id: profile.value.id,
@@ -410,6 +473,37 @@ const closeEdit = () => {
 
     showModal.value = false;
     errorMessage.value = "";
+};
+
+const openPhotoPicker = () => {
+    photoInput.value?.click();
+};
+
+const selectPhoto = (event: Event) => {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+
+    if (!file) return;
+
+    if (!file.type.match(/^image\/(jpeg|png|jpg)$/) || file.size > 2 * 1024 * 1024) {
+        errorMessage.value = "Foto harus JPG atau PNG dengan ukuran maksimal 2MB";
+        input.value = "";
+        return;
+    }
+
+    selectedPhoto.value = file;
+    removeSelectedPhoto.value = false;
+    photoPreview.value = URL.createObjectURL(file);
+    errorMessage.value = "";
+};
+
+const removePhoto = () => {
+    selectedPhoto.value = null;
+    removeSelectedPhoto.value = true;
+    photoPreview.value = null;
+    if (photoInput.value) {
+        photoInput.value.value = "";
+    }
 };
 
 /* =========================
@@ -459,6 +553,12 @@ const saveProfile = async () => {
             editForm.value.asal_instansi
         );
 
+        if (selectedPhoto.value) {
+            formData.append("photo", selectedPhoto.value);
+        } else if (removeSelectedPhoto.value) {
+            formData.append("remove_photo", "1");
+        }
+
         formData.append("_method", "PUT");
 
         const response = await axios.post(
@@ -484,6 +584,7 @@ const saveProfile = async () => {
                 editForm.value.asal_instansi,
             photo:
                 resolvePhotoUrl(user.profile_photo) ||
+                resolvePhotoUrl(user.photo) ||
                 profile.value.photo,
         };
 
