@@ -1,171 +1,293 @@
 <template>
     <div class="row g-5">
-        <div class="col-12">
-            <!-- ══ DAFTAR USER ══ -->
-            <div class="card mb-5">
+        <!-- ══ LIST TASK (kiri, lebar) ══ -->
+        <div class="col-lg-7">
+            <div class="card h-100">
                 <div class="card-header border-0 pt-6">
                     <div class="card-title">
-                        <h2 class="fw-bold">Kelola Tugas per User</h2>
+                        <h2 class="fw-bold">
+                            {{ selectedUser ? `List Task — ${selectedUser.name}` : 'List Task' }}
+                        </h2>
                     </div>
-                    <div class="card-toolbar">
-                        <div class="d-flex align-items-center gap-2 bg-light rounded px-3 py-2">
-                            <KTIcon icon-name="magnifier" icon-class="fs-6 text-muted" />
-                            <input
-                                v-model="searchQuery"
-                                type="text"
-                                class="form-control form-control-sm border-0 bg-transparent shadow-none"
-                                placeholder="Cari nama..."
-                                style="min-width: 200px;"
-                            />
-                        </div>
-                    </div>
-                </div>
-                <div class="card-body pt-2">
-                    <div v-if="loading" class="text-center py-10">
-                        <div class="spinner-border text-primary"></div>
-                    </div>
-                    <div v-else-if="!filteredInterns.length" class="text-center text-muted py-10">
-                        Tidak ada user yang cocok dengan pencarian.
-                    </div>
-                    <div v-else class="d-flex flex-wrap gap-3">
-                        <div
-                            v-for="u in filteredInterns"
-                            :key="u.id"
-                            role="button"
-                            tabindex="0"
-                            class="border rounded p-4 text-center"
-                            :class="selectedUserId === u.id ? 'border-primary bg-light-primary' : ''"
-                            style="width: 140px; cursor: pointer;"
-                            @click="selectUser(u.id)"
-                        >
-                            <div class="symbol symbol-50px mb-2 mx-auto">
-                                <img v-if="u.photo" :src="resolvePhotoUrl(u.photo)" class="rounded" />
-                                <span v-else class="symbol-label bg-light-primary text-primary fw-bold">
-                                    {{ u.name?.charAt(0)?.toUpperCase() }}
-                                </span>
-                            </div>
-                            <div class="fw-semibold fs-8 text-truncate">{{ u.name }}</div>
-                            <span class="badge badge-light-success fs-9 mt-1">{{ taskCountFor(u.id) }}x</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ══ PLACEHOLDER: BELUM PILIH USER ══ -->
-            <div v-if="!selectedUserId" class="card">
-                <div class="card-body text-center py-20 text-muted">
-                    <KTIcon icon-name="user" icon-class="fs-3x mb-3 d-block" />
-                    <div class="fs-5 fw-semibold mb-1">Pilih user</div>
-                    <div class="fs-7">Klik salah satu nama di atas untuk melihat & kelola tugasnya</div>
-                </div>
-            </div>
-
-            <!-- ══ DETAIL TUGAS USER TERPILIH ══ -->
-            <div v-else class="card">
-                <div class="card-header border-0 pt-6">
-                    <div class="card-title d-flex align-items-center gap-3">
-                        <div class="symbol symbol-45px">
-                            <img v-if="selectedUser?.photo" :src="resolvePhotoUrl(selectedUser.photo)" class="rounded" />
-                            <span v-else class="symbol-label bg-light-primary text-primary fw-bold">
-                                {{ selectedUser?.name?.charAt(0)?.toUpperCase() }}
-                            </span>
-                        </div>
-                        <div>
-                            <h2 class="fw-bold mb-0">{{ selectedUser?.name }}</h2>
-                            <div class="text-muted fs-8">{{ selectedUser?.email }}</div>
-                        </div>
-                    </div>
-                    <div class="card-toolbar d-flex gap-2 align-items-center flex-wrap">
-                        <select v-model="sortBy" class="form-select form-select-sm" style="width: 185px;">
-                            <option value="newest">Newest</option>
-                            <option value="oldest">Oldest</option>
-                            <option value="deadline_asc">Deadline terdekat</option>
-                            <option value="deadline_desc">Deadline terjauh</option>
-                        </select>
-                        <button class="btn btn-primary btn-sm" @click="openCreate">
-                            <KTIcon icon-name="plus" icon-class="fs-6 me-1" />
-                            Beri Tugas
+                    <div v-if="selectedUser" class="card-toolbar">
+                        <button class="btn btn-icon btn-sm btn-primary rounded-circle" @click="openCreate" title="Beri Tugas">
+                            <KTIcon icon-name="plus" icon-class="fs-4" />
                         </button>
                     </div>
                 </div>
-                <div class="card-body pt-2">
-                    <div v-if="userTasks.length === 0" class="text-center text-muted py-10">
-                        Belum ada tugas untuk user ini.
+
+                <div class="card-body pt-0">
+                    <!-- Belum pilih user -->
+                    <div v-if="!selectedUserId" class="text-center py-20 text-muted">
+                        <KTIcon icon-name="user" icon-class="fs-3x mb-3 d-block" />
+                        <div class="fs-5 fw-semibold mb-1">Pilih user</div>
+                        <div class="fs-7">Pilih salah satu nama di panel kanan untuk melihat & kelola tugasnya</div>
                     </div>
-                    <div v-else class="d-flex flex-column gap-3">
-                        <div v-for="task in userTasks" :key="task.id" class="border rounded p-3">
-                            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
-                                <div>
-                                    <div class="fw-bold text-gray-800">{{ task.title }}</div>
-                                    <div v-if="task.due_date" class="text-muted fs-8">Deadline: {{ formatDate(task.due_date) }}</div>
-                                </div>
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="badge" :class="statusBadge[task.status]">{{ statusLabel[task.status] }}</span>
-                                    <button
-                                        class="btn btn-icon btn-sm btn-light-danger"
-                                        :disabled="deletingId === task.id"
-                                        @click="removeTask(task)"
-                                    >
-                                        <span v-if="deletingId === task.id" class="spinner-border spinner-border-sm"></span>
-                                        <KTIcon v-else icon-name="trash" icon-class="fs-6" />
-                                    </button>
+
+                    <template v-else>
+                        <div class="mb-3">
+                            <select v-model="sortBy" class="form-select form-select-sm" style="max-width: 220px;">
+                                <option value="newest">Terbaru</option>
+                                <option value="oldest">Terlama</option>
+                                <option value="deadline_asc">Deadline terdekat</option>
+                                <option value="deadline_desc">Deadline terjauh</option>
+                            </select>
+                        </div>
+
+                        <div v-if="userTasks.length === 0" class="text-center text-muted py-10 fs-7">
+                            Belum ada tugas untuk user ini.
+                        </div>
+
+                        <div v-else class="d-flex flex-column gap-2">
+                            <div
+                                v-for="task in userTasks"
+                                :key="task.id"
+                                role="button"
+                                tabindex="0"
+                                class="border rounded p-3 d-flex align-items-start gap-3"
+                                :class="[
+                                    selectedTaskId === task.id ? 'bg-light-primary' : '',
+                                    'border-start border-4',
+                                    taskBorderClass[task.status],
+                                ]"
+                                style="cursor: pointer;"
+                                @click="selectedTaskId = task.id"
+                            >
+                                <KTIcon
+                                    :icon-name="task.status === 'selesai' ? 'check-square' : 'square'"
+                                    :icon-class="task.status === 'selesai' ? 'fs-2 text-success' : 'fs-2 text-muted'"
+                                />
+                                <div class="flex-grow-1">
+                                    <div class="fw-semibold fs-7" :class="task.status === 'selesai' ? 'text-muted text-decoration-line-through' : 'text-gray-800'">
+                                        {{ task.title }}
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2 mt-1">
+                                        <span v-if="task.due_date" class="text-muted fs-9">
+                                            <KTIcon icon-name="calendar" icon-class="fs-8 me-1" />{{ formatDate(task.due_date) }}
+                                        </span>
+                                        <span class="badge fs-9" :class="statusBadge[task.status]">{{ statusLabel[task.status] }}</span>
+                                    </div>
                                 </div>
                             </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
 
-                            <p v-if="task.description" class="text-muted fs-7 mb-3">{{ task.description }}</p>
+        <!-- ══ KANAN: DAFTAR USER + FILES + HISTORY ══ -->
+        <div class="col-lg-5">
+            <div class="d-flex flex-column gap-5">
+                <!-- Daftar User (kompak) -->
+                <div class="card">
+                    <div class="card-header border-0 pt-6 min-h-auto">
+                        <div class="card-title">
+                            <h3 class="fs-6 fw-bold">Daftar User</h3>
+                        </div>
+                        <div class="card-toolbar">
+                            <button class="btn btn-icon btn-sm btn-light" @click="showSearch = !showSearch" title="Cari user">
+                                <KTIcon icon-name="magnifier" icon-class="fs-5" />
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body pt-0">
+                        <input
+                            v-if="showSearch"
+                            v-model="searchQuery"
+                            type="text"
+                            class="form-control form-control-sm mb-3"
+                            placeholder="Cari nama / email..."
+                        />
 
-                            <div v-if="task.attachments && task.attachments.length" class="bg-light-secondary bg-opacity-25 rounded p-3 mb-3">
-                                <div v-if="imageAttachments(task).length" class="mb-3" :style="imageAttachments(task).length > 5 ? 'display:grid; grid-template-columns: repeat(auto-fill, minmax(90px, 110px)); gap:0.5rem;' : 'display:grid; grid-template-columns: repeat(auto-fill, minmax(110px, 140px)); gap:0.5rem;'">
-                                    <div v-for="img in imageAttachments(task)" :key="img.id">
-                                        <div role="button" tabindex="0" class="card border-0 overflow-hidden shadow-sm h-100" style="cursor:pointer; user-select:none;" @click="openImagePreview(img.url)" @keydown.enter.prevent="openImagePreview(img.url)" @keydown.space.prevent="openImagePreview(img.url)">
+                        <div v-if="loading" class="text-center py-5">
+                            <div class="spinner-border spinner-border-sm text-primary"></div>
+                        </div>
+                        <div v-else-if="!filteredInterns.length" class="text-center text-muted fs-8 py-3">
+                            Tidak ada user yang cocok.
+                        </div>
+                        <div v-else class="d-flex flex-wrap gap-2">
+                            <div
+                                v-for="u in filteredInterns"
+                                :key="u.id"
+                                role="button"
+                                tabindex="0"
+                                class="text-center"
+                                style="width: 60px; cursor: pointer;"
+                                :title="u.name"
+                                @click="selectUser(u.id)"
+                            >
+                                <div
+                                    class="symbol symbol-40px mx-auto mb-1"
+                                    :class="selectedUserId === u.id ? 'border border-3 border-primary rounded-circle' : ''"
+                                >
+                                    <img v-if="u.photo" :src="resolvePhotoUrl(u.photo)" class="rounded-circle" />
+                                    <span v-else class="symbol-label bg-light-primary text-primary fw-bold rounded-circle">
+                                        {{ u.name?.charAt(0)?.toUpperCase() }}
+                                    </span>
+                                </div>
+                                <div class="fs-9 text-truncate">{{ u.name }}</div>
+                                <span class="badge badge-light-success fs-9">{{ taskCountFor(u.id) }}x</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Files & History, muncul kalau ada tugas terpilih -->
+                <template v-if="selectedTask">
+                    <!-- Header tugas terpilih -->
+                    <div class="card">
+                        <div class="card-body d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                            <div>
+                                <div class="fw-bold fs-6">{{ selectedTask.title }}</div>
+                                <p v-if="selectedTask.description" class="text-muted fs-8 mb-1">{{ selectedTask.description }}</p>
+                                <span v-if="selectedTask.due_date" class="text-muted fs-9">Deadline: {{ formatDate(selectedTask.due_date) }}</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge fs-9" :class="statusBadge[selectedTask.status]">{{ statusLabel[selectedTask.status] }}</span>
+                                <button
+                                    class="btn btn-icon btn-sm btn-light-danger"
+                                    :disabled="deletingId === selectedTask.id"
+                                    @click="removeTask(selectedTask)"
+                                >
+                                    <span v-if="deletingId === selectedTask.id" class="spinner-border spinner-border-sm"></span>
+                                    <KTIcon v-else icon-name="trash" icon-class="fs-6" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Files -->
+                    <div class="card">
+                        <div class="card-header border-0 pt-6 min-h-auto">
+                            <div class="card-title">
+                                <h3 class="fs-6 fw-bold">Files</h3>
+                            </div>
+                            <div v-if="selectedTask.attachments?.length" class="card-toolbar">
+                                <button class="btn btn-sm btn-light-primary" :disabled="downloadingZipId === selectedTask.id" @click="downloadZip(selectedTask)">
+                                    <span v-if="downloadingZipId === selectedTask.id" class="spinner-border spinner-border-sm me-2"></span>
+                                    <KTIcon v-else icon-name="folder-down" icon-class="fs-6 me-1" />
+                                    ZIP
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body pt-0">
+                            <div v-if="!selectedTask.attachments?.length" class="text-muted fs-8">Belum ada lampiran.</div>
+                            <div v-else>
+                                <div
+                                    v-if="imageAttachments(selectedTask).length"
+                                    class="mb-3"
+                                    style="display:grid; grid-template-columns: repeat(auto-fill, minmax(80px, 100px)); gap:0.5rem;"
+                                >
+                                    <div v-for="img in imageAttachments(selectedTask)" :key="img.id">
+                                        <div
+                                            role="button"
+                                            tabindex="0"
+                                            class="card border-0 overflow-hidden shadow-sm h-100"
+                                            style="cursor:pointer; user-select:none;"
+                                            @click="openImagePreview(img.url)"
+                                        >
                                             <img :src="img.url" class="w-100" style="aspect-ratio:1/1; object-fit:cover; display:block;" />
                                         </div>
                                     </div>
                                 </div>
-
-                                <div v-if="fileAttachments(task).length" class="mb-2">
-                                    <div v-for="f in fileAttachments(task)" :key="f.id" class="d-flex align-items-center gap-2 fs-8 text-muted mb-1">
+                                <div v-if="fileAttachments(selectedTask).length" class="d-flex flex-column gap-1">
+                                    <a
+                                        v-for="f in fileAttachments(selectedTask)"
+                                        :key="f.id"
+                                        :href="f.url"
+                                        target="_blank"
+                                        class="d-flex align-items-center gap-2 fs-8 text-gray-700 text-hover-primary"
+                                    >
                                         <KTIcon icon-name="file" icon-class="fs-7" />
                                         {{ f.original_name }}
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- History -->
+                    <div class="card">
+                        <div class="card-header border-0 pt-6 min-h-auto">
+                            <div class="card-title">
+                                <h3 class="fs-6 fw-bold">History</h3>
+                            </div>
+                        </div>
+                        <div class="card-body pt-0">
+                            <div class="d-flex flex-column gap-4">
+                                <!-- Diberikan -->
+                                <div class="d-flex gap-3">
+                                    <div class="symbol symbol-30px">
+                                        <span class="symbol-label bg-light-primary text-primary">
+                                            <KTIcon icon-name="send" icon-class="fs-7" />
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <div class="fw-semibold fs-8">
+                                            Tugas diberikan{{ selectedTask.creator?.name ? ` oleh ${selectedTask.creator.name}` : '' }}
+                                        </div>
+                                        <div class="text-muted fs-9">{{ formatDateTime(selectedTask.created_at) }}</div>
                                     </div>
                                 </div>
 
-                                <button class="btn btn-sm btn-light-primary mb-2" :disabled="downloadingZipId === task.id" @click="downloadZip(task)">
-                                    <span v-if="downloadingZipId === task.id" class="spinner-border spinner-border-sm me-2"></span>
-                                    <KTIcon v-else icon-name="folder-down" icon-class="fs-6 me-1" />
-                                    Download Semua Lampiran (ZIP)
-                                </button>
+                                <!-- Dikumpulkan -->
+                                <div v-if="selectedTask.submitted_at" class="d-flex gap-3">
+                                    <div class="symbol symbol-30px">
+                                        <span class="symbol-label bg-light-info text-info">
+                                            <KTIcon icon-name="folder-up" icon-class="fs-7" />
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <div class="fw-semibold fs-8">Dikumpulkan oleh {{ selectedUser?.name }}</div>
+                                        <div class="text-muted fs-9">{{ formatDateTime(selectedTask.submitted_at) }}</div>
+                                        <div v-if="selectedTask.submission_note" class="fs-8 text-gray-700 mt-1">
+                                            "{{ selectedTask.submission_note }}"
+                                        </div>
+                                    </div>
+                                </div>
 
-                                <div v-if="task.submission_note" class="text-muted fs-8">Catatan intern: {{ task.submission_note }}</div>
-                                <div v-if="task.submitted_at" class="text-muted fs-8">Dikumpulkan: {{ formatDateTime(task.submitted_at) }}</div>
+                                <!-- Direview -->
+                                <div v-if="selectedTask.reviewed_at" class="d-flex gap-3">
+                                    <div class="symbol symbol-30px">
+                                        <span class="symbol-label" :class="reviewIconBg[selectedTask.status] ?? 'bg-light-secondary text-secondary'">
+                                            <KTIcon icon-name="check" icon-class="fs-7" />
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <div class="fw-semibold fs-8">
+                                            Direview — <span :class="'text-' + (statusColor[selectedTask.status] ?? 'secondary')">{{ statusLabel[selectedTask.status] }}</span>
+                                        </div>
+                                        <div class="text-muted fs-9">{{ formatDateTime(selectedTask.reviewed_at) }}</div>
+                                        <div v-if="selectedTask.admin_note" class="fs-8 text-gray-700 mt-1">
+                                            "{{ selectedTask.admin_note }}"
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div v-if="task.admin_note && task.status !== 'submitted'" class="text-muted fs-8 mb-3">
-                                <b>Catatan review:</b> {{ task.admin_note }}
-                            </div>
-
-                            <div v-if="task.status === 'submitted'">
-                                <div v-if="reviewingId !== task.id" class="d-flex gap-2">
-                                    <button class="btn btn-sm btn-success" @click="openReview(task, 'accept')">
+                            <!-- Aksi review, cuma muncul kalau status "submitted" -->
+                            <div v-if="selectedTask.status === 'submitted'" class="mt-5 pt-4 border-top">
+                                <div v-if="reviewingId !== selectedTask.id" class="d-flex gap-2 flex-wrap">
+                                    <button class="btn btn-sm btn-success" @click="openReview(selectedTask, 'accept')">
                                         <KTIcon icon-name="check" icon-class="fs-6 me-1" />
                                         Terima
                                     </button>
-                                    <button class="btn btn-sm btn-warning" @click="openReview(task, 'revise')">
+                                    <button class="btn btn-sm btn-warning" @click="openReview(selectedTask, 'revise')">
                                         <KTIcon icon-name="arrows-circle" icon-class="fs-6 me-1" />
-                                        Minta Revisi
+                                        Revisi
                                     </button>
-                                    <button class="btn btn-sm btn-danger" @click="openReview(task, 'reject')">
+                                    <button class="btn btn-sm btn-danger" @click="openReview(selectedTask, 'reject')">
                                         <KTIcon icon-name="cross" icon-class="fs-6 me-1" />
                                         Tolak
                                     </button>
                                 </div>
                                 <div v-else class="border rounded p-3 bg-light">
-                                    <div class="fw-semibold fs-7 mb-2">{{ reviewActionLabel[reviewAction!] }}</div>
+                                    <div class="fw-semibold fs-8 mb-2">{{ reviewActionLabel[reviewAction!] }}</div>
                                     <textarea v-model="reviewNote" class="form-control form-control-sm mb-3" rows="2" :placeholder="reviewAction === 'accept' ? 'Catatan (opsional)' : 'Jelaskan alasannya ke intern...'"></textarea>
-                                    <div v-if="reviewMsg" class="alert alert-danger py-2 fs-7 mb-3">{{ reviewMsg }}</div>
+                                    <div v-if="reviewMsg" class="alert alert-danger py-2 fs-8 mb-3">{{ reviewMsg }}</div>
                                     <div class="d-flex gap-2">
                                         <button class="btn btn-sm btn-light" @click="closeReview">Batal</button>
-                                        <button class="btn btn-sm btn-primary" :disabled="submittingReview" @click="submitReview(task)">
+                                        <button class="btn btn-sm btn-primary" :disabled="submittingReview" @click="submitReview(selectedTask)">
                                             <span v-if="submittingReview" class="spinner-border spinner-border-sm me-2"></span>
                                             Simpan
                                         </button>
@@ -174,7 +296,7 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </template>
             </div>
         </div>
 
@@ -236,7 +358,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import axios from '@/libs/axios'
 import { toast } from 'vue3-toastify'
 
@@ -257,6 +379,7 @@ interface Task {
     submission_note: string | null
     admin_note: string | null
     submitted_at: string | null
+    reviewed_at?: string | null
     created_at?: string
     user?: { id: number; name: string; email: string }
     creator?: { id: number; name: string }
@@ -276,9 +399,11 @@ const deletingId = ref<number | null>(null)
 const downloadingZipId = ref<number | null>(null)
 const previewImageUrl = ref<string | null>(null)
 const searchQuery = ref('')
+const showSearch = ref(false)
 const sortBy = ref<'newest' | 'oldest' | 'deadline_asc' | 'deadline_desc'>('newest')
 
 const selectedUserId = ref<number | null>(null)
+const selectedTaskId = ref<number | null>(null)
 
 const showForm = ref(false)
 const saving = ref(false)
@@ -312,6 +437,30 @@ const statusBadge: Record<string, string> = {
     revisi: 'badge-light-danger',
     selesai: 'badge-light-success',
     ditolak: 'badge-light-danger',
+}
+
+const statusColor: Record<string, string> = {
+    belum: 'warning',
+    sedang: 'primary',
+    submitted: 'info',
+    revisi: 'danger',
+    selesai: 'success',
+    ditolak: 'danger',
+}
+
+const taskBorderClass: Record<string, string> = {
+    belum: 'border-warning',
+    sedang: 'border-primary',
+    submitted: 'border-info',
+    revisi: 'border-danger',
+    selesai: 'border-success',
+    ditolak: 'border-danger',
+}
+
+const reviewIconBg: Record<string, string> = {
+    selesai: 'bg-light-success text-success',
+    revisi: 'bg-light-danger text-danger',
+    ditolak: 'bg-light-danger text-danger',
 }
 
 const reviewActionLabel: Record<string, string> = {
@@ -351,6 +500,13 @@ const userTasks = computed(() => {
     })
 })
 
+const selectedTask = computed(() => userTasks.value.find((t) => t.id === selectedTaskId.value) ?? null)
+
+// Reset pilihan tugas kalau ganti user
+watch(selectedUserId, () => {
+    selectedTaskId.value = null
+})
+
 function taskCountFor(userId: number) {
     return tasks.value.filter((t) => t.user?.id === userId).length
 }
@@ -381,7 +537,7 @@ function formatDate(dateStr: string | null) {
     return new Date(dateStr).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-function formatDateTime(dateStr: string | null) {
+function formatDateTime(dateStr: string | null | undefined) {
     if (!dateStr) return '-'
     return new Date(dateStr).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
@@ -459,6 +615,7 @@ async function removeTask(task: Task) {
     try {
         await axios.delete(`/admin/tasks/${task.id}`)
         toast.success('Tugas berhasil dihapus')
+        if (selectedTaskId.value === task.id) selectedTaskId.value = null
         await loadTasks()
     } catch (e: any) {
         toast.error(e.response?.data?.message ?? 'Gagal menghapus tugas')
