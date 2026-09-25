@@ -1,8 +1,8 @@
 <template>
-    <div class="row g-5">
+    <div class="row g-5 align-items-start">
         <!-- ══ LIST TASK (kiri, lebar) ══ -->
         <div class="col-lg-7">
-            <div class="card h-100">
+            <div class="card">
                 <div class="card-header border-0 pt-6">
                     <div class="card-title">
                         <h2 class="fw-bold">
@@ -44,7 +44,7 @@
                                 :key="task.id"
                                 role="button"
                                 tabindex="0"
-                                class="border rounded p-3 d-flex align-items-start gap-3"
+                                class="border rounded p-3 d-flex align-items-center gap-3"
                                 :class="[
                                     selectedTaskId === task.id ? 'bg-light-primary' : '',
                                     'border-start border-4',
@@ -53,10 +53,14 @@
                                 style="cursor: pointer;"
                                 @click="selectedTaskId = task.id"
                             >
-                                <KTIcon
-                                    :icon-name="task.status === 'selesai' ? 'check-square' : 'square'"
-                                    :icon-class="task.status === 'selesai' ? 'fs-2 text-success' : 'fs-2 text-muted'"
-                                />
+                                <div class="form-check form-check-custom form-check-solid">
+                                    <input
+                                        type="checkbox"
+                                        class="form-check-input"
+                                        :checked="task.status === 'selesai'"
+                                        disabled
+                                    />
+                                </div>
                                 <div class="flex-grow-1">
                                     <div class="fw-semibold fs-7" :class="task.status === 'selesai' ? 'text-muted text-decoration-line-through' : 'text-gray-800'">
                                         {{ task.title }}
@@ -77,7 +81,7 @@
 
         <!-- ══ KANAN: DAFTAR USER + FILES + HISTORY ══ -->
         <div class="col-lg-5">
-            <div class="d-flex flex-column gap-5">
+            <div class="d-flex flex-column gap-4">
                 <!-- Daftar User (kompak) -->
                 <div class="card">
                     <div class="card-header border-0 pt-6 min-h-auto">
@@ -85,7 +89,7 @@
                             <h3 class="fs-6 fw-bold">Daftar User</h3>
                         </div>
                         <div class="card-toolbar">
-                            <button class="btn btn-icon btn-sm btn-light" @click="showSearch = !showSearch" title="Cari user">
+                            <button class="btn btn-icon btn-sm btn-light-primary rounded-circle" @click="showSearch = !showSearch" title="Cari user">
                                 <KTIcon icon-name="magnifier" icon-class="fs-5" />
                             </button>
                         </div>
@@ -134,19 +138,22 @@
 
                 <!-- Files & History, muncul kalau ada tugas terpilih -->
                 <template v-if="selectedTask">
-                    <!-- Header tugas terpilih -->
+                    <!-- Files -->
                     <div class="card">
-                        <div class="card-body d-flex justify-content-between align-items-start gap-3 flex-wrap">
-                            <div>
-                                <div class="fw-bold fs-6">{{ selectedTask.title }}</div>
-                                <p v-if="selectedTask.description" class="text-muted fs-8 mb-1">{{ selectedTask.description }}</p>
-                                <span v-if="selectedTask.due_date" class="text-muted fs-9">Deadline: {{ formatDate(selectedTask.due_date) }}</span>
+                        <div class="card-header border-0 pt-6 min-h-auto">
+                            <div class="card-title">
+                                <h3 class="fs-6 fw-bold">Files</h3>
                             </div>
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="badge fs-9" :class="statusBadge[selectedTask.status]">{{ statusLabel[selectedTask.status] }}</span>
+                            <div class="card-toolbar d-flex gap-2">
+                                <button v-if="selectedTask.attachments?.length" class="btn btn-sm btn-light-primary" :disabled="downloadingZipId === selectedTask.id" @click="downloadZip(selectedTask)">
+                                    <span v-if="downloadingZipId === selectedTask.id" class="spinner-border spinner-border-sm me-2"></span>
+                                    <KTIcon v-else icon-name="folder-down" icon-class="fs-6 me-1" />
+                                    ZIP
+                                </button>
                                 <button
                                     class="btn btn-icon btn-sm btn-light-danger"
                                     :disabled="deletingId === selectedTask.id"
+                                    title="Hapus tugas ini"
                                     @click="removeTask(selectedTask)"
                                 >
                                     <span v-if="deletingId === selectedTask.id" class="spinner-border spinner-border-sm"></span>
@@ -154,23 +161,12 @@
                                 </button>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Files -->
-                    <div class="card">
-                        <div class="card-header border-0 pt-6 min-h-auto">
-                            <div class="card-title">
-                                <h3 class="fs-6 fw-bold">Files</h3>
-                            </div>
-                            <div v-if="selectedTask.attachments?.length" class="card-toolbar">
-                                <button class="btn btn-sm btn-light-primary" :disabled="downloadingZipId === selectedTask.id" @click="downloadZip(selectedTask)">
-                                    <span v-if="downloadingZipId === selectedTask.id" class="spinner-border spinner-border-sm me-2"></span>
-                                    <KTIcon v-else icon-name="folder-down" icon-class="fs-6 me-1" />
-                                    ZIP
-                                </button>
-                            </div>
-                        </div>
                         <div class="card-body pt-0">
+                            <div class="mb-3">
+                                <div class="fw-bold fs-6">{{ selectedTask.title }}</div>
+                                <p v-if="selectedTask.description" class="text-muted fs-8 mb-1">{{ selectedTask.description }}</p>
+                                <span v-if="selectedTask.due_date" class="text-muted fs-9">Deadline: {{ formatDate(selectedTask.due_date) }}</span>
+                            </div>
                             <div v-if="!selectedTask.attachments?.length" class="text-muted fs-8">Belum ada lampiran.</div>
                             <div v-else>
                                 <div
